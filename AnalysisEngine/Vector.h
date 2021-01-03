@@ -2,9 +2,8 @@
 
 #include "XYZPoint.h"
 
-class Vector
+struct Vector
 {
-public:
 	double X;
 	double Y;
 	double Z;
@@ -16,8 +15,8 @@ public:
 	/// Creates a vector starting from origin
 	/// </summary>
 	Vector(XYZPoint Point);
-	
-	
+
+
 	Vector(double x, double y, double z);
 
 	/// <summary>

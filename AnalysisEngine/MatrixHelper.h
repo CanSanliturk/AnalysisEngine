@@ -3,7 +3,7 @@
 #include <vector>
 #include <math.h>
 
-class MatrixHelper
+struct MatrixHelper
 {
 public:
 	static std::vector<std::vector<double>> GetTranspose(std::vector<std::vector<double>> matrix);

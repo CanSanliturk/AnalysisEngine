@@ -1,8 +1,7 @@
 #pragma once
 
-class XYPoint
+struct XYPoint
 {
-public:
 	double X;
 	double Y;
 
@@ -22,6 +21,4 @@ public:
 	{
 
 	};
-
-private:
 };

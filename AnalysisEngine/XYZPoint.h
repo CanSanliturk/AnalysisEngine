@@ -2,14 +2,13 @@
 
 #include <math.h>
 
-class XYZPoint
+struct XYZPoint
 {
-public:
 	double X;
 	double Y;
 	double Z;
 
-	
+
 	XYZPoint(double x, double y, double z)
 	{
 		this->X = x;
@@ -30,9 +29,7 @@ public:
 	};
 
 	double DistanceTo(XYZPoint pt)
-	{		
+	{
 		return sqrt(((this->X - pt.X) * (this->X - pt.X)) + ((this->Y - pt.Y) * (this->Y - pt.Y)) + ((this->Z - pt.Z) * (this->Z - pt.Z)));
 	};
-
-private:
 };
