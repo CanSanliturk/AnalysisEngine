@@ -98,6 +98,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 	}
 
 	unrestDofCount = dofIdx;
+	this->nUnrestrainedDOF = unrestDofCount;
 
 	for (auto nodePair : *this->Nodes)
 	{
@@ -162,6 +163,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 	}
 
 	totalDofCount = dofIdx;
+	this->nDOF = totalDofCount;
 }
 
 void Structure::AssembleStiffnessMatrix(unsigned int totalDofCount)

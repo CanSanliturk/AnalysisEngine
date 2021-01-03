@@ -1,7 +1,8 @@
 #pragma once
+#include <vector>
+#include "Structure.h"
 
-class ArmadilloSolver
+namespace ArmadilloSolver
 {
-public:
-	void* GetResult();
+	std::vector<double> GetResult(Structure str);
 };

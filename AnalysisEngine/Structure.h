@@ -21,6 +21,9 @@ public:
 	std::vector<std::vector<double>> MassMatrix;
 	std::vector<double> ForceVector;
 
+	unsigned int nDOF = 0;
+	unsigned int nUnrestrainedDOF = 0;
+
 	Structure(std::map<unsigned int, Node*>* nodeMap, std::map<unsigned int, Element*>* elementMap, std::map<unsigned int, Restraint*>* restraintMap, 
 		std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap);
 	Structure();

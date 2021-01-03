@@ -66,6 +66,9 @@
     <ClCompile Include="TrussElement.cpp">
       <Filter>src\Elements</Filter>
     </ClCompile>
+    <ClCompile Include="ArmadilloSolver.cpp">
+      <Filter>src\Solvers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Node.h">
@@ -115,6 +118,9 @@
     </ClInclude>
     <ClInclude Include="TrussMember.h">
       <Filter>src\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="ArmadilloSolver.h">
+      <Filter>src\Solvers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

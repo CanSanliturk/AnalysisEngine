@@ -1,6 +1,4 @@
 #include <iostream>
-#include <Dense>
-#include <Sparse>
 #include <vector>
 #include "XYZPoint.h"
 #include "Restraint.h"
@@ -10,7 +8,7 @@
 #include "Element.h"
 #include "MatrixHelper.h"
 #include "Structure.h"
-#include "EigenSolver.h"
+#include "ArmadilloSolver.h"
 
 int main()
 {
@@ -57,6 +55,7 @@ int main()
 	// Create member
 	FrameMember member(1, &node1, &node2, &sect, &mat);
 	std::map<unsigned int, Element*> members;
+	members[member.ElementIndex] = &member;
 
 	// Add tip load
 	double loads[6];
@@ -78,7 +77,7 @@ int main()
 	std::cout << "Model is created successfully" << std::endl;
 	std::cout << "Solver starts" << std::endl;
 
-
+	ArmadilloSolver::GetResult(str);
 
 	std::cin.get();
 
