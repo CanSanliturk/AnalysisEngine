@@ -77,7 +77,7 @@ int main()
 	std::cout << "Model is created successfully" << std::endl;
 	std::cout << "Solver starts" << std::endl;
 
-	ArmadilloSolver::GetResult(str);
+	ArmadilloSolver::GetDisplacementForStaticCase(str);
 
 	std::cin.get();
 
