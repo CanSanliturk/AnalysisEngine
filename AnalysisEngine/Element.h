@@ -14,8 +14,6 @@ namespace ElmType {
 
 class Element {
 public:
-
-
 	virtual std::vector<Node*> GelElementNodes() 
 	{
 		Node n;

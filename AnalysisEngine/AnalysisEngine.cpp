@@ -77,7 +77,9 @@ int main()
 	std::cout << "Model is created successfully" << std::endl;
 	std::cout << "Solver starts" << std::endl;
 
-	ArmadilloSolver::GetDisplacementForStaticCase(str);
+	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
+	ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(member, disps);
+	ArmadilloSolver::GetMemberEndForcesForGlobalCoordinates(member, disps);
 
 	std::cin.get();
 
