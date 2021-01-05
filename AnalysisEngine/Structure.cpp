@@ -5,19 +5,11 @@
 
 Structure::Structure(std::map<unsigned int, Node*>* nodeMap, std::map<unsigned int, Element*>* elementMap, std::map<unsigned int, Restraint*>* restraintMap,
 	std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap)
+	: nDOF(0), nUnrestrainedDOF(0), Nodes(nodeMap), Elements(elementMap), Restraints(restraintMap), NodalLoads(nodalLoadMap), DistributedLoads(distLoadMap)
 {
-	this->Nodes = nodeMap;
-	this->Elements = elementMap;
-	this->Restraints = restraintMap;
-	this->NodalLoads = nodalLoadMap;
-	this->DistributedLoads = distLoadMap;
-
 	unsigned int totalDofCount = 0;
 	unsigned int unrestDofCount = 0;
-
 	this->AssignDegreesOfFreedom(unrestDofCount, totalDofCount);
-	nodeMap = this->Nodes;
-
 	this->AssembleStiffnessMatrix(totalDofCount);
 	this->AssembleMassMatrix(totalDofCount);
 	this->AssembleForceVector(totalDofCount);
@@ -35,7 +27,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 {
 	unsigned int dofIdx = 0;
 
-	for (auto nodePair : *this->Nodes)
+	for (auto& nodePair : *this->Nodes)
 	{
 		auto node = nodePair.second;
 		
@@ -46,7 +38,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 		bool isRotYRest = false;
 		bool isRotZRest = false;
 
-		for (auto restPair : *this->Restraints)
+		for (auto& restPair : *this->Restraints)
 		{
 			auto rest = restPair.second;
 			if (rest->RestrainedNode->NodeIndex != nodePair.first)
@@ -111,7 +103,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 		bool isRotYRest = false;
 		bool isRotZRest = false;
 
-		for (auto restPair : *this->Restraints)
+		for (auto& restPair : *this->Restraints)
 		{
 			auto rest = restPair.second;
 			if (rest->RestrainedNode->NodeIndex != nodePair.first)
@@ -171,13 +163,13 @@ void Structure::AssembleStiffnessMatrix(unsigned int totalDofCount)
 	std::vector<double> zeroVector(totalDofCount, 0.0);
 	for (unsigned int i = 0; i < totalDofCount; i++) this->StiffnessMatrix.push_back(zeroVector);
 
-	for (std::pair<unsigned int, Element*> elmPair : *this->Elements)
+	for (auto& elmPair : *this->Elements)
 	{
 		auto elm = elmPair.second;
 		auto nodes = elm->GelElementNodes();
 		std::vector<unsigned int> steerVector;
 
-		for (auto n : nodes)
+		for (auto& n : nodes)
 		{
 			steerVector.push_back(n->DofIndexTX);
 			steerVector.push_back(n->DofIndexTY);
@@ -208,7 +200,7 @@ void Structure::AssembleMassMatrix(unsigned int totalDofCount)
 	std::vector<double> zeroVector(totalDofCount, 0.0);
 	for (unsigned int i = 0; i < totalDofCount; i++) this->MassMatrix.push_back(zeroVector);
 
-	for (std::pair<unsigned int, Element*> elmPair : *this->Elements)
+	for (auto& elmPair : *this->Elements)
 	{
 		auto elm = elmPair.second;
 		auto nodes = elm->GelElementNodes();
@@ -244,7 +236,7 @@ void Structure::AssembleForceVector(unsigned int totalDofCount)
 {
 	for (size_t i = 0; i < totalDofCount; i++) this->ForceVector.push_back(0.0);
 	
-	for (std::pair<unsigned int, NodalLoad *> nodalLoadPair : *this->NodalLoads)
+	for (auto& nodalLoadPair : *this->NodalLoads)
 	{
 		auto load = nodalLoadPair.second;
 		auto node = load->ActingNode;

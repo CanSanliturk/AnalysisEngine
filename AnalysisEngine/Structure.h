@@ -10,7 +10,7 @@
 
 class Structure
 {
-public:	
+public:
  	std::map<unsigned int, Node*>* Nodes;
 	std::map<unsigned int, Element*>* Elements;
 	std::map<unsigned int, Restraint*>* Restraints;
@@ -21,14 +21,13 @@ public:
 	std::vector<std::vector<double>> MassMatrix;
 	std::vector<double> ForceVector;
 
-	unsigned int nDOF = 0;
-	unsigned int nUnrestrainedDOF = 0;
+	unsigned int nDOF;
+	unsigned int nUnrestrainedDOF;
 
 	Structure(std::map<unsigned int, Node*>* nodeMap, std::map<unsigned int, Element*>* elementMap, std::map<unsigned int, Restraint*>* restraintMap, 
 		std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap);
 	Structure();
 	~Structure();
-	
 
 private:
 	void AssignDegreesOfFreedom(unsigned int &unrestDofCount, unsigned int &totalDofCount);

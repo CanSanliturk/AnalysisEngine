@@ -6,6 +6,7 @@
 
 FrameMember::FrameMember(unsigned int ElmIndex, Node* iNode, Node* jNode, Section* section, Material* material)
 {
+	this->ElementIndex = ElmIndex;
 	this->Nodes[0] = iNode;
 	this->Nodes[1] = jNode;
 	this->FrameSection = section;

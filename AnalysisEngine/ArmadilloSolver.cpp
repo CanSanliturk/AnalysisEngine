@@ -28,11 +28,11 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 	// Store data to return value
 	std::vector<double> retVal(str.nDOF);
 
-	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
-		retVal.at(i) = resData(i);
-	for (size_t i = str.nUnrestrainedDOF; i < str.nDOF; i++)
+	for (size_t i = 0; i < str.nDOF; i++)
 		retVal.at(i) = 0;
 
+	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
+		retVal.at(i) = resData(i);
 
 	auto restraints = *str.Restraints;
 
@@ -156,7 +156,22 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForGlobalCoordinates(Elem
 	for (size_t i = 0; i < nDofElm; i++)
 		retVal.at(i) = globalForces(i);
 
-	std::cout << globalForces;
-
 	return retVal;
+}
+
+std::vector<double> ArmadilloSolver::GetNodalDisplacements(Node& node, std::vector<double>& displacements)
+{
+	std::vector<double> nodalDips(6);
+
+	for (size_t i = 0; i < 6; i++)
+		nodalDips[i] = 0;
+
+	nodalDips[0] = displacements[node.DofIndexTX - 1];
+	nodalDips[1] = displacements[node.DofIndexTY - 1];
+	nodalDips[2] = displacements[node.DofIndexTZ - 1];
+	nodalDips[3] = displacements[node.DofIndexRX - 1];
+	nodalDips[4] = displacements[node.DofIndexRY - 1];
+	nodalDips[5] = displacements[node.DofIndexRZ - 1];
+	
+	return nodalDips;
 }
