@@ -12,6 +12,38 @@ std::vector<std::vector<double>> MatrixHelper::GetRotationMatrix(double thetaX, 
     return MatrixHelper::MultiplyMatrices((MatrixHelper::MultiplyMatrices(rotZ, rotY)), rotX);
 }
 
+std::vector<std::vector<double>> MatrixHelper::GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle)
+{
+    auto alpha = rotationAngle;
+    auto cX = elmVector.X / elmVector.Length;
+    auto cY = elmVector.Y / elmVector.Length;
+    auto cZ = elmVector.Z / elmVector.Length;
+    auto cXZ = sqrt((cX * cX) + (cZ * cZ));
+
+    std::vector<double> firstRow;
+    std::vector<double> secondRow;
+    std::vector<double> thirdRow;
+
+    firstRow.push_back(cX);
+    firstRow.push_back(cY);
+    firstRow.push_back(cZ);
+
+    secondRow.push_back(-1 * ((cX * cY * cos(alpha)) + (cZ * sin(alpha))) / (cXZ));
+    secondRow.push_back(cXZ * cos(alpha));
+    secondRow.push_back(((-cY * cZ * cos(alpha)) + (cX * sin(alpha))) / (cXZ));
+
+    thirdRow.push_back(((cX * cY * sin(alpha)) - (cZ * cos(alpha))) / (cXZ));
+    thirdRow.push_back(-1 * cXZ * sin(alpha));
+    thirdRow.push_back(((cY * cZ * sin(alpha)) + (cX * cos(alpha))) / (cXZ));
+
+    std::vector<std::vector<double>> retVal;
+    retVal.push_back(firstRow);
+    retVal.push_back(secondRow);
+    retVal.push_back(thirdRow);
+
+    return retVal;
+}
+
 std::vector<std::vector<double>> MatrixHelper::GetTranspose(std::vector<std::vector<double>> matrix)
 {
     auto rowCount = (unsigned int)matrix.size();

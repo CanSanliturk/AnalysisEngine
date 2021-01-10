@@ -187,12 +187,7 @@ void FrameMember::AssembleElementRotationMatrix()
 	double pi = 3.141592653589793;
 
 	Vector elmVector(this->Nodes[0]->Coordinate, this->Nodes[1]->Coordinate);
-
-	auto thetaX = acos(elmVector.X / elmVector.Length);
-	auto thetaY = (pi / 2) - acos(elmVector.Y / elmVector.Length);
-	auto thetaZ = (pi / 2) - acos(elmVector.Z / elmVector.Length);
-
-	auto minorRotMat = MatrixHelper::GetRotationMatrix(thetaX, thetaY, thetaZ);
+	auto minorRotMat = MatrixHelper::GetTranslationalRotationMatrix(elmVector, 0);
 
 	for (unsigned int i = 0; i < 12; i++)
 		for (unsigned int j = 0; j < 12; j++)
