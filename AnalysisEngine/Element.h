@@ -8,7 +8,8 @@ namespace ElmType {
 	enum ElementType
 	{
 		None = 0,
-		Frame = 1
+		Frame = 1,
+		Truss = 2
 	};
 }
 
