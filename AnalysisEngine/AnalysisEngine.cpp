@@ -85,12 +85,6 @@ int main()
 
 	auto str = new Structure(&nodes, &members, &restraints, &nload, &dist);
 
-	auto asd = str->StiffnessMatrix;
-	for (size_t i = 0; i < asd.size(); i++)
-		for (size_t j = 0; j < asd[i].size(); j++)
-			if (i == j)
-				LOG(asd[i][j], "\n");
-
 	LOG("__________________________________________________");
 	LOG("|                                                |");
 	LOG("|    3-Dimensional Structural Analysis Engine    |");
@@ -100,8 +94,6 @@ int main()
 	LOG("");
 
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
-	/*ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(leftColumn, disps);
-	ArmadilloSolver::GetMemberEndForcesForGlobalCoordinates(leftColumn, disps);*/
 
 	for (auto& nodePair : nodes)
 	{

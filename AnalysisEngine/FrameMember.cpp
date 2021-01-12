@@ -18,6 +18,8 @@ FrameMember::FrameMember(unsigned int ElmIndex, Node* iNode, Node* jNode, Sectio
 	AssembleElementRotationMatrix();
  	AssembleElementGlobalStiffnessMatrix();
 	AssembleElementGlobalMassMatrix();
+	iNode->ConnectedElements.push_back(ElmIndex);
+	jNode->ConnectedElements.push_back(ElmIndex);
 }
 
 FrameMember::FrameMember()
