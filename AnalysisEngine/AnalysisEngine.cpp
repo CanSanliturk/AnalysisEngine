@@ -19,7 +19,7 @@ int main()
 {
 	// Full screen
 	//::SendMessage(::GetConsoleWindow(), WM_SYSKEYDOWN, VK_RETURN, 0x20000000);
-
+	
 	// Create points for nodes
 	XYZPoint coord1(0.0, 0.0, 0.0);
 	XYZPoint coord2(0.0, 0.0, 10.0);
@@ -36,13 +36,13 @@ int main()
 	nodes[node2.NodeIndex] = &node2;
 	nodes[node3.NodeIndex] = &node3;
 
-	// Assign boundary condition to the first node
+	// Assign boundary condition to the first node"
 	// and fourth node
 	// Fixed for all directions
 	std::vector<bool> fix;
 	std::vector<double> fixity;
 
-	for (unsigned int i = 0; i < 6; i++)
+	for (size_t i = 0; i < 6; i++)
 	{
 		fix.push_back(true);
 		fixity.push_back(0.0);
@@ -73,7 +73,7 @@ int main()
 	std::map<unsigned int, Element*> members;
 	members[column.ElementIndex] = &column;
 	members[beam.ElementIndex] = &beam;
-
+	
 	// Add tip load
 	double loads[6]{ 0.0, -5000.0, 0.0, 0.0, 0.0, 0.0 };
 

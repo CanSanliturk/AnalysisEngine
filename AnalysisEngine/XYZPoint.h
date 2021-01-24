@@ -8,7 +8,6 @@ struct XYZPoint
 	double Y;
 	double Z;
 
-
 	XYZPoint(double x, double y, double z)
 	{
 		this->X = x;

@@ -18,9 +18,9 @@ public:
 	virtual std::vector<Node*> GelElementNodes() 
 	{
 		Node n;
-		std::vector<Node*> asd;
-		asd.push_back(&n);
-		return asd; 
+		std::vector<Node*> nodeList;
+		nodeList.push_back(&n);
+		return nodeList;
 	};
 	virtual unsigned int GetElementIndex() { return 0; };
 	virtual ElmType::ElementType GetElementType() { return ElmType::ElementType::None; };

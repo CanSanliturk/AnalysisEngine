@@ -1,37 +1,37 @@
 //#pragma once
-//#include "Eigen/SparseCholesky"
-//#include "Eigen"
-//#include "Eigen/Sparse"
+//#include "eigen/sparsecholesky"
+//#include "eigen"
+//#include "eigen/sparse"
 //#include <vector>
 //
-//class EigenSolver
+//class eigensolver
 //{
 //public:
-//	typedef Eigen::SparseMatrix<double> SpMat; // declares a column-major sparse matrix type of double
-//	typedef Eigen::Triplet<double> T;
+//	typedef eigen::sparsematrix<double> spmat; // declares a column-major sparse matrix type of double
+//	typedef eigen::triplet<double> t;
 //
-//	static std::vector<double> Solve(std::vector<std::vector<double>> A, std::vector<double> b)
+//	static std::vector<double> solve(std::vector<std::vector<double>> a, std::vector<double> b)
 //	{
 //	
-//		int n = A.size();
+//		int n = a.size();
 //
-//		// Assembly:
-//		Eigen::VectorXd bbar(n);                   // the right hand side-vector resulting from the constraints
+//		// assembly:
+//		eigen::vectorxd bbar(n);                   // the right hand side-vector resulting from the constraints
 //
-//		Eigen::SparseMatrix<double> asd(n, n);
+//		eigen::sparsematrix<double> asd(n, n);
 //
 //		//for (size_t i = 0; i < n; i++)
 //		//{
 //		//	asd.push
 //		//}
 //
-//		//// Solving:
-//		//Eigen::SimplicialCholesky<SpMat> chol(asd);  // performs a Cholesky factorization of A
-//		//Eigen::VectorXd x = chol.solve(bbar);         // use the factorization to solve for the given right hand side
+//		//// solving:
+//		//eigen::simplicialcholesky<spmat> chol(asd);  // performs a cholesky factorization of a
+//		//eigen::vectorxd x = chol.solve(bbar);         // use the factorization to solve for the given right hand side
 //
 //
 //		//return null;
-//		////return retVal;
+//		////return retval;
 //	};
 //
 //private:

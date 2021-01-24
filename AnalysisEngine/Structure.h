@@ -35,4 +35,3 @@ private:
 	void AssembleMassMatrix(unsigned int totalDofCount);
 	void AssembleForceVector(unsigned int totalDofCount);
 };
-

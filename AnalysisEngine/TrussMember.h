@@ -47,5 +47,4 @@ private:
 	void AssembleElementRotationMatrix();
 	void AssembleElementGlobalStiffnessMatrix();
 	void AssembleElementGlobalMassMatrix();
-
 };
