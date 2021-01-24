@@ -8,17 +8,43 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 	// Create armadillo matrices
 	arma::mat k(str.nUnrestrainedDOF, str.nUnrestrainedDOF);
 	arma::vec f(str.nUnrestrainedDOF);
+	auto nDofUnrestrained = str.nUnrestrainedDOF;
+	
+	k.zeros(nDofUnrestrained, nDofUnrestrained);
+	f.zeros(nDofUnrestrained);
 
-	k.fill(0.0);
-	f.fill(0.0);
+	arma::mat kArma;
+	arma::vec fArma;
+	arma::mat asd;
 
+	kArma.zeros(nDofUnrestrained, nDofUnrestrained);
+	fArma.zeros(nDofUnrestrained);
+
+	arma::mat A;
+	A.zeros(3, 4);
+
+	kArma.zeros();
+	fArma.zeros();
+	
+	auto asdasd = k[0];
+
+	// Fill zeros armadillo matrices
+	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
+	{
+		f[i] = 0.0;
+		for (size_t j = 0; j < str.nUnrestrainedDOF; j++)
+		{
+			k[(i * str.nUnrestrainedDOF) + j] = 0.0;
+		}
+	}
+	
 	// Fill armadillo matrices
 	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
 	{
-		f(i) = str.ForceVector.at(i);
+		f(i) = str.ForceVector[i];
 		for (size_t j = 0; j < str.nUnrestrainedDOF; j++)
 		{
-			k(i, j) = str.StiffnessMatrix.at(i).at(j);
+			k(i, j) = str.StiffnessMatrix[i][j];
 		}
 	}
 
