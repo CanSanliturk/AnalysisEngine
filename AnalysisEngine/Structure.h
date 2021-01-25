@@ -20,7 +20,7 @@ public:
 	std::vector<std::vector<double>> StiffnessMatrix;
 	std::vector<std::vector<double>> MassMatrix;
 	std::vector<double> ForceVector;
-
+	
 	unsigned int nDOF;
 	unsigned int nUnrestrainedDOF;
 

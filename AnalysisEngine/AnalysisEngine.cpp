@@ -16,6 +16,7 @@
 #define LOG(x) std::cout << x << "\n"
 void TableDisplacements();
 void CantileverDisplacements();
+void LDisplacements();
 
 int main()
 {
@@ -29,7 +30,7 @@ int main()
 	LOG("|________________________________________________|");
 	LOG("");
 
-	CantileverDisplacements();
+	LDisplacements();
 
 	std::cin.get();
 	return 0;
@@ -59,7 +60,7 @@ void CantileverDisplacements()
 	// Members
 	std::map<unsigned int, Element*> elements;
 	FrameMember beam(1, &node1, &node2, &sect, &mat); elements[beam.ElementIndex] = &beam;
-	
+
 	// Restraints
 	std::vector<bool> isRest;
 	std::vector<double> rest;
@@ -143,7 +144,7 @@ void TableDisplacements()
 	FrameMember beam1(5, &topNode1, &topNode2, &sect, &mat); elements[5] = &beam1;
 	FrameMember beam2(6, &topNode2, &topNode3, &sect, &mat); elements[6] = &beam2;
 	FrameMember beam3(7, &topNode3, &topNode4, &sect, &mat); elements[7] = &beam3;
-	FrameMember beam4(7, &topNode4, &topNode1, &sect, &mat); elements[8] = &beam4;
+	FrameMember beam4(8, &topNode4, &topNode1, &sect, &mat); elements[8] = &beam4;
 
 	// Restraints
 	std::vector<bool> isRest;
@@ -163,10 +164,91 @@ void TableDisplacements()
 
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
-	double nodalLoad[6] = { 5000, 0, 0, 0, 0, 0 };
-	double nodalLoad2[6] = { 5000, 0, 0, 0, 0, 0 };
+	double nodalLoad[6] = { 5000e3, 0, 0, 0, 0, 0 };
+	double nodalLoad2[6] = { 5000e3, 0, 0, 0, 0, 0 };
 	NodalLoad nl1(&topNode1, nodalLoad); nodalLoads[1] = &nl1;
 	NodalLoad nl2(&topNode4, nodalLoad2); nodalLoads[2] = &nl2;
+
+	// Distributed loads
+	std::map<unsigned int, DistributedLoad*> distLoads;
+
+	// Create structure
+	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+	// Solve displacement
+	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
+	for (auto& nodePair : nodes)
+	{
+		auto node = nodePair.second;
+
+		LOG("");
+		LOG(" Node Index: ");
+		std::cout << " " << node->NodeIndex << "\n";
+
+		auto nodalDisps = ArmadilloSolver::GetNodalDisplacements(*node, disps);
+
+		for (size_t i = 0; i < 6; i++)
+			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
+	}
+	return;
+}
+
+void LDisplacements()
+{
+	// Coordinates
+	XYZPoint botLeft(-5, 0, 0);
+	XYZPoint botMid(0, 0, 0);
+	XYZPoint botRight(0, 5, 0);
+	XYZPoint topLeft(-5, 0, 5);
+	XYZPoint topMid(0, 0, 5);
+	XYZPoint topRight(0, 5, 5);
+
+	// Nodes
+	std::map<unsigned int, Node*> nodes;
+	Node botLeftNode(1, botLeft); nodes[1] = &botLeftNode;
+	Node botMidNode(2, botMid); nodes[2] = &botMidNode;
+	Node botRightNode(3, botRight); nodes[3] = &botRightNode;
+	Node topLeftNode(4, topLeft); nodes[4] = &topLeftNode;
+	Node topMidNode(5, topMid); nodes[5] = &topMidNode;
+	Node topRightNode(6, topRight); nodes[6] = &topRightNode;
+
+	// Section
+	auto area = 0.16;
+	auto inertia11 = 2.133 * 0.001;
+	auto inertia22 = 2.133 * 0.001;
+	auto inertia12 = 0.0036;
+	Section sect(area, inertia11, inertia22, inertia12);
+
+	// Material
+	Material mat(200e9, 0.3, 0);
+
+	// Members
+	std::map<unsigned int, Element*> elements;
+	FrameMember colLeft(1, &botLeftNode, &topLeftNode, &sect, &mat); elements[1] = &colLeft;
+	FrameMember colMid(2, &botMidNode, &topMidNode, &sect, &mat); elements[2] = &colMid;
+	FrameMember colRight(3, &botRightNode, &topRightNode, &sect, &mat); elements[3] = &colRight;
+	FrameMember beamLeft(4, &topLeftNode, &topMidNode, &sect, &mat); elements[4] = &beamLeft;
+	FrameMember beamRight(5, &topMidNode, &topRightNode, &sect, &mat); elements[5] = &beamRight;
+
+	// Restraints
+	std::vector<bool> isRest;
+	std::vector<double> rest;
+
+	for (int i = 0; i < 6; i++)
+	{
+		isRest.push_back(true);
+		rest.push_back(0.0);
+	}
+
+	std::map<unsigned int, Restraint*> restraints;
+	Restraint res1(&botLeftNode, isRest, rest); restraints[1] = &res1;
+	Restraint res2(&botMidNode, isRest, rest); restraints[2] = &res2;
+	Restraint res3(&botRightNode, isRest, rest); restraints[3] = &res3;
+
+	// Nodal loads
+	std::map<unsigned int, NodalLoad*> nodalLoads;
+	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
+	NodalLoad nl1(&topMidNode, nodalLoad); nodalLoads[1] = &nl1;
 
 	// Distributed loads
 	std::map<unsigned int, DistributedLoad*> distLoads;
