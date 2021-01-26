@@ -14,11 +14,15 @@ std::vector<std::vector<double>> MatrixHelper::GetRotationMatrix(double thetaX, 
 
 std::vector<std::vector<double>> MatrixHelper::GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle)
 {
-    auto alpha = rotationAngle;
+    // Skew angle is ignored. Create section in a skewed way for now.
+    //auto alpha = rotationAngle;
+    //auto cXZ = sqrt((cX * cX) + (cZ * cZ));
+
+    auto alpha = 0.0;
     auto cX = elmVector.X / elmVector.Length;
     auto cY = elmVector.Y / elmVector.Length;
     auto cZ = elmVector.Z / elmVector.Length;
-    auto cXZ = sqrt((cX * cX) + (cZ * cZ));
+    auto cXZ = 1.0;
 
     std::vector<double> firstRow;
     std::vector<double> secondRow;
