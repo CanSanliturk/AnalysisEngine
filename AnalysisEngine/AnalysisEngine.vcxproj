@@ -173,6 +173,7 @@
     <ClInclude Include="NodalLoad.h" />
     <ClInclude Include="Node.h" />
     <ClInclude Include="Piece.h" />
+    <ClInclude Include="Hinge.h" />
     <ClInclude Include="Restraint.h" />
     <ClInclude Include="Section.h" />
     <ClInclude Include="Structure.h" />

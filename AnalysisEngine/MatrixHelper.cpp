@@ -17,7 +17,6 @@ std::vector<std::vector<double>> MatrixHelper::GetTranslationalRotationMatrix(Ve
     // Skew angle is ignored. Create section in a skewed way for now.
     //auto alpha = rotationAngle;
     //auto cXZ = sqrt((cX * cX) + (cZ * cZ));
-
     auto alpha = 0.0;
     auto cX = elmVector.X / elmVector.Length;
     auto cY = elmVector.Y / elmVector.Length;

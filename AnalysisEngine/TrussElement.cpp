@@ -50,7 +50,6 @@ void TrussMember::AssembleElementLocalStiffnessMatrix()
 	kElm[0][0] = E * A / L;
 	kElm[3][3] = E * A / L;
 
-
 	for (unsigned int i = 0; i < 6; i++)
 		for (unsigned int j = 0; j < 6; j++)
 			this->LocalCoordinateStiffnessMatrix[i][j] = kElm[i][j];

@@ -107,9 +107,6 @@
     <ClInclude Include="Structure.h">
       <Filter>src\Structure</Filter>
     </ClInclude>
-    <ClInclude Include="Restraint.h">
-      <Filter>src\BoundaryConditions</Filter>
-    </ClInclude>
     <ClInclude Include="Element.h">
       <Filter>src\Elements</Filter>
     </ClInclude>
@@ -121,6 +118,12 @@
     </ClInclude>
     <ClInclude Include="ArmadilloSolver.h">
       <Filter>src\Solvers</Filter>
+    </ClInclude>
+    <ClInclude Include="Hinge.h">
+      <Filter>src\BoundaryConditions</Filter>
+    </ClInclude>
+    <ClInclude Include="Restraint.h">
+      <Filter>src\BoundaryConditions</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

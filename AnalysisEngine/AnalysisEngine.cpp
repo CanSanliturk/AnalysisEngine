@@ -5,8 +5,9 @@
 #include "Restraint.h"
 #include "Node.h"
 #include "Section.h"
-#include "FrameMember.h"
 #include "Element.h"
+#include "FrameMember.h"
+#include "TrussMember.h"
 #include "MatrixHelper.h"
 #include "Structure.h"
 #include "ArmadilloSolver.h"
@@ -17,6 +18,7 @@
 void TableDisplacements();
 void CantileverDisplacements();
 void LDisplacements();
+void TriangleTruss();
 
 int main()
 {
@@ -30,8 +32,9 @@ int main()
 	LOG("|________________________________________________|");
 	LOG("");
 
-	LDisplacements();
-
+	// Call test function (Later on, these guys will be moved to a unit test project)
+	TableDisplacements();
+	
 	std::cin.get();
 	return 0;
 }
@@ -249,6 +252,80 @@ void LDisplacements()
 	std::map<unsigned int, NodalLoad*> nodalLoads;
 	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
 	NodalLoad nl1(&topMidNode, nodalLoad); nodalLoads[1] = &nl1;
+
+	// Distributed loads
+	std::map<unsigned int, DistributedLoad*> distLoads;
+
+	// Create structure
+	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+	// Solve displacement
+	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
+	for (auto& nodePair : nodes)
+	{
+		auto node = nodePair.second;
+
+		LOG("");
+		LOG(" Node Index: ");
+		std::cout << " " << node->NodeIndex << "\n";
+
+		auto nodalDisps = ArmadilloSolver::GetNodalDisplacements(*node, disps);
+
+		for (size_t i = 0; i < 6; i++)
+			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
+	}
+	return;
+}
+
+void TriangleTruss()
+{
+	// Coordinates
+	XYZPoint leftPt(0, 0, 0); // Origin
+	XYZPoint rightPt(10, 0, 0);
+	XYZPoint topPt(5, 5, 0);
+	
+	// Nodes
+	std::map<unsigned int, Node*> nodes;
+	Node leftNode(1, leftPt); nodes[1] = &leftNode;
+	Node rightNode(2, rightPt); nodes[2] = &rightNode;
+	Node topNode(3, topPt);	nodes[3] = &topNode;
+	
+	// Section
+	auto area = 0.16;
+	auto inertia11 = 2.133 * 0.001;
+	auto inertia22 = 2.133 * 0.001;
+	auto inertia12 = 0.0036;
+	Section sect(area, inertia11, inertia22, inertia12);
+
+	// Material
+	Material mat(200e9, 0.3, 0);
+
+	// Members
+	std::map<unsigned int, Element*> elements;
+	TrussMember bottom(1, &leftNode, &rightNode, &sect, &mat); elements[1] = &bottom;
+	TrussMember rightMember(2, &rightNode, &topNode, &sect, &mat); elements[2] = &rightMember;
+	TrussMember leftMember(3, &topNode, &leftNode, &sect, &mat); elements[3] = &leftMember;
+	
+	// Restraints
+	std::vector<bool> isRest;
+	std::vector<double> rest;
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (i < 3) isRest.push_back(true);
+		else isRest.push_back(false);
+
+		rest.push_back(0.0);
+	}
+
+	std::map<unsigned int, Restraint*> restraints;
+	Restraint res1(&leftNode, isRest, rest); restraints[1] = &res1;
+	Restraint res2(&rightNode, isRest, rest); restraints[2] = &res2;
+	
+	// Nodal loads
+	std::map<unsigned int, NodalLoad*> nodalLoads;
+	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
+	NodalLoad nl1(&topNode, nodalLoad); nodalLoads[1] = &nl1;
 
 	// Distributed loads
 	std::map<unsigned int, DistributedLoad*> distLoads;
