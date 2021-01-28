@@ -66,6 +66,32 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 		}
 	}
 
+	auto restraints = *str.Restraints;
+
+	std::map<unsigned int, Restraint*>::iterator iter = restraints.begin();
+
+	// Iterate over the map using Iterator till end.
+	while (iter != restraints.end())
+	{
+		auto restraint = iter->second;
+		auto restrainedNode = restraint->RestrainedNode;
+
+		if (restraint->IsRestraintTranslationX)
+			uK(restrainedNode->DofIndexTX - nDofUnrestrained - 1) = restraint->TranslationX;
+		if (restraint->IsRestraintTranslationY)
+			uK(restrainedNode->DofIndexTY - nDofUnrestrained - 1) = restraint->TranslationY;
+		if (restraint->IsRestraintTranslationZ)
+			uK(restrainedNode->DofIndexTZ - nDofUnrestrained - 1) = restraint->TranslationZ;
+		if (restraint->IsRestraintRotationX)
+			uK(restrainedNode->DofIndexRX - nDofUnrestrained - 1) = restraint->RotationX;
+		if (restraint->IsRestraintRotationY)
+			uK(restrainedNode->DofIndexRY - nDofUnrestrained - 1) = restraint->RotationY;
+		if (restraint->IsRestraintRotationZ)
+			uK(restrainedNode->DofIndexRZ - nDofUnrestrained - 1) = restraint->RotationZ;
+		iter++;
+	}
+
+
 	auto subtractVal =kUk * uK;
 	auto condFVec = f - subtractVal;
 	
@@ -80,8 +106,6 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 
 	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
 		retVal.at(i) = resData(i);
-
-	auto restraints = *str.Restraints;
 
 	std::map<unsigned int, Restraint*>::iterator it = restraints.begin();
 
