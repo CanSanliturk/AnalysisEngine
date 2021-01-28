@@ -8,8 +8,11 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 	// Create armadillo matrices
 	arma::mat k(str.nUnrestrainedDOF, str.nUnrestrainedDOF);
 	arma::vec f(str.nUnrestrainedDOF);
+
 	auto nDofUnrestrained = str.nUnrestrainedDOF;
-	
+	auto nDof = str.nDOF;
+	auto nDofRestrained = nDof - nDofUnrestrained;
+
 	k.zeros(nDofUnrestrained, nDofUnrestrained);
 	f.zeros(nDofUnrestrained);
 
@@ -48,8 +51,26 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 		}
 	}
 
+	// Subtract support settlements from force vector
+	arma::mat kUk(nDofUnrestrained, nDofRestrained);
+	arma::vec uK(nDofRestrained);
+
+	kUk.zeros(nDofUnrestrained, nDofRestrained);
+	uK.zeros(nDofRestrained);
+
+	for (size_t i = 0; i < nDofUnrestrained; i++)
+	{
+		for (size_t j = nDofUnrestrained; j < nDof; j++)
+		{
+			kUk(i, j - nDofRestrained) = str.StiffnessMatrix[i][j];
+		}
+	}
+
+	auto subtractVal =kUk * uK;
+	auto condFVec = f - subtractVal;
+	
 	// Solve system
-	arma::vec resData = arma::solve(k, f);
+	arma::vec resData = arma::solve(k, condFVec);
 
 	// Store data to return value
 	std::vector<double> retVal(str.nDOF);
