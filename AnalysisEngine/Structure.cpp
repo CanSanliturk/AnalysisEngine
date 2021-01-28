@@ -4,8 +4,9 @@
 #include <iostream>
 
 Structure::Structure(std::map<unsigned int, Node*>* nodeMap, std::map<unsigned int, Element*>* elementMap, std::map<unsigned int, Restraint*>* restraintMap,
-	std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap)
-	: nDOF(0), nUnrestrainedDOF(0), Nodes(nodeMap), Elements(elementMap), Restraints(restraintMap), NodalLoads(nodalLoadMap), DistributedLoads(distLoadMap)
+	std::map<unsigned int, Hinge*>* hingeMap, std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap)
+	: nDOF(0), nUnrestrainedDOF(0), Nodes(nodeMap), Elements(elementMap), Hinges(hingeMap), Restraints(restraintMap), NodalLoads(nodalLoadMap), 
+	DistributedLoads(distLoadMap)
 {
 	unsigned int totalDofCount = 0;
 	unsigned int unrestDofCount = 0;

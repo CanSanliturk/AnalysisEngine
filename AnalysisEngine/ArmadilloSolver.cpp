@@ -62,7 +62,7 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 	{
 		for (size_t j = nDofUnrestrained; j < nDof; j++)
 		{
-			kUk(i, j - nDofRestrained) = str.StiffnessMatrix[i][j];
+			kUk(i, j - nDofUnrestrained) = str.StiffnessMatrix[i][j];
 		}
 	}
 

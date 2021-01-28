@@ -76,6 +76,9 @@ void CantileverDisplacements()
 	std::map<unsigned int, Restraint*> restraints;
 	Restraint res1(&node1, isRest, rest); restraints[1] = &res1;
 
+	// Hinge
+	std::map<unsigned int, Hinge*> hinges;
+
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
 	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
@@ -85,7 +88,7 @@ void CantileverDisplacements()
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
@@ -165,6 +168,9 @@ void TableDisplacements()
 	Restraint res3(&bottomNode3, isRest, rest);	restraints[3] = &res3;
 	Restraint res4(&bottomNode4, isRest, rest);	restraints[4] = &res4;
 
+	// Hinge
+	std::map<unsigned int, Hinge*> hinges;
+
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
 	double nodalLoad[6] = { 5000e3, 0, 0, 0, 0, 0 };
@@ -176,7 +182,7 @@ void TableDisplacements()
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
@@ -243,6 +249,9 @@ void LDisplacements()
 		rest.push_back(0.0);
 	}
 
+	// Hinge
+	std::map<unsigned int, Hinge*> hinges;
+
 	std::map<unsigned int, Restraint*> restraints;
 	Restraint res1(&botLeftNode, isRest, rest); restraints[1] = &res1;
 	Restraint res2(&botMidNode, isRest, rest); restraints[2] = &res2;
@@ -257,7 +266,7 @@ void LDisplacements()
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
@@ -302,9 +311,9 @@ void TriangleTruss()
 
 	// Members
 	std::map<unsigned int, Element*> elements;
-	TrussMember bottom(1, &leftNode, &rightNode, &sect, &mat); elements[1] = &bottom;
-	TrussMember rightMember(2, &rightNode, &topNode, &sect, &mat); elements[2] = &rightMember;
-	TrussMember leftMember(3, &topNode, &leftNode, &sect, &mat); elements[3] = &leftMember;
+	FrameMember bottom(1, &leftNode, &rightNode, &sect, &mat); elements[1] = &bottom;
+	FrameMember rightMember(2, &rightNode, &topNode, &sect, &mat); elements[2] = &rightMember;
+	FrameMember leftMember(3, &topNode, &leftNode, &sect, &mat); elements[3] = &leftMember;
 	
 	// Restraints
 	std::vector<bool> isRest;
@@ -321,7 +330,24 @@ void TriangleTruss()
 	std::map<unsigned int, Restraint*> restraints;
 	Restraint res1(&leftNode, isRest, rest); restraints[1] = &res1;
 	Restraint res2(&rightNode, isRest, rest); restraints[2] = &res2;
-	
+
+	// Hinge
+	std::vector<bool> isForceSet;;
+	std::vector<double> force;
+
+	for (size_t i = 0; i < 6; i++)
+	{
+		if (i < 3) isForceSet.push_back(false); // Moment release
+		else isForceSet.push_back(true);
+
+		force.push_back(0.0);
+	}
+
+	std::map<unsigned int, Hinge*> hinges;
+	Hinge h1(&leftNode, isForceSet, force); hinges[1] = &h1;
+	Hinge h2(&rightNode, isForceSet, force); hinges[2] = &h2;
+	Hinge h3(&topNode, isForceSet, force); hinges[3] = &h3;
+
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
 	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
@@ -331,7 +357,7 @@ void TriangleTruss()
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
