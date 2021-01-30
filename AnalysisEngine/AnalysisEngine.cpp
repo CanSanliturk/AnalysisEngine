@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <memory>
 #include <Windows.h>
 #include "XYZPoint.h"
 #include "Restraint.h"
@@ -33,7 +34,7 @@ int main()
 	LOG("");
 
 	// Call test function (Later on, these guys will be moved to a unit test project)
-	TableDisplacements();
+	TriangleTruss();
 	
 	std::cin.get();
 	return 0;
@@ -182,10 +183,10 @@ void TableDisplacements()
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
+	auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
 
 	// Solve displacement
-	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
+	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
 	for (auto& nodePair : nodes)
 	{
 		auto node = nodePair.second;
@@ -350,7 +351,7 @@ void TriangleTruss()
 
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
-	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
+	double nodalLoad[6] = { 5000e3, 0, 0, 0, 0, 0 };
 	NodalLoad nl1(&topNode, nodalLoad); nodalLoads[1] = &nl1;
 
 	// Distributed loads
@@ -374,5 +375,10 @@ void TriangleTruss()
 		for (size_t i = 0; i < 6; i++)
 			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
 	}
+
+	auto rightMemForces = ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(rightMember, disps);
+	LOG("");
+	for (auto& f : rightMemForces) LOG(f);
+
 	return;
 }

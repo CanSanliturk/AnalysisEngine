@@ -5,7 +5,7 @@
 
 Structure::Structure(std::map<unsigned int, Node*>* nodeMap, std::map<unsigned int, Element*>* elementMap, std::map<unsigned int, Restraint*>* restraintMap,
 	std::map<unsigned int, Hinge*>* hingeMap, std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap)
-	: nDOF(0), nUnrestrainedDOF(0), Nodes(nodeMap), Elements(elementMap), Hinges(hingeMap), Restraints(restraintMap), NodalLoads(nodalLoadMap), 
+	: nDOF(0), nUnrestrainedDOF(0), Nodes(nodeMap), Elements(elementMap), Hinges(hingeMap), Restraints(restraintMap), NodalLoads(nodalLoadMap),
 	DistributedLoads(distLoadMap)
 {
 	unsigned int totalDofCount = 0;
@@ -26,18 +26,27 @@ Structure::~Structure()
 
 void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount)
 {
+	// Firstly, assign indices to neither restrained nor released dofs. After that, continue with 
+	// released dofs. Finally, assign indices to restraint nodes.
 	unsigned int dofIdx = 0;
 
 	for (auto& nodePair : *this->Nodes)
 	{
 		auto node = nodePair.second;
-		
+
 		bool isTransXRest = false;
 		bool isTransYRest = false;
 		bool isTransZRest = false;
 		bool isRotXRest = false;
 		bool isRotYRest = false;
 		bool isRotZRest = false;
+
+		bool isForceXReleased = false;
+		bool isForceYReleased = false;
+		bool isForceZReleased = false;
+		bool isMomentXReleased = false;
+		bool isMomentYReleased = false;
+		bool isMomentZReleased = false;
 
 		for (auto& restPair : *this->Restraints)
 		{
@@ -53,37 +62,51 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 			isRotZRest = isRotZRest || (rest->IsRestraintRotationZ);
 		}
 
-		if (!isTransXRest)
+		for (auto& hingePair : *this->Hinges)
+		{
+			auto hinge = hingePair.second;
+			if (hinge->RestrainedNode->NodeIndex != nodePair.first)
+				continue; // Look for other hinges
+
+			isForceXReleased = isForceXReleased || (hinge->IsRestraintForceX);
+			isForceYReleased = isForceYReleased || (hinge->IsRestraintForceY);
+			isForceZReleased = isForceZReleased || (hinge->IsRestraintForceZ);
+			isMomentXReleased = isMomentXReleased || (hinge->IsRestraintMomentX);
+			isMomentYReleased = isMomentYReleased || (hinge->IsRestraintMomentY);
+			isMomentZReleased = isMomentZReleased || (hinge->IsRestraintMomentZ);
+		}
+
+		if (!isTransXRest && !isForceXReleased)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexTX = dofIdx;
 		}
 
-		if (!isTransYRest)
+		if (!isTransYRest && !isForceYReleased)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexTY = dofIdx;
 		}
 
-		if (!isTransZRest)
+		if (!isTransZRest && !isForceZReleased)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexTZ = dofIdx;
 		}
 
-		if (!isRotXRest)
+		if (!isRotXRest && !isMomentXReleased)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexRX = dofIdx;
 		}
 
-		if (!isRotYRest)
+		if (!isRotYRest && !isMomentYReleased)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexRY = dofIdx;
 		}
 
-		if (!isRotZRest)
+		if (!isRotZRest && !isMomentZReleased)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexRZ = dofIdx;
@@ -93,6 +116,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 	unrestDofCount = dofIdx;
 	this->nUnrestrainedDOF = unrestDofCount;
 
+	// Seconly, assign dofs starting from released but unrestrained dof's
 	for (auto nodePair : *this->Nodes)
 	{
 		auto node = nodePair.second;
@@ -104,6 +128,13 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 		bool isRotYRest = false;
 		bool isRotZRest = false;
 
+		bool isForceXReleased = false;
+		bool isForceYReleased = false;
+		bool isForceZReleased = false;
+		bool isMomentXReleased = false;
+		bool isMomentYReleased = false;
+		bool isMomentZReleased = false;
+
 		for (auto& restPair : *this->Restraints)
 		{
 			auto rest = restPair.second;
@@ -118,42 +149,144 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 			isRotZRest = isRotZRest || (rest->IsRestraintRotationZ);
 		}
 
-		if (isTransXRest)
+		for (auto& hingePair : *this->Hinges)
+		{
+			auto hinge = hingePair.second;
+			if (hinge->RestrainedNode->NodeIndex != nodePair.first)
+				continue; // Look for other hinges
+
+			isForceXReleased = isForceXReleased || (hinge->IsRestraintForceX);
+			isForceYReleased = isForceYReleased || (hinge->IsRestraintForceY);
+			isForceZReleased = isForceZReleased || (hinge->IsRestraintForceZ);
+			isMomentXReleased = isMomentXReleased || (hinge->IsRestraintMomentX);
+			isMomentYReleased = isMomentYReleased || (hinge->IsRestraintMomentY);
+			isMomentZReleased = isMomentZReleased || (hinge->IsRestraintMomentZ);
+		}
+
+		if (isForceXReleased && !isTransXRest)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexTX = dofIdx;
 		}
 
-		if (isTransYRest)
+		if (isForceYReleased && !isTransYRest)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexTY = dofIdx;
 		}
 
-		if (isTransZRest)
+		if (isForceZReleased && !isTransZRest)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexTZ = dofIdx;
 		}
 
-		if (isRotXRest)
+		if (isMomentXReleased && !isRotXRest)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexRX = dofIdx;
 		}
 
-		if (isRotYRest)
+		if (isMomentYReleased && !isRotYRest)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexRY = dofIdx;
 		}
 
-		if (isRotZRest)
+		if (isMomentZReleased && !isRotZRest)
 		{
 			dofIdx++;
 			this->Nodes->at(nodePair.first)->DofIndexRZ = dofIdx;
 		}
 	}
+
+	// Lastly, assign dofs for restrained dof's
+	for (auto nodePair : *this->Nodes)
+	{
+		auto node = nodePair.second;
+
+		bool isTransXRest = false;
+		bool isTransYRest = false;
+		bool isTransZRest = false;
+		bool isRotXRest = false;
+		bool isRotYRest = false;
+		bool isRotZRest = false;
+
+		bool isForceXReleased = false;
+		bool isForceYReleased = false;
+		bool isForceZReleased = false;
+		bool isMomentXReleased = false;
+		bool isMomentYReleased = false;
+		bool isMomentZReleased = false;
+
+		for (auto& restPair : *this->Restraints)
+		{
+			auto rest = restPair.second;
+			if (rest->RestrainedNode->NodeIndex != nodePair.first)
+				continue; // Look for other restraint
+
+			isTransXRest = isTransXRest || (rest->IsRestraintTranslationX);
+			isTransYRest = isTransYRest || (rest->IsRestraintTranslationY);
+			isTransZRest = isTransZRest || (rest->IsRestraintTranslationZ);
+			isRotXRest = isRotXRest || (rest->IsRestraintRotationX);
+			isRotYRest = isRotYRest || (rest->IsRestraintRotationY);
+			isRotZRest = isRotZRest || (rest->IsRestraintRotationZ);
+		}
+
+		for (auto& hingePair : *this->Hinges)
+		{
+			auto hinge = hingePair.second;
+			if (hinge->RestrainedNode->NodeIndex != nodePair.first)
+				continue; // Look for other hinges
+
+			isForceXReleased = isForceXReleased || (hinge->IsRestraintForceX);
+			isForceYReleased = isForceYReleased || (hinge->IsRestraintForceY);
+			isForceZReleased = isForceZReleased || (hinge->IsRestraintForceZ);
+			isMomentXReleased = isMomentXReleased || (hinge->IsRestraintMomentX);
+			isMomentYReleased = isMomentYReleased || (hinge->IsRestraintMomentY);
+			isMomentZReleased = isMomentZReleased || (hinge->IsRestraintMomentZ);
+		}
+
+		if (!isForceXReleased && isTransXRest)
+		{
+			dofIdx++;
+			this->Nodes->at(nodePair.first)->DofIndexTX = dofIdx;
+		}
+
+		if (!isForceYReleased && isTransYRest)
+		{
+			dofIdx++;
+			this->Nodes->at(nodePair.first)->DofIndexTY = dofIdx;
+		}
+
+		if (!isForceZReleased && isTransZRest)
+		{
+			dofIdx++;
+			this->Nodes->at(nodePair.first)->DofIndexTZ = dofIdx;
+		}
+
+		if (!isMomentXReleased && isRotXRest)
+		{
+			dofIdx++;
+			this->Nodes->at(nodePair.first)->DofIndexRX = dofIdx;
+		}
+
+		if (!isMomentYReleased && isRotYRest)
+		{
+			dofIdx++;
+			this->Nodes->at(nodePair.first)->DofIndexRY = dofIdx;
+		}
+
+		if (!isMomentZReleased && isRotZRest)
+		{
+			dofIdx++;
+			this->Nodes->at(nodePair.first)->DofIndexRZ = dofIdx;
+		}
+	}
+
+
+	this->nReleasedDOF = this->nDOF - dofIdx;
+
 
 	totalDofCount = dofIdx;
 	this->nDOF = totalDofCount;
@@ -236,7 +369,7 @@ void Structure::AssembleMassMatrix(unsigned int totalDofCount)
 void Structure::AssembleForceVector(unsigned int totalDofCount)
 {
 	for (size_t i = 0; i < totalDofCount; i++) this->ForceVector.push_back(0.0);
-	
+
 	for (auto& nodalLoadPair : *this->NodalLoads)
 	{
 		auto load = nodalLoadPair.second;
