@@ -20,7 +20,6 @@
 
 void TableDisplacements();
 void CantileverDisplacements();
-void LDisplacements();
 void TriangleTruss();
 
 int main()
@@ -36,7 +35,7 @@ int main()
 	LOG("");
 
 	// Call test function (Later on, these guys will be moved to a unit test project)
-	CantileverDisplacements();
+	TriangleTruss();
 
 	std::cin.get();
 	return 0;
@@ -63,9 +62,13 @@ void CantileverDisplacements()
 	// Material
 	Material mat(200e9, 0.3, 0);
 
+	// Releases
+	Hinge h1;
+	Hinge h2;
+
 	// Members
 	std::map<unsigned int, Element*> elements;
-	FrameMember beam(1, &node1, &node2, &sect, &mat); elements[beam.ElementIndex] = &beam;
+	FrameMember beam(1, &node1, &node2, &sect, &mat, &h1, &h2); elements[beam.ElementIndex] = &beam;
 
 	// Restraints
 	std::vector<bool> isRest;
@@ -79,9 +82,6 @@ void CantileverDisplacements()
 	std::map<unsigned int, Restraint*> restraints;
 	Restraint res1(&node1, isRest, rest); restraints[1] = &res1;
 
-	// Hinge
-	std::map<unsigned int, Hinge*> hinges;
-
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
 	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
@@ -91,7 +91,7 @@ void CantileverDisplacements()
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
+	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
@@ -144,16 +144,26 @@ void TableDisplacements()
 	// Material
 	Material mat(200e9, 0.3, 0);
 
+	// Releases
+	Hinge h1i, h1j;
+	Hinge h2i, h2j;
+	Hinge h3i, h3j;
+	Hinge h4i, h4j;
+	Hinge h5i, h5j;
+	Hinge h6i, h6j;
+	Hinge h7i, h7j;
+	Hinge h8i, h8j;
+
 	// Members
 	std::map<unsigned int, Element*> elements;
-	FrameMember col1(1, &bottomNode1, &topNode1, &sect, &mat); elements[1] = &col1;
-	FrameMember col2(2, &bottomNode2, &topNode2, &sect, &mat); elements[2] = &col2;
-	FrameMember col3(3, &bottomNode3, &topNode3, &sect, &mat); elements[3] = &col3;
-	FrameMember col4(4, &bottomNode4, &topNode4, &sect, &mat); elements[4] = &col4;
-	FrameMember beam1(5, &topNode1, &topNode2, &sect, &mat); elements[5] = &beam1;
-	FrameMember beam2(6, &topNode2, &topNode3, &sect, &mat); elements[6] = &beam2;
-	FrameMember beam3(7, &topNode3, &topNode4, &sect, &mat); elements[7] = &beam3;
-	FrameMember beam4(8, &topNode4, &topNode1, &sect, &mat); elements[8] = &beam4;
+	FrameMember col1(1, &bottomNode1, &topNode1, &sect, &mat, &h1i, &h1j); elements[1] = &col1;
+	FrameMember col2(2, &bottomNode2, &topNode2, &sect, &mat, &h2i, &h2j); elements[2] = &col2;
+	FrameMember col3(3, &bottomNode3, &topNode3, &sect, &mat, &h3i, &h3j); elements[3] = &col3;
+	FrameMember col4(4, &bottomNode4, &topNode4, &sect, &mat, &h4i, &h4j); elements[4] = &col4;
+	FrameMember beam1(5, &topNode1, &topNode2, &sect, &mat, &h5i, &h5j); elements[5] = &beam1;
+	FrameMember beam2(6, &topNode2, &topNode3, &sect, &mat, &h6i, &h6j); elements[6] = &beam2;
+	FrameMember beam3(7, &topNode3, &topNode4, &sect, &mat, &h7i, &h7j); elements[7] = &beam3;
+	FrameMember beam4(8, &topNode4, &topNode1, &sect, &mat, &h8i, &h8j); elements[8] = &beam4;
 
 	// Restraints
 	std::vector<bool> isRest;
@@ -171,9 +181,6 @@ void TableDisplacements()
 	Restraint res3(&bottomNode3, isRest, rest);	restraints[3] = &res3;
 	Restraint res4(&bottomNode4, isRest, rest);	restraints[4] = &res4;
 
-	// Hinge
-	std::map<unsigned int, Hinge*> hinges;
-
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
 	double nodalLoad[6] = { 5000e3, 0, 0, 0, 0, 0 };
@@ -185,94 +192,10 @@ void TableDisplacements()
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
+	auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
-	for (auto& nodePair : nodes)
-	{
-		auto node = nodePair.second;
-
-		LOG("");
-		LOG(" Node Index: ");
-		std::cout << " " << node->NodeIndex << "\n";
-
-		auto nodalDisps = ArmadilloSolver::GetNodalDisplacements(*node, disps);
-
-		for (size_t i = 0; i < 6; i++)
-			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
-	}
-	return;
-}
-
-void LDisplacements()
-{
-	// Coordinates
-	XYZPoint botLeft(-5, 0, 0);
-	XYZPoint botMid(0, 0, 0);
-	XYZPoint botRight(0, 5, 0);
-	XYZPoint topLeft(-5, 0, 5);
-	XYZPoint topMid(0, 0, 5);
-	XYZPoint topRight(0, 5, 5);
-
-	// Nodes
-	std::map<unsigned int, Node*> nodes;
-	Node botLeftNode(1, botLeft); nodes[1] = &botLeftNode;
-	Node botMidNode(2, botMid); nodes[2] = &botMidNode;
-	Node botRightNode(3, botRight); nodes[3] = &botRightNode;
-	Node topLeftNode(4, topLeft); nodes[4] = &topLeftNode;
-	Node topMidNode(5, topMid); nodes[5] = &topMidNode;
-	Node topRightNode(6, topRight); nodes[6] = &topRightNode;
-
-	// Section
-	auto area = 0.16;
-	auto inertia11 = 2.133 * 0.001;
-	auto inertia22 = 2.133 * 0.001;
-	auto inertia12 = 0.0036;
-	Section sect(area, inertia11, inertia22, inertia12);
-
-	// Material
-	Material mat(200e9, 0.3, 0);
-
-	// Members
-	std::map<unsigned int, Element*> elements;
-	FrameMember colLeft(1, &botLeftNode, &topLeftNode, &sect, &mat); elements[1] = &colLeft;
-	FrameMember colMid(2, &botMidNode, &topMidNode, &sect, &mat); elements[2] = &colMid;
-	FrameMember colRight(3, &botRightNode, &topRightNode, &sect, &mat); elements[3] = &colRight;
-	FrameMember beamLeft(4, &topLeftNode, &topMidNode, &sect, &mat); elements[4] = &beamLeft;
-	FrameMember beamRight(5, &topMidNode, &topRightNode, &sect, &mat); elements[5] = &beamRight;
-
-	// Restraints
-	std::vector<bool> isRest;
-	std::vector<double> rest;
-
-	for (int i = 0; i < 6; i++)
-	{
-		isRest.push_back(true);
-		rest.push_back(0.0);
-	}
-
-	// Hinge
-	std::map<unsigned int, Hinge*> hinges;
-
-	std::map<unsigned int, Restraint*> restraints;
-	Restraint res1(&botLeftNode, isRest, rest); restraints[1] = &res1;
-	Restraint res2(&botMidNode, isRest, rest); restraints[2] = &res2;
-	Restraint res3(&botRightNode, isRest, rest); restraints[3] = &res3;
-
-	// Nodal loads
-	std::map<unsigned int, NodalLoad*> nodalLoads;
-	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
-	NodalLoad nl1(&topMidNode, nodalLoad); nodalLoads[1] = &nl1;
-
-	// Distributed loads
-	std::map<unsigned int, DistributedLoad*> distLoads;
-
-	// Create structure
-	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
-
-	// Solve displacement
-	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
 	for (auto& nodePair : nodes)
 	{
 		auto node = nodePair.second;
@@ -293,7 +216,7 @@ void TriangleTruss()
 {
 	// Coordinates
 	XYZPoint leftPt(0, 0, 0); // Origin
-	XYZPoint rightPt(5, 0, 0);
+	XYZPoint rightPt(10, 0, 0);
 	XYZPoint topPt(5, 0, 5);
 
 	// Nodes
@@ -312,11 +235,24 @@ void TriangleTruss()
 	// Material
 	Material mat(200e9, 0.3, 0);
 
+	// Hinge
+	std::vector<bool> isReleased{ false, false, false, true, true, true };
+	std::vector<double> release{ 0.0,0.0 ,0.0 ,0.0 ,0.0 ,0.0 };
+
+	Hinge h1i(isReleased, release);
+	Hinge h1j(isReleased, release);
+
+	Hinge h2i(isReleased, release);
+	Hinge h2j(isReleased, release);
+
+	Hinge h3i(isReleased, release);
+	Hinge h3j(isReleased, release);
+
 	// Members
 	std::map<unsigned int, Element*> elements;
-	FrameMember bottom(1, &leftNode, &rightNode, &sect, &mat); elements[1] = &bottom;
-	FrameMember rightMember(2, &rightNode, &topNode, &sect, &mat); elements[2] = &rightMember;
-	FrameMember leftMember(3, &topNode, &leftNode, &sect, &mat); elements[3] = &leftMember;
+	FrameMember bottomMember(1, &leftNode, &rightNode, &sect, &mat, &h1i, &h1j); elements[1] = &bottomMember;
+	FrameMember rightMember(2, &rightNode, &topNode, &sect, &mat, &h2i, &h2j); elements[2] = &rightMember;
+	FrameMember leftMember(3, &topNode, &leftNode, &sect, &mat, &h3i, &h3j); elements[3] = &leftMember;
 
 	// Restraints
 	std::vector<bool> isRestPin{ true, true, true, false, false, false };
@@ -325,36 +261,20 @@ void TriangleTruss()
 	std::vector<bool> isRestRoller{ false, true, true, false, false, false };
 	std::vector<double> restRoller{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
-	std::vector<bool> isReleased{ false, false, false, true, true, true };
-	std::vector<double> release{ 0.0,0.0 ,0.0 ,0.0 ,0.0 ,0.0 };
-
 	std::map<unsigned int, Restraint*> restraints;
 	Restraint res1(&leftNode, isRestPin, restPin); restraints[1] = &res1;
 	Restraint res2(&rightNode, isRestRoller, restRoller); restraints[2] = &res2;
 
-	Restraint res3(&leftNode, isReleased, release); restraints[3] = &res3;
-	Restraint res4(&rightNode, isReleased, release); restraints[4] = &res4;
-	Restraint res5(&topNode, isReleased, release); restraints[5] = &res5;
-
-	// Hinge
-	std::vector<bool> isForceSet{ false, false, false, true, true, true };
-	std::vector<double> force{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-
-	std::map<unsigned int, Hinge*> hinges;
-	// Hinge h1(&leftNode, isForceSet, force); hinges[1] = &h1;
-	// Hinge h2(&rightNode, isForceSet, force); hinges[2] = &h2;
-	// Hinge h3(&topNode, isForceSet, force); hinges[3] = &h3;
-
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;
-	double nodalLoad[6] = { 5000e3, 0, 0, 0, 0, 0 };
+	double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
 	NodalLoad nl1(&topNode, nodalLoad); nodalLoads[1] = &nl1;
 
 	// Distributed loads
 	std::map<unsigned int, DistributedLoad*> distLoads;
 
 	// Create structure
-	Structure str(&nodes, &elements, &restraints, &hinges, &nodalLoads, &distLoads);
+	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
@@ -372,9 +292,14 @@ void TriangleTruss()
 			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
 	}
 
-	auto rightMemForces = ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(rightMember, disps);
-	LOG("");
-	for (auto& f : rightMemForces) LOG(f);
+	auto leftMemForces = ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(leftMember, disps);
+	LOG("---------------------------------------");
+	LOG("Left member forces");
+	for (auto& f : leftMemForces) LOG(f);
 
-	return;
+	// Check support reactions
+	auto leftSupportReactions = ArmadilloSolver::GetSupportReactions(str, disps, res1);
+	LOG("---------------------------------------");
+	LOG("Left support Reaction");
+	for (auto& r : leftSupportReactions) LOG(r);
 }

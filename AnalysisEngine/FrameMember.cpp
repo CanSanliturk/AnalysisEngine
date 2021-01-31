@@ -4,11 +4,13 @@
 #include "MatrixHelper.h"
 #include <math.h>
 
-FrameMember::FrameMember(unsigned int ElmIndex, Node* iNode, Node* jNode, Section* section, Material* material)
+FrameMember::FrameMember(unsigned int ElmIndex, Node* iNode, Node* jNode, Section* section, Material* material, Hinge* iEndHinge, Hinge* jEndHinge)
 {
 	this->ElementIndex = ElmIndex;
 	this->Nodes[0] = iNode;
 	this->Nodes[1] = jNode;
+	this->Hinges[0] = iEndHinge;
+	this->Hinges[1] = jEndHinge;
 	this->FrameSection = section;
 	this->FrameMaterial = material;
 	this->Type = (ElmType::ElementType::Frame);
@@ -107,6 +109,48 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
 	kElm[11][5] = kElm[5][11];
 	kElm[11][7] = kElm[7][11];
 	kElm[11][11] = 4 * E * I22 / L;
+
+	// Check end releases
+	for (int i = 0; i < 2; i++)
+	{
+		auto end = this->Hinges[i];
+		
+		if (end->IsReleasedForceX)
+		{
+			for (int j = 0; j < 12; j++) kElm[(6 * i) + 0][j] = 0.0;
+			for (int j = 0; j < 12; j++) kElm[j][(6 * i) + 0] = 0.0;
+		}
+
+		if (end->IsReleasedForceY)
+		{
+			for (int j = 0; j < 12; j++) kElm[(6 * i) + 1][j] = 0.0;
+			for (int j = 0; j < 12; j++) kElm[j][(6 * i) + 1] = 0.0;
+		}
+
+		if (end->IsReleasedForceZ)
+		{
+			for (int j = 0; j < 12; j++) kElm[(6 * i) + 2][j] = 0.0;
+			for (int j = 0; j < 12; j++) kElm[j][(6 * i) + 2] = 0.0;
+		}
+
+		if (end->IsReleasedMomentX)
+		{
+			for (int j = 0; j < 12; j++) kElm[(6 * i) + 3][j] = 0.0;
+			for (int j = 0; j < 12; j++) kElm[j][(6 * i) + 3] = 0.0;
+		}
+
+		if (end->IsReleasedMomentY)
+		{
+			for (int j = 0; j < 12; j++) kElm[(6 * i) + 4][j] = 0.0;
+			for (int j = 0; j < 12; j++) kElm[j][(6 * i) + 4] = 0.0;
+		}
+
+		if (end->IsReleasedMomentY)
+		{
+			for (int j = 0; j < 12; j++) kElm[(6 * i) + 5][j] = 0.0;
+			for (int j = 0; j < 12; j++) kElm[j][(6 * i) + 5] = 0.0;
+		}
+	}
 
 	for (unsigned int i = 0; i < 12; i++)
 		for (unsigned int j = 0; j < 12; j++)

@@ -9,8 +9,6 @@
 class Hinge
 {
 public:
-	Node* RestrainedNode;
-
 	double ForceX;
 	double ForceY;
 	double ForceZ;
@@ -18,23 +16,21 @@ public:
 	double MomentY;
 	double MomentZ;
 
-	bool IsRestraintForceX = false;
-	bool IsRestraintForceY = false;
-	bool IsRestraintForceZ = false;
-	bool IsRestraintMomentX = false;
-	bool IsRestraintMomentY = false;
-	bool IsRestraintMomentZ = false;
+	bool IsReleasedForceX = false;
+	bool IsReleasedForceY = false;
+	bool IsReleasedForceZ = false;
+	bool IsReleasedMomentX = false;
+	bool IsReleasedMomentY = false;
+	bool IsReleasedMomentZ = false;
 
-	Hinge(Node* releasedNode, std::vector<bool> isReleased, std::vector<double> release)
+	Hinge(std::vector<bool> isReleased, std::vector<double> release)
 	{
-		this->RestrainedNode = releasedNode;
-
-		this->IsRestraintForceX = isReleased.at(0);
-		this->IsRestraintForceY = isReleased.at(1);
-		this->IsRestraintForceZ = isReleased.at(2);
-		this->IsRestraintMomentX = isReleased.at(3);
-		this->IsRestraintMomentY = isReleased.at(4);
-		this->IsRestraintMomentZ = isReleased.at(5);
+		this->IsReleasedForceX = isReleased.at(0);
+		this->IsReleasedForceY = isReleased.at(1);
+		this->IsReleasedForceZ = isReleased.at(2);
+		this->IsReleasedMomentX = isReleased.at(3);
+		this->IsReleasedMomentY = isReleased.at(4);
+		this->IsReleasedMomentZ = isReleased.at(5);
 
 		this->ForceX = release.at(0);
 		this->ForceY = release.at(1);
@@ -46,22 +42,19 @@ public:
 
 	Hinge()
 	{
-		Node node;
-		this->RestrainedNode = &node;
+		this->IsReleasedForceX = false;
+		this->IsReleasedForceY = false;
+		this->IsReleasedForceZ = false;
+		this->IsReleasedMomentX = false;
+		this->IsReleasedMomentY = false;
+		this->IsReleasedMomentZ = false;
 
-		this->IsRestraintForceX = false;
-		this->IsRestraintForceY = false;
-		this->IsRestraintForceZ = false;
-		this->IsRestraintMomentX = false;
-		this->IsRestraintMomentY = false;
-		this->IsRestraintMomentZ = false;
-
-		this->ForceX = -123.456789;
-		this->ForceY = -123.456789;
-		this->ForceZ = -123.456789;
-		this->MomentX = -123.456789;
-		this->MomentY = -123.456789;
-		this->MomentZ = -123.456789;
+		this->ForceX = 0.0;
+		this->ForceY = 0.0;
+		this->ForceZ = 0.0;
+		this->MomentX = 0.0;
+		this->MomentY = 0.0;
+		this->MomentZ = 0.0;
 	};
 
 	~Hinge()

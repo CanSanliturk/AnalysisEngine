@@ -1,15 +1,17 @@
 #pragma once
+#include <vector>
+#include "Hinge.h"
 #include "Node.h"
 #include "Section.h"
 #include "Material.h"
 #include "Element.h"
-#include <vector>
 
 class FrameMember : public Element
 {
 public:
 	unsigned int ElementIndex;
 	Node* Nodes[2];
+	Hinge* Hinges[2];
 	Section* FrameSection;
 	Material* FrameMaterial;
 	ElmType::ElementType Type;
@@ -21,7 +23,7 @@ public:
 	double GlobalCoordinateStiffnessMatrix[12][12];
 	double GlobalCoordinateMassMatrix[12][12];
 
-	FrameMember(unsigned int elmIndex, Node* iNode, Node* jNode, Section* section, Material* material);
+	FrameMember(unsigned int elmIndex, Node* iNode, Node* jNode, Section* section, Material* material, Hinge* iEndHinge, Hinge* jEndHinge);
 	FrameMember();
 	~FrameMember();
 

@@ -25,7 +25,7 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 			k[(i * str.nUnrestrainedDOF) + j] = 0.0;
 		}
 	}
-	
+
 	// Fill armadillo matrices
 	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
 	{
@@ -77,9 +77,9 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 	}
 
 
-	auto subtractVal =kUk * uK;
+	auto subtractVal = kUk * uK;
 	auto condFVec = f - subtractVal;
-	
+
 	// Solve system
 	arma::vec resData = arma::solve(k, condFVec);
 
@@ -123,7 +123,7 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(Eleme
 {
 	// To get elements end forces in local coordinates, displacement vector of element (which is in global coordinates) 
 	// should be converted to local coordinates by multiplying it by rotation matrix of the given element.
-	
+
 	// Create arma matrix for rotation matrix
 	auto rotMatrix = static_cast<double*>(elm.GetRotationMatrix());
 	auto nDofElm = elm.GetNumberOfDoF();
@@ -136,7 +136,7 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(Eleme
 	// Retrieve displacements of element end nodes
 	auto elmNodes = elm.GelElementNodes();
 	arma::vec disps(nDofElm);
-	
+
 	unsigned short counter = 0;
 
 	for (auto node : elmNodes)
@@ -156,7 +156,7 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(Eleme
 	// Get local stiffness matrix
 	auto localKMat = static_cast<double*>(elm.GetLocalCoordinateStiffnessMatrix());
 	arma::mat kMat(nDofElm, nDofElm);
-	
+
 	for (size_t i = 0; i < nDofElm; i++)
 		for (size_t j = 0; j < nDofElm; j++)
 			kMat(i, j) = localKMat[(i * nDofElm) + j];
@@ -228,6 +228,58 @@ std::vector<double> ArmadilloSolver::GetNodalDisplacements(Node& node, std::vect
 	nodalDips[3] = displacements[node.DofIndexRX - 1];
 	nodalDips[4] = displacements[node.DofIndexRY - 1];
 	nodalDips[5] = displacements[node.DofIndexRZ - 1];
-	
+
 	return nodalDips;
+}
+
+std::vector<double> ArmadilloSolver::GetSupportReactions(const Structure& str, const std::vector<double> disps, const Restraint& res)
+{
+	// Multiply full stiffness matrix with full displacement vector. Elements of resulting vector with indices starting from 
+	// number of unrestrained dofs are all support reactions in global coordinates
+
+	// Convert stiffness matrix to arma matrix
+	// Create armadillo matrices
+	arma::mat k(str.nDOF, str.nDOF);
+	arma::vec d(str.nDOF);
+
+	k.zeros(str.nDOF, str.nDOF);
+	d.zeros(str.nDOF);
+
+	// Fill zeros armadillo matrices
+	for (size_t i = 0; i < str.nDOF; i++)
+	{
+		d[i] = 0.0;
+		for (size_t j = 0; j < str.nDOF; j++)
+		{
+			k[(i * str.nDOF) + j] = 0.0;
+		}
+	}
+
+	// Fill armadillo matrices
+	for (size_t i = 0; i < str.nDOF; i++)
+	{
+		d(i) = disps[i];
+		for (size_t j = 0; j < str.nDOF; j++)
+		{
+			k(i, j) = str.StiffnessMatrix[i][j];
+		}
+	}
+
+	// Multiply
+	arma::vec forces(str.nDOF);
+	forces.zeros();
+	forces = k * d;
+	
+	// Reactions are obtained above. Now, get the given restraints reactions
+	std::vector<double> retVal;
+	auto restNode = res.RestrainedNode;
+
+	if (res.IsRestraintTranslationX) retVal.push_back(forces(restNode->DofIndexTX - 1));
+	if (res.IsRestraintTranslationY) retVal.push_back(forces(restNode->DofIndexTY - 1));
+	if (res.IsRestraintTranslationZ) retVal.push_back(forces(restNode->DofIndexTZ - 1));
+	if (res.IsRestraintRotationX) retVal.push_back(forces(restNode->DofIndexRX - 1));
+	if (res.IsRestraintRotationY) retVal.push_back(forces(restNode->DofIndexRY - 1));
+	if (res.IsRestraintRotationZ) retVal.push_back(forces(restNode->DofIndexRZ - 1));
+
+	return retVal;
 }

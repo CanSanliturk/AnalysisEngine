@@ -15,7 +15,6 @@ public:
  	std::map<unsigned int, Node*>* Nodes;
 	std::map<unsigned int, Element*>* Elements;
 	std::map<unsigned int, Restraint*>* Restraints;
-	std::map<unsigned int, Hinge*>* Hinges;
 	std::map<unsigned int, NodalLoad*>* NodalLoads;
 	std::map<unsigned int, DistributedLoad*>* DistributedLoads;
 
@@ -25,10 +24,9 @@ public:
 	
 	unsigned int nDOF;
 	unsigned int nUnrestrainedDOF;
-	unsigned int nReleasedDOF;
 
 	Structure(std::map<unsigned int, Node*>* nodeMap, std::map<unsigned int, Element*>* elementMap, std::map<unsigned int, Restraint*>* restraintMap, 
-		std::map<unsigned int, Hinge*>* hingeMap, std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap);
+		std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap);
 	Structure();
 	~Structure();
 
