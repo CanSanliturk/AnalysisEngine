@@ -16,6 +16,8 @@
 #pragma comment(lib, "user32")
 
 #define LOG(x) std::cout << x << "\n"
+#define MAKESHARED(x) std::make_shared<x>
+
 void TableDisplacements();
 void CantileverDisplacements();
 void LDisplacements();
@@ -34,8 +36,8 @@ int main()
 	LOG("");
 
 	// Call test function (Later on, these guys will be moved to a unit test project)
-	TriangleTruss();
-	
+	CantileverDisplacements();
+
 	std::cin.get();
 	return 0;
 }
@@ -113,13 +115,13 @@ void TableDisplacements()
 {
 	// Coordinates
 	XYZPoint bottomPt1(0, 0, 0); // Origin
-	XYZPoint bottomPt2(5, 0, 0);
-	XYZPoint bottomPt3(5, 5, 0);
-	XYZPoint bottomPt4(0, 5, 0);
-	XYZPoint topPt1(0, 0, 5); // Top of the origin
-	XYZPoint topPt2(5, 0, 5);
-	XYZPoint topPt3(5, 5, 5);
-	XYZPoint topPt4(0, 5, 5);
+	XYZPoint bottomPt2(10, 0, 0);
+	XYZPoint bottomPt3(10, 10, 0);
+	XYZPoint bottomPt4(0, 10, 0);
+	XYZPoint topPt1(0, 0, 10); // Top of the origin
+	XYZPoint topPt2(10, 0, 10);
+	XYZPoint topPt3(10, 10, 10);
+	XYZPoint topPt4(0, 10, 10);
 
 	// Nodes
 	std::map<unsigned int, Node*> nodes;
@@ -291,15 +293,15 @@ void TriangleTruss()
 {
 	// Coordinates
 	XYZPoint leftPt(0, 0, 0); // Origin
-	XYZPoint rightPt(10, 0, 0);
-	XYZPoint topPt(5, 5, 0);
-	
+	XYZPoint rightPt(5, 0, 0);
+	XYZPoint topPt(5, 0, 5);
+
 	// Nodes
 	std::map<unsigned int, Node*> nodes;
 	Node leftNode(1, leftPt); nodes[1] = &leftNode;
 	Node rightNode(2, rightPt); nodes[2] = &rightNode;
 	Node topNode(3, topPt);	nodes[3] = &topNode;
-	
+
 	// Section
 	auto area = 0.16;
 	auto inertia11 = 2.133 * 0.001;
@@ -315,39 +317,33 @@ void TriangleTruss()
 	FrameMember bottom(1, &leftNode, &rightNode, &sect, &mat); elements[1] = &bottom;
 	FrameMember rightMember(2, &rightNode, &topNode, &sect, &mat); elements[2] = &rightMember;
 	FrameMember leftMember(3, &topNode, &leftNode, &sect, &mat); elements[3] = &leftMember;
-	
+
 	// Restraints
-	std::vector<bool> isRest;
-	std::vector<double> rest;
+	std::vector<bool> isRestPin{ true, true, true, false, false, false };
+	std::vector<double> restPin{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
-	for (int i = 0; i < 6; i++)
-	{
-		if (i < 3) isRest.push_back(true);
-		else isRest.push_back(false);
+	std::vector<bool> isRestRoller{ false, true, true, false, false, false };
+	std::vector<double> restRoller{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
-		rest.push_back(0.0);
-	}
+	std::vector<bool> isReleased{ false, false, false, true, true, true };
+	std::vector<double> release{ 0.0,0.0 ,0.0 ,0.0 ,0.0 ,0.0 };
 
 	std::map<unsigned int, Restraint*> restraints;
-	Restraint res1(&leftNode, isRest, rest); restraints[1] = &res1;
-	Restraint res2(&rightNode, isRest, rest); restraints[2] = &res2;
+	Restraint res1(&leftNode, isRestPin, restPin); restraints[1] = &res1;
+	Restraint res2(&rightNode, isRestRoller, restRoller); restraints[2] = &res2;
+
+	Restraint res3(&leftNode, isReleased, release); restraints[3] = &res3;
+	Restraint res4(&rightNode, isReleased, release); restraints[4] = &res4;
+	Restraint res5(&topNode, isReleased, release); restraints[5] = &res5;
 
 	// Hinge
-	std::vector<bool> isForceSet;;
-	std::vector<double> force;
-
-	for (size_t i = 0; i < 6; i++)
-	{
-		if (i < 3) isForceSet.push_back(false); // Moment release
-		else isForceSet.push_back(true);
-
-		force.push_back(0.0);
-	}
+	std::vector<bool> isForceSet{ false, false, false, true, true, true };
+	std::vector<double> force{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 	std::map<unsigned int, Hinge*> hinges;
-	Hinge h1(&leftNode, isForceSet, force); hinges[1] = &h1;
-	Hinge h2(&rightNode, isForceSet, force); hinges[2] = &h2;
-	Hinge h3(&topNode, isForceSet, force); hinges[3] = &h3;
+	// Hinge h1(&leftNode, isForceSet, force); hinges[1] = &h1;
+	// Hinge h2(&rightNode, isForceSet, force); hinges[2] = &h2;
+	// Hinge h3(&topNode, isForceSet, force); hinges[3] = &h3;
 
 	// Nodal loads
 	std::map<unsigned int, NodalLoad*> nodalLoads;

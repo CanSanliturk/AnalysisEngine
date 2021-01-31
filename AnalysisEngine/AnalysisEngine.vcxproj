@@ -160,6 +160,7 @@
     <ClCompile Include="Section.cpp" />
     <ClCompile Include="Structure.cpp" />
     <ClCompile Include="TrussElement.cpp" />
+    <ClCompile Include="UtilMethods.cpp" />
     <ClCompile Include="Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -178,6 +179,7 @@
     <ClInclude Include="Section.h" />
     <ClInclude Include="Structure.h" />
     <ClInclude Include="TrussMember.h" />
+    <ClInclude Include="UtilMethods.h" />
     <ClInclude Include="Vector.h" />
     <ClInclude Include="XYPoint.h" />
     <ClInclude Include="XYZPoint.h" />

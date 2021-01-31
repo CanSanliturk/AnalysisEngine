@@ -16,21 +16,6 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 	k.zeros(nDofUnrestrained, nDofUnrestrained);
 	f.zeros(nDofUnrestrained);
 
-	arma::mat kArma;
-	arma::vec fArma;
-	arma::mat asd;
-
-	kArma.zeros(nDofUnrestrained, nDofUnrestrained);
-	fArma.zeros(nDofUnrestrained);
-
-	arma::mat A;
-	A.zeros(3, 4);
-
-	kArma.zeros();
-	fArma.zeros();
-	
-	auto asdasd = k[0];
-
 	// Fill zeros armadillo matrices
 	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
 	{
@@ -138,7 +123,7 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(Eleme
 {
 	// To get elements end forces in local coordinates, displacement vector of element (which is in global coordinates) 
 	// should be converted to local coordinates by multiplying it by rotation matrix of the given element.
-
+	
 	// Create arma matrix for rotation matrix
 	auto rotMatrix = static_cast<double*>(elm.GetRotationMatrix());
 	auto nDofElm = elm.GetNumberOfDoF();
@@ -154,14 +139,14 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(Eleme
 	
 	unsigned short counter = 0;
 
-	for (auto nodePtr : elmNodes)
+	for (auto node : elmNodes)
 	{
-		disps((counter * 6) + 0) = displacements.at(nodePtr->DofIndexTX - 1);
-		disps((counter * 6) + 1) = displacements.at(nodePtr->DofIndexTY - 1);
-		disps((counter * 6) + 2) = displacements.at(nodePtr->DofIndexTZ - 1);
-		disps((counter * 6) + 3) = displacements.at(nodePtr->DofIndexRX - 1);
-		disps((counter * 6) + 4) = displacements.at(nodePtr->DofIndexRY - 1);
-		disps((counter * 6) + 5) = displacements.at(nodePtr->DofIndexRZ - 1);
+		disps((counter * 6) + 0) = displacements.at(node->DofIndexTX - 1);
+		disps((counter * 6) + 1) = displacements.at(node->DofIndexTY - 1);
+		disps((counter * 6) + 2) = displacements.at(node->DofIndexTZ - 1);
+		disps((counter * 6) + 3) = displacements.at(node->DofIndexRX - 1);
+		disps((counter * 6) + 4) = displacements.at(node->DofIndexRY - 1);
+		disps((counter * 6) + 5) = displacements.at(node->DofIndexRZ - 1);
 		counter++;
 	}
 

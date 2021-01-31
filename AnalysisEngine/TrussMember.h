@@ -15,11 +15,11 @@ public:
 	ElmType::ElementType Type;
 	double Length;
 
-	double LocalCoordinateStiffnessMatrix[6][6];
-	double LocalCoordinateMassMatrix[6][6];
-	double RotationMatrix[6][6];
-	double GlobalCoordinateStiffnessMatrix[6][6];
-	double GlobalCoordinateMassMatrix[6][6];
+	double LocalCoordinateStiffnessMatrix[12][12];
+	double LocalCoordinateMassMatrix[12][12];
+	double RotationMatrix[12][12];
+	double GlobalCoordinateStiffnessMatrix[12][12];
+	double GlobalCoordinateMassMatrix[12][12];
 
 	TrussMember(unsigned int elmIndex, Node* iNode, Node* jNode, Section* section, Material* material);
 	TrussMember();
