@@ -1,7 +1,6 @@
 #include "Vector.h"
 #include <Math.h>
 
-
 double Vector::AngleTo(Vector v)
 {
 	double pi = 3.141592653589793;
@@ -22,7 +21,7 @@ double Vector::AngleTo(Vector v)
 }
 
 Vector::Vector(XYZPoint Point)
-{	
+{
 	XYZPoint origin(0.0, 0.0, 0.0);
 	this->X = Point.X;
 	this->Y = Point.Y;
@@ -51,12 +50,40 @@ Vector::Vector(XYZPoint IEnd, XYZPoint JEnd)
 
 Vector::Vector()
 {
-	this->X = -123.456678;
-	this->Y = -123.456678;
-	this->Z = -123.456678;
-	this->Length = -123.456678;
+	this->X = 0;
+	this->Y = 0;
+	this->Z = 0;
+	this->Length = 0;
 }
 
 Vector::~Vector()
 {
+}
+
+Vector Vector::operator+(const Vector& v)
+{
+	Vector vec;
+	XYZPoint Point(this->X + v.X, this->Y + v.Y, this->Z + v.Z);
+	XYZPoint origin(0.0, 0.0, 0.0);
+
+	vec.X = Point.X;
+	vec.Y = Point.Y;
+	vec.Z = Point.Z;
+	vec.Length = Point.DistanceTo(origin);
+
+	return vec;
+}
+
+Vector Vector::operator-(const Vector& v)
+{
+	Vector vec;
+	XYZPoint Point(this->X - v.X, this->Y - v.Y, this->Z - v.Z);
+	XYZPoint origin(0.0, 0.0, 0.0);
+
+	vec.X = Point.X;
+	vec.Y = Point.Y;
+	vec.Z = Point.Z;
+	vec.Length = Point.DistanceTo(origin);
+
+	return vec;
 }

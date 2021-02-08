@@ -16,7 +16,6 @@ struct Vector
 	/// </summary>
 	Vector(XYZPoint Point);
 
-
 	Vector(double x, double y, double z);
 
 	/// <summary>
@@ -28,7 +27,7 @@ struct Vector
 
 	~Vector();
 
-
-
+	Vector operator+(const Vector& v);
+	Vector operator-(const Vector& v);
 };
 

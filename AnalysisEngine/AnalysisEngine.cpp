@@ -3,6 +3,7 @@
 #include <memory>
 #include <Windows.h>
 #include "XYZPoint.h"
+#include "Vector.h"
 #include "Restraint.h"
 #include "Node.h"
 #include "Section.h"
@@ -34,8 +35,11 @@ int main()
 	LOG("|________________________________________________|");
 	LOG("");
 
+	Vector vec1(3.0, 3.0, 3.0);
+	Vector vec2(1.0, 1.0, 1.0);
+	auto asd = vec1 - vec2;
 	// Call test function (Later on, these guys will be moved to a unit test project)
-	TriangleTruss();
+	//TriangleTruss();
 
 	std::cin.get();
 	return 0;
@@ -227,16 +231,16 @@ void TriangleTruss()
 
 	// Section
 	auto area = 0.16;
-	auto inertia11 = 2.133 * 0.001;
-	auto inertia22 = 2.133 * 0.001;
-	auto inertia12 = 0.0036;
+	auto inertia11 = (1 / 12) * 0.4 * 0.4 * 0.4 * 0.4;
+	auto inertia22 = inertia11;
+	auto inertia12 = 0.003605333333;
 	Section sect(area, inertia11, inertia22, inertia12);
 
 	// Material
 	Material mat(200e9, 0.3, 0);
 
 	// Hinge
-	std::vector<bool> isReleased{ false, false, false, true, true, true };
+	std::vector<bool> isReleased{ false, false, false, false, false, false };
 	std::vector<double> release{ 0.0,0.0 ,0.0 ,0.0 ,0.0 ,0.0 };
 
 	Hinge h1i(isReleased, release);

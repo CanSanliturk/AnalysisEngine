@@ -17,9 +17,9 @@ struct XYZPoint
 
 	XYZPoint()
 	{
-		this->X = -123.456789;
-		this->Y = -123.456789;
-		this->Z = -123.456789;
+		this->X = 0;
+		this->Y = 0;
+		this->Z = 0;
 	};
 
 	~XYZPoint()
