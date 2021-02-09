@@ -10,4 +10,5 @@ namespace ArmadilloSolver
 	std::vector<double> GetMemberEndForcesForGlobalCoordinates(Element& elm, std::vector<double> displacements);
 	std::vector<double> GetNodalDisplacements(Node& node, std::vector<double>& displacements);
 	std::vector<double> GetSupportReactions(const Structure& str, const std::vector<double> disps, const Restraint& res);
+	std::vector<double> GetModalPeriods(const Structure& str);
 }

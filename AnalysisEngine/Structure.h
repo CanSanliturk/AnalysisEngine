@@ -18,8 +18,9 @@ public:
 	std::map<unsigned int, NodalLoad*>* NodalLoads;
 	std::map<unsigned int, DistributedLoad*>* DistributedLoads;
 
-	std::vector<std::vector<double>> StiffnessMatrix;
 	std::vector<std::vector<double>> MassMatrix;
+	std::vector<std::vector<double>> DampingMatrix;
+	std::vector<std::vector<double>> StiffnessMatrix;
 	std::vector<double> ForceVector;
 	
 	unsigned int nDOF;

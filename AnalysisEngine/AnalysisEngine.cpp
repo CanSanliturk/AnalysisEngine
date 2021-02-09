@@ -35,11 +35,8 @@ int main()
 	LOG("|________________________________________________|");
 	LOG("");
 
-	Vector vec1(3.0, 3.0, 3.0);
-	Vector vec2(1.0, 1.0, 1.0);
-	auto asd = vec1 - vec2;
 	// Call test function (Later on, these guys will be moved to a unit test project)
-	//TriangleTruss();
+	CantileverDisplacements();
 
 	std::cin.get();
 	return 0;
@@ -47,9 +44,11 @@ int main()
 
 void CantileverDisplacements()
 {
+	// Units are in N & m
+
 	// Coordinates
 	XYZPoint pt1(0, 0, 0); // Origin
-	XYZPoint pt2(5, 5, 5);
+	XYZPoint pt2(5, 0, 0);
 
 	// Nodes
 	std::map<unsigned int, Node*> nodes;
@@ -64,7 +63,7 @@ void CantileverDisplacements()
 	Section sect(area, inertia11, inertia22, inertia12);
 
 	// Material
-	Material mat(200e9, 0.3, 0);
+	Material mat(200e9, 0.3, 24000);
 
 	// Releases
 	Hinge h1;
@@ -112,6 +111,15 @@ void CantileverDisplacements()
 		for (size_t i = 0; i < 6; i++)
 			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
 	}
+
+	// Modal periods
+	auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
+	LOG("");
+	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
+	{
+		std::cout << " DOF Index: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+	}
+
 	return;
 }
 

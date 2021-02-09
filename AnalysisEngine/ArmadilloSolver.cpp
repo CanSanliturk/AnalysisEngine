@@ -3,6 +3,8 @@
 #include <iostream>
 #include <map>
 
+constexpr auto pi = 3.141592653589793;
+
 std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structure& str)
 {
 	// Create armadillo matrices
@@ -269,7 +271,7 @@ std::vector<double> ArmadilloSolver::GetSupportReactions(const Structure& str, c
 	arma::vec forces(str.nDOF);
 	forces.zeros();
 	forces = k * d;
-	
+
 	// Reactions are obtained above. Now, get the given restraints reactions
 	std::vector<double> retVal;
 	auto restNode = res.RestrainedNode;
@@ -282,4 +284,88 @@ std::vector<double> ArmadilloSolver::GetSupportReactions(const Structure& str, c
 	if (res.IsRestraintRotationZ) retVal.push_back(forces(restNode->DofIndexRZ - 1));
 
 	return retVal;
+}
+
+std::vector<double> ArmadilloSolver::GetModalPeriods(const Structure& str)
+{
+	// Number of modes is equal to number of unrestrained dofs. Find condensed
+	// stiffness and mass for each DOF, sqrt(ki / mi) will be wi. 2 * pi / wi
+	// will be equal to Ti.
+
+	// Return value
+	std::vector<double> periods;
+
+	// Unrestrained parts of stiffness and mass matrices
+	arma::mat M(str.nUnrestrainedDOF, str.nUnrestrainedDOF);
+	arma::mat K(str.nUnrestrainedDOF, str.nUnrestrainedDOF);
+
+	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
+	{
+		for (size_t j = 0; j < str.nUnrestrainedDOF; j++)
+		{
+			K(i, j) = str.StiffnessMatrix[i][j];
+			M(i, j) = str.MassMatrix[i][j];
+		}
+	}
+
+	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
+	{
+		// Condense out matrices
+		double kii = K(i, i);
+		double mii = M(i, i);
+
+		arma::mat kij(1, str.nUnrestrainedDOF - 1); kij.zeros();
+		arma::mat mij(1, str.nUnrestrainedDOF - 1); mij.zeros();
+
+		arma::mat kjj(str.nUnrestrainedDOF - 1, str.nUnrestrainedDOF - 1); kjj.zeros();
+		arma::mat mjj(str.nUnrestrainedDOF - 1, str.nUnrestrainedDOF - 1); mjj.zeros();
+
+		arma::mat kji(str.nUnrestrainedDOF - 1, 1); kji.zeros();
+		arma::mat mji(str.nUnrestrainedDOF - 1, 1); mji.zeros();
+
+		// Fill in parts of matrices
+		for (size_t idx1 = 0; idx1 < str.nUnrestrainedDOF; idx1++)
+		{
+			for (size_t idx2 = 0; idx2 < str.nUnrestrainedDOF; idx2++)
+			{
+				if ((idx1 != i) && (idx2 != i))
+				{
+					int rowIdx = ((idx1 < i) * idx1) + ((i < idx1) * (idx1 - 1));
+					int colIdx = ((idx2 < i) * idx2) + ((i < idx2) * (idx2 - 1));
+
+					mjj(rowIdx, colIdx) = M(idx1, idx2);
+					kjj(rowIdx, colIdx) = K(idx1, idx2);
+				}
+				else if ((idx1 == i) && (idx2 != i))
+				{
+					int colIdx = ((idx2 < i) * (idx2)) + ((i < idx2) * (idx2 -1));
+
+					mij(0, colIdx) = M(idx1, idx2);
+					kij(0, colIdx) = K(idx1, idx2);
+				}
+				else if ((idx1 != i) && (idx2 == i))
+				{
+					int rowIdx = ((idx1 < i) * idx1) + ((i < idx1) * (idx1 - 1));
+
+					mji(rowIdx, 0) = M(idx1, idx2);
+					kji(rowIdx, 0) = K(idx1, idx2);
+				}
+			}
+		}
+
+		// Find condensed mass and stiffness values
+		arma::mat kSubsVal = kij * arma::inv(kjj) * kji;
+		arma::mat mSubsVal = mij * arma::inv(mjj) * mji;
+
+		double ki = kii - kSubsVal(0, 0);
+		double mi = mii - mSubsVal(0, 0);
+
+		// Calculate modal parameters
+		double wi = sqrt(ki / mi);
+		double period = 2 * pi / wi;
+		periods.push_back(period);
+	}
+
+
+	return periods;
 }
