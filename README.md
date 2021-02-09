@@ -1,6 +1,28 @@
 # AnalysisEngine
 3D Structural Analysis Engine
 
-Tool can create and build stiffness and (consistent) mass matrices of 3-Dimensional structures using finite element method. Frame elements and truss elements are available. 
-Shell elements and bilinear 2d elements are going to be added. Eigen and Armadillo Libraries aare used as linear algebra solvers. It is up to user to pick one to use for
-as solver
+A finite element tool to solve structural models.
+
+Current Capabilities
+---------------------
+* Tool can be used to create structural model including beam and truss elements, restraints and element releases.
+
+* Static analysis can be executed on created structural model.
+
+* Modal analysis can be executed on created structural model.
+
+Future Development
+--------------------
+* Damping matrices will be introduced to members (and to overall structural) which uses Rayleigh damping.
+
+* Newmark-Beta algorithm will be implemented for dynamic analysis.
+
+* Material and geometrical nonlinearities will be considered.
+
+* More element types will be added like Timoshenko Beam, shell element etc.
+
+Solver
+------------------
+* Eigen and Armadillo linear algebra solvers are implemented. 
+
+
