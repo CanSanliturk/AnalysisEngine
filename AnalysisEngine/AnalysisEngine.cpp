@@ -36,7 +36,7 @@ int main()
 	LOG("");
 
 	// Call test function (Later on, these guys will be moved to a unit test project)
-	CantileverDisplacements();
+	TableDisplacements();
 
 	std::cin.get();
 	return 0;
@@ -59,11 +59,11 @@ void CantileverDisplacements()
 	auto area = 0.16;
 	auto inertia11 = 2.133e-3;
 	auto inertia22 = 2.133e-3;
-	auto inertia12 = 0.0036;
+	auto inertia12 = 0.003605;
 	Section sect(area, inertia11, inertia22, inertia12);
 
 	// Material
-	Material mat(200e9, 0.3, 24000);
+	Material mat(200e9, 0.3, 78500);
 
 	// Releases
 	Hinge h1;
@@ -97,7 +97,7 @@ void CantileverDisplacements()
 	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
 	// Solve displacement
-	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
+	/*auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
 	for (auto& nodePair : nodes)
 	{
 		auto node = nodePair.second;
@@ -110,15 +110,13 @@ void CantileverDisplacements()
 
 		for (size_t i = 0; i < 6; i++)
 			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
-	}
+	}*/
 
 	// Modal periods
 	auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
 	LOG("");
-	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
-	{
-		std::cout << " DOF Index: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
-	}
+	for (size_t i = 0; i < modalPeriods.size(); i++)
+		std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
 
 	return;
 }
@@ -150,11 +148,11 @@ void TableDisplacements()
 	auto area = 0.16;
 	auto inertia11 = 2.133 * 0.001;
 	auto inertia22 = 2.133 * 0.001;
-	auto inertia12 = 0.0036;
+	auto inertia12 = 0.003605;
 	Section sect(area, inertia11, inertia22, inertia12);
 
 	// Material
-	Material mat(200e9, 0.3, 0);
+	Material mat(200e9, 0.3, 78500);
 
 	// Releases
 	Hinge h1i, h1j;
@@ -206,8 +204,17 @@ void TableDisplacements()
 	// Create structure
 	auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
+	//for (size_t i = 0; i < str->nUnrestrainedDOF; i++)
+	//{
+	//	for (size_t j = 0; j < str->nUnrestrainedDOF; j++)
+	//	{
+	//		std::cout << str->StiffnessMatrix[i][j] << " ";
+	//	}
+	//	LOG("");
+	//}
+
 	// Solve displacement
-	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
+	/*auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
 	for (auto& nodePair : nodes)
 	{
 		auto node = nodePair.second;
@@ -220,7 +227,14 @@ void TableDisplacements()
 
 		for (size_t i = 0; i < 6; i++)
 			std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
-	}
+	}*/
+
+	// Modal periods
+	auto modalPeriods = ArmadilloSolver::GetModalPeriods(*str);
+	LOG("");
+	for (size_t i = 0; i < modalPeriods.size(); i++)
+		std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+
 	return;
 }
 
@@ -287,6 +301,15 @@ void TriangleTruss()
 
 	// Create structure
 	Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+	// Modal periods
+	auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
+	LOG("");
+	for (size_t i = 0; i < modalPeriods.size(); i++)
+		std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+
+	LOG("");
+	LOG("");
 
 	// Solve displacement
 	auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);

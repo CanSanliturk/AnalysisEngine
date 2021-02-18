@@ -93,7 +93,6 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 	unrestDofCount = dofIdx;
 	this->nUnrestrainedDOF = unrestDofCount;
 
-	// Lastly, assign dofs for restrained dof's
 	for (auto nodePair : *this->Nodes)
 	{
 		auto node = nodePair.second;

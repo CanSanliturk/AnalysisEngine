@@ -117,6 +117,7 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
 		
 		if (end->IsReleasedForceX)
 		{
+
 			for (int j = 0; j < 12; j++) kElm[(6 * i) + 0][j] = 0.0;
 			for (int j = 0; j < 12; j++) kElm[j][(6 * i) + 0] = 0.0;
 		}
@@ -157,6 +158,10 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
 			this->LocalCoordinateStiffnessMatrix[i][j] = kElm[i][j];
 }
 
+/// <summary>
+/// Taken from
+/// http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-1/
+/// </summary>
 void FrameMember::AssembleElementLocalMassMatrix()
 {
 	auto A = this->FrameSection->Area;

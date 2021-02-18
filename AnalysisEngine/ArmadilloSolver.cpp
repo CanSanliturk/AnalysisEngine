@@ -308,64 +308,21 @@ std::vector<double> ArmadilloSolver::GetModalPeriods(const Structure& str)
 		}
 	}
 
-	for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
-	{
-		// Condense out matrices
-		double kii = K(i, i);
-		double mii = M(i, i);
+	//  A = K^-1 * M;
+	arma::mat A = arma::inv(K) * M;
+	
+	arma::vec eigVal;
+	arma::mat eigVec;
 
-		arma::mat kij(1, str.nUnrestrainedDOF - 1); kij.zeros();
-		arma::mat mij(1, str.nUnrestrainedDOF - 1); mij.zeros();
+	arma::eig_sym(eigVal, eigVec, A);
 
-		arma::mat kjj(str.nUnrestrainedDOF - 1, str.nUnrestrainedDOF - 1); kjj.zeros();
-		arma::mat mjj(str.nUnrestrainedDOF - 1, str.nUnrestrainedDOF - 1); mjj.zeros();
+	for (size_t i = eigVal.size(); 0 < i; i--)
+		if (0 < eigVal(i - 1))
+		periods.push_back(sqrt(eigVal(i - 1) / (2 * pi)));
 
-		arma::mat kji(str.nUnrestrainedDOF - 1, 1); kji.zeros();
-		arma::mat mji(str.nUnrestrainedDOF - 1, 1); mji.zeros();
-
-		// Fill in parts of matrices
-		for (size_t idx1 = 0; idx1 < str.nUnrestrainedDOF; idx1++)
-		{
-			for (size_t idx2 = 0; idx2 < str.nUnrestrainedDOF; idx2++)
-			{
-				if ((idx1 != i) && (idx2 != i))
-				{
-					int rowIdx = ((idx1 < i) * idx1) + ((i < idx1) * (idx1 - 1));
-					int colIdx = ((idx2 < i) * idx2) + ((i < idx2) * (idx2 - 1));
-
-					mjj(rowIdx, colIdx) = M(idx1, idx2);
-					kjj(rowIdx, colIdx) = K(idx1, idx2);
-				}
-				else if ((idx1 == i) && (idx2 != i))
-				{
-					int colIdx = ((idx2 < i) * (idx2)) + ((i < idx2) * (idx2 -1));
-
-					mij(0, colIdx) = M(idx1, idx2);
-					kij(0, colIdx) = K(idx1, idx2);
-				}
-				else if ((idx1 != i) && (idx2 == i))
-				{
-					int rowIdx = ((idx1 < i) * idx1) + ((i < idx1) * (idx1 - 1));
-
-					mji(rowIdx, 0) = M(idx1, idx2);
-					kji(rowIdx, 0) = K(idx1, idx2);
-				}
-			}
-		}
-
-		// Find condensed mass and stiffness values
-		arma::mat kSubsVal = kij * arma::inv(kjj) * kji;
-		arma::mat mSubsVal = mij * arma::inv(mjj) * mji;
-
-		double ki = kii - kSubsVal(0, 0);
-		double mi = mii - mSubsVal(0, 0);
-
-		// Calculate modal parameters
-		double wi = sqrt(ki / mi);
-		double period = 2 * pi / wi;
-		periods.push_back(period);
-	}
-
+	// Find condensed mass and stiffness values
+	// arma::mat kSubsVal = kij * arma::inv(kjj) * kji;
+	// arma::mat mSubsVal = mij * arma::inv(mjj) * mji;
 
 	return periods;
 }
