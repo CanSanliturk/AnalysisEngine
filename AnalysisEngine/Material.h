@@ -17,10 +17,10 @@ public:
 
 	Material()
 	{
-		this->E = -123.456789;
-		this->G = -123.456789;
-		this->PoissonsRatio = -123.456789;
-		this->UnitWeight = -123.456789;
+		this->E = 0;
+		this->G = 0;
+		this->PoissonsRatio = 0;
+		this->UnitWeight = 0;
 	};
 
 	~Material()

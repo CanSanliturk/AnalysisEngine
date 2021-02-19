@@ -4,6 +4,8 @@
 #include "MatrixHelper.h"
 #include <math.h>
 
+const double G = 9.807;
+
 FrameMember::FrameMember(unsigned int ElmIndex, Node* iNode, Node* jNode, Section* section, Material* material, Hinge* iEndHinge, Hinge* jEndHinge)
 {
 	this->ElementIndex = ElmIndex;
@@ -165,18 +167,40 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
 void FrameMember::AssembleElementLocalMassMatrix()
 {
 	auto A = this->FrameSection->Area;
-	auto rho = this->FrameMaterial->UnitWeight;
+	auto rho = this->FrameMaterial->UnitWeight * G * A;
 	auto rX2 = this->FrameSection->Inertia11 / A;
-	auto a = this->Length / 2.0;
-	auto a2 = a * a;
-	auto mult = rho * A * a / 210.0;
+	double L = this->Length;
+	double m = rho * L / 420.0;
 	double mElm[12][12];
 
 	for (unsigned int i = 0; i < 12; i++)
 		for (unsigned int j = 0; j < 12; j++)
 			mElm[i][j] = 0;
 
-	mElm[0][0] = mult * 70;
+	mElm[0][0] = mElm[6][6] = m * 140.0;
+	mElm[0][6] = mElm[6][0] = m * 70.0;
+	mElm[3][3] = mElm[9][9] = m * rX2 * 140.0;
+	mElm[3][9] = mElm[9][3] = m * rX2 * 70.0;
+
+	mElm[2][2] = mElm[8][8] = m * 156.0;
+	mElm[2][8] = mElm[8][2] = m * 54.0;
+	mElm[4][4] = mElm[10][10] = m * 4.0 * L * L;
+	mElm[4][10] = mElm[10][4] = -m * 3.0 * L * L;
+	mElm[2][4] = mElm[4][2] = -m * 22.0 * L;
+	mElm[8][10] = mElm[10][8] = -mElm[2][4];
+	mElm[2][10] = mElm[10][2] = m * 13.0 * L;
+	mElm[4][8] = mElm[8][4] = -mElm[2][10];
+
+	mElm[1][1] = mElm[7][7] = m * 156.0;
+	mElm[1][7] = mElm[7][1] = m * 54.0;
+	mElm[5][5] = mElm[11][11] = m * 4.0 * L * L;
+	mElm[5][11] = mElm[11][5] = -m * 3.0 * L * L;
+	mElm[1][5] = mElm[5][1] = m * 22.0 * L;
+	mElm[7][11] = mElm[11][7] = -mElm[1][5];
+	mElm[1][11] = mElm[11][1] = -m * 13.0 * L;
+	mElm[5][7] = mElm[7][5] = -mElm[1][11];
+
+	/*mElm[0][0] = mult * 70;
 	mElm[0][6] = mult * 25;
 
 	mElm[1][1] = mult * 78;
@@ -226,7 +250,7 @@ void FrameMember::AssembleElementLocalMassMatrix()
 	mElm[11][1] = mElm[1][11];
 	mElm[11][5] = mElm[5][11];
 	mElm[11][7] = mElm[7][11];
-	mElm[11][11] = mult * 8 * a2;
+	mElm[11][11] = mult * 8 * a2;*/
 
 	for (unsigned int i = 0; i < 12; i++)
 		for (unsigned int j = 0; j < 12; j++)

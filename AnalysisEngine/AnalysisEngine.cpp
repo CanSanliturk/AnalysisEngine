@@ -204,14 +204,12 @@ void TableDisplacements()
 	// Create structure
 	auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
-	//for (size_t i = 0; i < str->nUnrestrainedDOF; i++)
-	//{
-	//	for (size_t j = 0; j < str->nUnrestrainedDOF; j++)
-	//	{
-	//		std::cout << str->StiffnessMatrix[i][j] << " ";
-	//	}
-	//	LOG("");
-	//}
+	/*for (size_t i = 0; i < str->nUnrestrainedDOF; i++)
+	{
+		for (size_t j = 0; j < str->nUnrestrainedDOF; j++)
+			std::cout << str->StiffnessMatrix[i][j] << " ";
+		LOG("");
+	}*/
 
 	// Solve displacement
 	/*auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
