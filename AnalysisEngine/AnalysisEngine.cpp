@@ -40,7 +40,7 @@ int main()
     LOG("");
 
     // Call test function (Later on, these guys will be moved to a unit test project)
-    TableDisplacements();
+    CantileverColumn();
     LOG("\n Analysis completed without errors....");
     std::cin.get();
     return 0;
@@ -131,7 +131,7 @@ void CantileverDisplacements()
 
     // Coordinates
     XYZPoint pt1(0, 0, 0); // Origin
-    XYZPoint pt2(5, 0, 0);
+    XYZPoint pt2(5, 5, 5);
 
     // Nodes
     std::map<unsigned int, Node*> nodes;
