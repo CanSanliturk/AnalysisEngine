@@ -72,6 +72,9 @@
     <ClCompile Include="UtilMethods.cpp">
       <Filter>src\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="TimoshenkoBeam.cpp">
+      <Filter>src\Elements</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Node.h">
@@ -130,6 +133,9 @@
     </ClInclude>
     <ClInclude Include="UtilMethods.h">
       <Filter>src\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="TimoshenkoBeam.h">
+      <Filter>src\Elements</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

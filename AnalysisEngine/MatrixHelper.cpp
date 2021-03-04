@@ -32,7 +32,7 @@ std::vector<std::vector<double>> MatrixHelper::GetTranslationalRotationMatrix(Ve
 	double alpha = 0.0;
 	double tol = 1e-8;
 
-	if (Utils::AreEqual(cX, compareVal, tol) && Utils::AreEqual(cY, compareVal, tol)) // Vertical members
+	if (Utils::AreEqual(cXY, compareVal, tol)) // Vertical members
 	{
 		firstRow.push_back(0.0);
 		firstRow.push_back(cZ);
@@ -49,16 +49,16 @@ std::vector<std::vector<double>> MatrixHelper::GetTranslationalRotationMatrix(Ve
 	else // General case
 	{
 		firstRow.push_back(cX);
-		firstRow.push_back(cY);
 		firstRow.push_back(cZ);
+		firstRow.push_back(cY);
 
-		secondRow.push_back(-1 * ((cX * cY * cos(alpha)) + (cZ * sin(alpha))) / (cXY));
+		secondRow.push_back(-1 * ((cX * cZ * cos(alpha)) + (cY * sin(alpha))) / (cXY));
 		secondRow.push_back(cXY * cos(alpha));
-		secondRow.push_back(((-cY * cZ * cos(alpha)) + (cX * sin(alpha))) / (cXY));
+		secondRow.push_back(((-cZ * cY * cos(alpha)) + (cX * sin(alpha))) / (cXY));
 
-		thirdRow.push_back(((cX * cY * sin(alpha)) - (cZ * cos(alpha))) / (cXY));
+		thirdRow.push_back(((cX * cZ * sin(alpha)) - (cY * cos(alpha))) / (cXY));
 		thirdRow.push_back(-1 * cXY * sin(alpha));
-		thirdRow.push_back(((cY * cZ * sin(alpha)) + (cX * cos(alpha))) / (cXY));
+		thirdRow.push_back(((cZ * cY * sin(alpha)) + (cX * cos(alpha))) / (cXY));
 	}
 
 	std::vector<std::vector<double>> retVal;

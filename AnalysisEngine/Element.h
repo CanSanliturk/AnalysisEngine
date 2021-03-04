@@ -5,33 +5,33 @@
 #include "Node.h"
 
 namespace ElmType {
-	enum ElementType
-	{
-		None = 0,
-		Frame = 1,
-		Truss = 2
-	};
+    enum ElementType
+    {
+        None = 0,
+        Frame = 1,
+        Truss = 2
+    };
 }
 
 class Element {
 public:
-	virtual std::vector<Node*> GelElementNodes() 
-	{
-		Node n;
-		std::vector<Node*> nodeList;
-		nodeList.push_back(&n);
-		return nodeList;
-	};
-	virtual unsigned int GetElementIndex() { return 0; };
-	virtual ElmType::ElementType GetElementType() { return ElmType::ElementType::None; };
-	virtual unsigned int GetNumberOfDoF() { return 0; };
-	virtual void* GetLocalCoordinateStiffnessMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-	virtual void* GetLocalCoordinateMassMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-	virtual void* GetGlobalCoordinateStiffnessMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-	virtual void* GetGlobalCoordinateMassMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-	virtual void* GetRotationMatrix() { void* vPtr = 0x00000000;  return vPtr; };
+    virtual std::vector<Node*> GelElementNodes()
+    {
+        Node n;
+        std::vector<Node*> nodeList;
+        nodeList.push_back(&n);
+        return nodeList;
+    };
+    virtual unsigned int GetElementIndex() { return 0; };
+    virtual ElmType::ElementType GetElementType() { return ElmType::ElementType::None; };
+    virtual unsigned int GetNumberOfDoF() { return 0; };
+    virtual void* GetLocalCoordinateStiffnessMatrix() { void* vPtr = 0x00000000;  return vPtr; };
+    virtual void* GetLocalCoordinateMassMatrix() { void* vPtr = 0x00000000;  return vPtr; };
+    virtual void* GetGlobalCoordinateStiffnessMatrix() { void* vPtr = 0x00000000;  return vPtr; };
+    virtual void* GetGlobalCoordinateMassMatrix() { void* vPtr = 0x00000000;  return vPtr; };
+    virtual void* GetRotationMatrix() { void* vPtr = 0x00000000;  return vPtr; };
 
-	virtual void GetElm() { };
+    virtual void GetElm() { };
 
-	ElmType::ElementType Type;
+    ElmType::ElementType Type;
 };
