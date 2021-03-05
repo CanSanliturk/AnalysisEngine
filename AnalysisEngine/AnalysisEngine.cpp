@@ -36,13 +36,15 @@ int main()
     LOG("|________________________________________________|");
     LOG("");
 
-    // Call test function (Later on, these guys will be moved to a unit test project)
+    // Start timer
     auto timenow =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
+    // Call test function (Later on, these guys will be moved to a unit test project)
     TableDisplacements();
     LOG("\n Analysis completed without errors....");
 
+    // Log duration
     auto timenow2 =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     LOG(" Elapsed Time = " << timenow2 - timenow << " seconds\n");

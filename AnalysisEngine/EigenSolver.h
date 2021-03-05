@@ -1,16 +1,14 @@
-//#pragma once
+#pragma once
+#include <vector>
+#include "Structure.h"
+#include "Element.h"
 
-//#include <iostream>
-//#include <Eigen>
-//
-//using Eigen::MatrixXd;
-//
-//int main()
-//{
-//    MatrixXd m(2, 2);
-//    m(0, 0) = 3;
-//    m(1, 0) = 2.5;
-//    m(0, 1) = -1;
-//    m(1, 1) = m(1, 0) + m(0, 1);
-//    std::cout << m << std::endl;
-//}
+namespace EigenSolver
+{
+	std::vector<double> GetDisplacementForStaticCase(const Structure& str);
+	std::vector<double> GetMemberEndForcesForLocalCoordinates(Element& elm, std::vector<double> displacements);
+	std::vector<double> GetMemberEndForcesForGlobalCoordinates(Element& elm, std::vector<double> displacements);
+	std::vector<double> GetNodalDisplacements(Node& node, std::vector<double>& displacements);
+	std::vector<double> GetSupportReactions(const Structure& str, const std::vector<double> disps, const Restraint& res);
+	std::vector<double> GetModalPeriods(const Structure& str);
+}

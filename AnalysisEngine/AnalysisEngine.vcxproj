@@ -153,6 +153,7 @@
   <ItemGroup>
     <ClCompile Include="AnalysisEngine.cpp" />
     <ClCompile Include="ArmadilloSolver.cpp" />
+    <ClCompile Include="EigenSolver.cpp" />
     <ClCompile Include="FrameMember.cpp" />
     <ClCompile Include="MatrixHelper.cpp" />
     <ClCompile Include="Node.cpp" />
