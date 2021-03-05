@@ -16,6 +16,7 @@
 #include "TimoshenkoBeam.h"
 #include <iostream>
 #include <Eigen>
+#include <chrono>
 
 #pragma comment(lib, "user32")
 
@@ -24,8 +25,9 @@
 
 void TableDisplacements();
 void CantileverDisplacements();
-void TriangleTruss();
 void CantileverColumn();
+void TriangleTruss();
+void SingleTruss();
 
 int main()
 {
@@ -40,8 +42,16 @@ int main()
     LOG("");
 
     // Call test function (Later on, these guys will be moved to a unit test project)
-    CantileverColumn();
+    auto timenow =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    TriangleTruss();
     LOG("\n Analysis completed without errors....");
+    
+    auto timenow2 =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    LOG(" Elapsed Time = " << timenow2 - timenow << " seconds\n");
+    
     std::cin.get();
     return 0;
 }
@@ -101,7 +111,7 @@ void CantileverColumn()
     Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
+    /*auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
     for (auto& nodePair : nodes)
     {
         auto node = nodePair.second;
@@ -114,13 +124,13 @@ void CantileverColumn()
 
         for (size_t i = 0; i < 6; i++)
             std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
-    }
+    }*/
 
     // Modal periods
-    // auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
-    // LOG("");
-    // for (size_t i = 0; i < modalPeriods.size(); i++)
-    //     std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+    auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
+    LOG("");
+    for (size_t i = 0; i < modalPeriods.size(); i++)
+        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
 
     return;
 }
@@ -288,7 +298,7 @@ void TableDisplacements()
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    /*auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
+    auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
     for (auto& nodePair : nodes)
     {
         auto node = nodePair.second;
@@ -301,13 +311,13 @@ void TableDisplacements()
 
         for (size_t i = 0; i < 6; i++)
             std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
-    }*/
+    }
 
     // Modal periods
-    auto modalPeriods = ArmadilloSolver::GetModalPeriods(*str);
+    /*auto modalPeriods = ArmadilloSolver::GetModalPeriods(*str);
     LOG("");
     for (size_t i = 0; i < modalPeriods.size(); i++)
-        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";*/
 
     return;
 }
@@ -336,7 +346,7 @@ void TriangleTruss()
     Material mat(200e9, 0.3, 0);
 
     // Hinge
-    std::vector<bool> isReleased{ false, false, false, false, true, true };
+    std::vector<bool> isReleased{ false, false, false, true, true, true };
     std::vector<double> release{ 0.0,0.0 ,0.0 ,0.0 ,0.0 ,0.0 };
 
     Hinge h1i(isReleased, release);
@@ -348,17 +358,23 @@ void TriangleTruss()
     Hinge h3i(isReleased, release);
     Hinge h3j(isReleased, release);
 
+    //(unsigned int ElmIndex, Node * iNode, Node * jNode, Section * section, Material * material)
+
     // Members
     std::map<unsigned int, Element*> elements;
-    FrameMember bottomMember(1, &leftNode, &rightNode, &sect, &mat, &h1i, &h1j); elements[1] = &bottomMember;
-    FrameMember rightMember(2, &rightNode, &topNode, &sect, &mat, &h2i, &h2j); elements[2] = &rightMember;
-    FrameMember leftMember(3, &topNode, &leftNode, &sect, &mat, &h3i, &h3j); elements[3] = &leftMember;
+    // FrameMember bottomMember(1, &leftNode, &rightNode, &sect, &mat, &h1i, &h1j); elements[1] = &bottomMember;
+    // FrameMember rightMember(2, &rightNode, &topNode, &sect, &mat, &h2i, &h2j); elements[2] = &rightMember;
+    // FrameMember leftMember(3, &topNode, &leftNode, &sect, &mat, &h3i, &h3j); elements[3] = &leftMember;
+
+    TrussMember bottomMember(1, &leftNode, &rightNode, &sect, &mat); elements[1] = &bottomMember;
+    TrussMember rightMember(2, &rightNode, &topNode, &sect, &mat); elements[2] = &rightMember;
+    TrussMember leftMember(3, &topNode, &leftNode, &sect, &mat); elements[3] = &leftMember;
 
     // Restraints
-    std::vector<bool> isRestPin{ true, true, true, true, true, true };
+    std::vector<bool> isRestPin{ true, true, true, false, false, false };
     std::vector<double> restPin{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
-    std::vector<bool> isRestRoller{ false, true, true, true, true, true };
+    std::vector<bool> isRestRoller{ false, true, true, false, false, false };
     std::vector<double> restRoller{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
     std::map<unsigned int, Restraint*> restraints;
@@ -376,11 +392,118 @@ void TriangleTruss()
     // Create structure
     Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
+    for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
+    {
+        for (size_t j = 0; j < str.nUnrestrainedDOF; j++)
+        {
+            std::cout << str.StiffnessMatrix[i][j] << " ";
+        }
+        std::cout << "\n";
+    }
+
     // Modal periods
-   /* auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
+    /*auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
     LOG("");
     for (size_t i = 0; i < modalPeriods.size(); i++)
-        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";*/
+        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+
+    LOG("");
+    LOG("");*/
+
+    // Solve displacement
+    auto disps = ArmadilloSolver::GetDisplacementForStaticCase(str);
+    for (auto& nodePair : nodes)
+    {
+        auto node = nodePair.second;
+
+        LOG("");
+        LOG(" Node Index: ");
+        std::cout << " " << node->NodeIndex << "\n";
+
+        auto nodalDisps = ArmadilloSolver::GetNodalDisplacements(*node, disps);
+
+        for (size_t i = 0; i < 6; i++)
+            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
+    }
+
+    //auto leftMemForces = ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(leftMember, disps);
+    //LOG("---------------------------------------");
+    //LOG("Left member forces");
+    //for (auto& f : leftMemForces) LOG(f);
+
+    //// Check support reactions
+    //auto leftSupportReactions = ArmadilloSolver::GetSupportReactions(str, disps, res1);
+    //LOG("---------------------------------------");
+    //LOG("Left support Reaction");
+    //for (auto& r : leftSupportReactions) LOG(r);
+}
+
+void SingleTruss()
+{
+    // Coordinates
+    XYZPoint leftPt(0, 0, 0); // Origin
+    XYZPoint rightPt(10, 0, 0);
+
+    // Nodes
+    std::map<unsigned int, Node*> nodes;
+    Node leftNode(1, leftPt); nodes[1] = &leftNode;
+    Node rightNode(2, rightPt); nodes[2] = &rightNode;
+
+    // Section
+    auto area = 0.16;
+    auto inertia11 = (1 / 12) * 0.4 * 0.4 * 0.4 * 0.4;
+    auto inertia22 = inertia11;
+    auto inertia12 = 0.003605333333;
+    Section sect(area, inertia11, inertia22, inertia12);
+
+    // Material
+    Material mat(200e9, 0.3, 0);
+
+    // Hinge
+    std::vector<bool> isReleased{ false, false, false, true, true, true };
+    std::vector<double> release{ 0.0,0.0 ,0.0 ,0.0 ,0.0 ,0.0 };
+
+    Hinge h1i(isReleased, release);
+    Hinge h1j(isReleased, release);
+    //Hinge h1i;
+    //Hinge h1j;
+
+    // Members
+    std::map<unsigned int, Element*> elements;
+    FrameMember member(1, &leftNode, &rightNode, &sect, &mat, &h1i, &h1j); elements[1] = &member;
+
+    // Restraints
+    std::vector<bool> isRestPin{ true, true, true, false, false, false };
+    std::vector<double> restPin{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+    std::map<unsigned int, Restraint*> restraints;
+    Restraint res1(&leftNode, isRestPin, restPin); restraints[1] = &res1;
+
+    // Nodal loads
+    std::map<unsigned int, NodalLoad*> nodalLoads;
+    double nodalLoad[6] = { 5000e3, 0, 0, 0, 0, 0 };
+    NodalLoad nl1(&rightNode, nodalLoad); nodalLoads[1] = &nl1;
+
+    // Distributed loads
+    std::map<unsigned int, DistributedLoad*> distLoads;
+
+    // Create structure
+    Structure str(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
+    {
+        for (size_t j = 0; j < str.nUnrestrainedDOF; j++)
+        {
+            std::cout << str.StiffnessMatrix[i][j] << " ";
+        }
+        std::cout << "\n";
+    }
+
+    // Modal periods
+    // auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
+    // LOG("");
+    // for (size_t i = 0; i < modalPeriods.size(); i++)
+    //     std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
 
     LOG("");
     LOG("");
@@ -401,7 +524,7 @@ void TriangleTruss()
             std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
     }
 
-    auto leftMemForces = ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(leftMember, disps);
+    auto leftMemForces = ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(member, disps);
     LOG("---------------------------------------");
     LOG("Left member forces");
     for (auto& f : leftMemForces) LOG(f);

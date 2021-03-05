@@ -181,15 +181,15 @@ void FrameMember::AssembleElementLocalMassMatrix()
     mElm[0][0] = m;
     mElm[1][1] = m;
     mElm[2][2] = m;
-        mElm[3][3] = m / 2;
-        mElm[4][4] = m / 2;
-        mElm[5][5] = m / 2;
+        mElm[3][3] = 0 * m / 2;
+        mElm[4][4] = 0 * m / 2;
+        mElm[5][5] = 0 * m / 2;
     mElm[6][6] = m;
     mElm[7][7] = m;
     mElm[8][8] = m;
-        mElm[9][9] =   m / 2;
-        mElm[10][10] = m / 2;
-        mElm[11][11] = m / 2;
+      mElm[9][9] =   0 * m / 2;
+      mElm[10][10] = 0 * m / 2;
+      mElm[11][11] = 0 * m / 2;
 
     /*mElm[0][0] = mElm[6][6] = m * 140.0;
     mElm[0][6] = mElm[6][0] = m * 70.0;
