@@ -3,8 +3,9 @@
 #include <vector>
 #include <iostream>
 
-Structure::Structure(std::map<unsigned int, Node*>* nodeMap, std::map<unsigned int, Element*>* elementMap, std::map<unsigned int, Restraint*>* restraintMap,
-	std::map<unsigned int, NodalLoad*>* nodalLoadMap, std::map<unsigned int, DistributedLoad*>* distLoadMap)
+Structure::Structure(std::map<unsigned int, std::shared_ptr<Node>>* nodeMap, std::map<unsigned int, std::shared_ptr<Element>>* elementMap, std::map<unsigned int,
+	std::shared_ptr<Restraint>>*restraintMap, std::map<unsigned int, std::shared_ptr<NodalLoad>>* nodalLoadMap, std::map<unsigned int,
+	std::shared_ptr<DistributedLoad>>*distLoadMap)
 	: nDOF(0), nUnrestrainedDOF(0), Nodes(nodeMap), Elements(elementMap), Restraints(restraintMap), NodalLoads(nodalLoadMap),
 	DistributedLoads(distLoadMap)
 {

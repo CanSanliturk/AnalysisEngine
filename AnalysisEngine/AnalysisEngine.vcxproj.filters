@@ -63,17 +63,11 @@
     <ClCompile Include="Structure.cpp">
       <Filter>src\Structure</Filter>
     </ClCompile>
-    <ClCompile Include="TrussElement.cpp">
-      <Filter>src\Elements</Filter>
-    </ClCompile>
     <ClCompile Include="ArmadilloSolver.cpp">
       <Filter>src\Solvers</Filter>
     </ClCompile>
     <ClCompile Include="UtilMethods.cpp">
       <Filter>src\Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="TimoshenkoBeam.cpp">
-      <Filter>src\Elements</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -119,9 +113,6 @@
     <ClInclude Include="EigenSolver.h">
       <Filter>src\Solvers</Filter>
     </ClInclude>
-    <ClInclude Include="TrussMember.h">
-      <Filter>src\Elements</Filter>
-    </ClInclude>
     <ClInclude Include="ArmadilloSolver.h">
       <Filter>src\Solvers</Filter>
     </ClInclude>
@@ -133,9 +124,6 @@
     </ClInclude>
     <ClInclude Include="UtilMethods.h">
       <Filter>src\Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="TimoshenkoBeam.h">
-      <Filter>src\Elements</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

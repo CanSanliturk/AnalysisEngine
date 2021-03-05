@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 #include "Hinge.h"
 #include "Node.h"
 #include "Section.h"
@@ -10,10 +11,10 @@ class FrameMember : public Element
 {
 public:
     unsigned int ElementIndex;
-    Node* Nodes[2];
-    Hinge* Hinges[2];
-    Section* FrameSection;
-    Material* FrameMaterial;
+    std::vector<std::shared_ptr<Node>> Nodes;
+    std::vector<std::shared_ptr<Hinge>> Hinges;
+    std::shared_ptr<Section> FrameSection;
+    std::shared_ptr<Material> FrameMaterial;
     ElmType::ElementType Type;
     double Length;
 
@@ -23,7 +24,8 @@ public:
     double GlobalCoordinateStiffnessMatrix[12][12];
     double GlobalCoordinateMassMatrix[12][12];
 
-    FrameMember(unsigned int elmIndex, Node* iNode, Node* jNode, Section* section, Material* material, Hinge* iEndHinge, Hinge* jEndHinge);
+    FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, 
+        std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge);
     FrameMember();
     ~FrameMember();
 
@@ -35,9 +37,9 @@ public:
     void* GetGlobalCoordinateStiffnessMatrix() { return &this->GlobalCoordinateStiffnessMatrix; };
     void* GetGlobalCoordinateMassMatrix() { return &this->GlobalCoordinateMassMatrix; };
     void* GetRotationMatrix() { return &this->RotationMatrix; };
-    std::vector<Node*> GelElementNodes()
+    std::vector<std::shared_ptr<Node>> GelElementNodes()
     {
-        std::vector<Node*> retVal;
+        std::vector<std::shared_ptr<Node>> retVal;
         retVal.push_back(this->Nodes[0]);
         retVal.push_back(this->Nodes[1]);
         return retVal;

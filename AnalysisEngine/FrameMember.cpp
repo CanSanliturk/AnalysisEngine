@@ -6,9 +6,13 @@
 
 constexpr double G = 9.807;
 
-FrameMember::FrameMember(unsigned int ElmIndex, Node* iNode, Node* jNode, Section* section, Material* material, Hinge* iEndHinge, Hinge* jEndHinge)
+FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode,
+    std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge)
 {
-    this->ElementIndex = ElmIndex;
+    this->Nodes.resize(2);
+    this->Hinges.resize(2);
+
+    this->ElementIndex = elmIndex;
     this->Nodes[0] = iNode;
     this->Nodes[1] = jNode;
     this->Hinges[0] = iEndHinge;
@@ -22,21 +26,21 @@ FrameMember::FrameMember(unsigned int ElmIndex, Node* iNode, Node* jNode, Sectio
     AssembleElementRotationMatrix();
     AssembleElementGlobalStiffnessMatrix();
     AssembleElementGlobalMassMatrix();
-    iNode->ConnectedElements.push_back(ElmIndex);
-    jNode->ConnectedElements.push_back(ElmIndex);
+    iNode->ConnectedElements.push_back(elmIndex);
+    jNode->ConnectedElements.push_back(elmIndex);
 }
 
 FrameMember::FrameMember()
 {
-    Node iN;
-    Node jN;
-    Section s;
-    Material m;
-    this->Nodes[0] = &iN;
-    this->Nodes[1] = &jN;
-    this->FrameSection = &s;
-    this->FrameMaterial = &m;
-    this->Length = -123.456789;
+    std::shared_ptr<Node> iN;
+    std::shared_ptr<Node> jN;
+    std::shared_ptr<Section> s;
+    std::shared_ptr<Material> m;
+    this->Nodes[0] = iN;
+    this->Nodes[1] = jN;
+    this->FrameSection = s;
+    this->FrameMaterial = m;
+    this->Length = 0;
 }
 
 FrameMember::~FrameMember()
@@ -117,6 +121,9 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
     {
         auto end = this->Hinges[i];
 
+        if (!end)
+            continue;
+
         if (end->IsReleasedForceX)
         {
 
@@ -181,15 +188,15 @@ void FrameMember::AssembleElementLocalMassMatrix()
     mElm[0][0] = m;
     mElm[1][1] = m;
     mElm[2][2] = m;
-        mElm[3][3] = 0 * m / 2;
-        mElm[4][4] = 0 * m / 2;
-        mElm[5][5] = 0 * m / 2;
+    mElm[3][3] = 0 * m / 2;
+    mElm[4][4] = 0 * m / 2;
+    mElm[5][5] = 0 * m / 2;
     mElm[6][6] = m;
     mElm[7][7] = m;
     mElm[8][8] = m;
-      mElm[9][9] =   0 * m / 2;
-      mElm[10][10] = 0 * m / 2;
-      mElm[11][11] = 0 * m / 2;
+    mElm[9][9] = 0 * m / 2;
+    mElm[10][10] = 0 * m / 2;
+    mElm[11][11] = 0 * m / 2;
 
     /*mElm[0][0] = mElm[6][6] = m * 140.0;
     mElm[0][6] = mElm[6][0] = m * 70.0;

@@ -2,6 +2,7 @@
 #include "MatrixHelper.h"
 #include <armadillo>
 #include <iostream>
+#include <memory>
 #include <map>
 
 constexpr auto pi = 3.141592653589793;
@@ -56,7 +57,7 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
 
     auto restraints = *str.Restraints;
 
-    std::map<unsigned int, Restraint*>::iterator iter = restraints.begin();
+    std::map<unsigned int, std::shared_ptr<Restraint>>::iterator iter = restraints.begin();
 
     // Iterate over the map using Iterator till end.
     while (iter != restraints.end())
@@ -95,7 +96,7 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
     for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
         retVal.at(i) = resData(i);
 
-    std::map<unsigned int, Restraint*>::iterator it = restraints.begin();
+    std::map<unsigned int, std::shared_ptr<Restraint>>::iterator it = restraints.begin();
 
     // Iterate over the map using Iterator till end.
     while (it != restraints.end())

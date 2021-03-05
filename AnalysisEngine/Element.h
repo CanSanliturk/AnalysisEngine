@@ -1,5 +1,5 @@
 #pragma once
-
+#include <memory>
 #include <vector>
 #include <Map>
 #include "Node.h"
@@ -15,11 +15,9 @@ namespace ElmType {
 
 class Element {
 public:
-    virtual std::vector<Node*> GelElementNodes()
+    virtual std::vector<std::shared_ptr<Node>> GelElementNodes()
     {
-        Node n;
-        std::vector<Node*> nodeList;
-        nodeList.push_back(&n);
+        std::vector<std::shared_ptr<Node>> nodeList;
         return nodeList;
     };
     virtual unsigned int GetElementIndex() { return 0; };
