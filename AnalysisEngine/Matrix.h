@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <memory>
 
 // Template matrix class for internal use
@@ -84,8 +85,8 @@ public:
         }
     }
 
-    const unsigned int RowCount;
-    const unsigned int ColCount;
+    unsigned int RowCount;
+    unsigned int ColCount;
 
 private:
     unsigned int m_rowCount = 0;

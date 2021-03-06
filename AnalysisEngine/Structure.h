@@ -1,13 +1,14 @@
 #pragma once
-#include <Map>
 #include <vector>
 #include <memory>
+#include <Map>
 #include "Node.h"
-#include "Restraint.h"
-#include "FrameMember.h"
-#include "NodalLoad.h"
 #include "DistributedLoad.h"
+#include "FrameMember.h"
+#include "Restraint.h"
+#include "NodalLoad.h"
 #include "Element.h"
+#include "Matrix.h"
 #include "Hinge.h"
 
 class Structure
@@ -19,10 +20,10 @@ public:
     std::map<unsigned int, std::shared_ptr<NodalLoad>>* NodalLoads;
     std::map<unsigned int, std::shared_ptr<DistributedLoad>>* DistributedLoads;
 
-    std::vector<std::vector<double>> MassMatrix;
-    std::vector<std::vector<double>> DampingMatrix;
-    std::vector<std::vector<double>> StiffnessMatrix;
-    std::vector<double> ForceVector;
+    std::shared_ptr<Matrix<double>> MassMatrix;
+    std::shared_ptr<Matrix<double>> DampingMatrix;
+    std::shared_ptr<Matrix<double>> StiffnessMatrix;
+    std::shared_ptr<Matrix<double>> ForceVector;
 
     unsigned int nDOF;
     unsigned int nUnrestrainedDOF;
@@ -35,7 +36,7 @@ public:
 
 private:
     void AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount);
-    void AssembleStiffnessMatrix(unsigned int totalDofCount);
     void AssembleMassMatrix(unsigned int totalDofCount);
+    void AssembleStiffnessMatrix(unsigned int totalDofCount);
     void AssembleForceVector(unsigned int totalDofCount);
 };

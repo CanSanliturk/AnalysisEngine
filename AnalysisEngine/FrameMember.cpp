@@ -21,6 +21,11 @@ FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std
     this->FrameMaterial = material;
     this->Type = (ElmType::ElementType::Frame);
     this->Length = jNode->Coordinate.DistanceTo(iNode->Coordinate);
+    this->LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
+    this->LocalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
+    this->RotationMatrix = std::make_shared<Matrix<double>>(12);
+    this->GlobalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
+    this->GlobalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
     AssembleElementLocalStiffnessMatrix();
     AssembleElementLocalMassMatrix();
     AssembleElementRotationMatrix();
@@ -164,7 +169,7 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
 
     for (unsigned int i = 0; i < 12; i++)
         for (unsigned int j = 0; j < 12; j++)
-            this->LocalCoordinateStiffnessMatrix[i][j] = kElm[i][j];
+            (*this->LocalCoordinateStiffnessMatrix)(i, j) = kElm[i][j];
 }
 
 /// <summary>
@@ -279,7 +284,7 @@ void FrameMember::AssembleElementLocalMassMatrix()
 
     for (unsigned int i = 0; i < 12; i++)
         for (unsigned int j = 0; j < 12; j++)
-            this->LocalCoordinateMassMatrix[i][j] = mElm[i][j];
+            (*this->LocalCoordinateMassMatrix)(i, j) = mElm[i][j];
 }
 
 void FrameMember::AssembleElementRotationMatrix()
@@ -291,23 +296,23 @@ void FrameMember::AssembleElementRotationMatrix()
 
     for (unsigned int i = 0; i < 12; i++)
         for (unsigned int j = 0; j < 12; j++)
-            this->RotationMatrix[i][j] = 0.0;
+            (*this->RotationMatrix)(i, j) = 0.0;
 
     for (unsigned int i = 0; i < 3; i++)
         for (unsigned int j = 0; j < 3; j++)
-            this->RotationMatrix[i][j] = minorRotMat.at(i).at(j);
+            (*this->RotationMatrix)(i, j) = minorRotMat.at(i).at(j);
 
     for (unsigned int i = 3; i < 6; i++)
         for (unsigned int j = 3; j < 6; j++)
-            this->RotationMatrix[i][j] = minorRotMat.at(i - 3).at(j - 3);
+            (*this->RotationMatrix)(i, j) = minorRotMat.at(i - 3).at(j - 3);
 
     for (unsigned int i = 6; i < 9; i++)
         for (unsigned int j = 6; j < 9; j++)
-            this->RotationMatrix[i][j] = minorRotMat.at(i - 6).at(j - 6);
+            (*this->RotationMatrix)(i, j) = minorRotMat.at(i - 6).at(j - 6);
 
     for (unsigned int i = 9; i < 12; i++)
         for (unsigned int j = 9; j < 12; j++)
-            this->RotationMatrix[i][j] = minorRotMat.at(i - 9).at(j - 9);
+            (*this->RotationMatrix)(i, j) = minorRotMat.at(i - 9).at(j - 9);
 }
 
 void FrameMember::AssembleElementGlobalStiffnessMatrix()
@@ -322,8 +327,8 @@ void FrameMember::AssembleElementGlobalStiffnessMatrix()
 
         for (unsigned int j = 0; j < 12; j++)
         {
-            kElmRow.push_back(this->LocalCoordinateStiffnessMatrix[i][j]);
-            rotRow.push_back(this->RotationMatrix[i][j]);
+            kElmRow.push_back((*this->LocalCoordinateStiffnessMatrix)(i, j));
+            rotRow.push_back((*this->RotationMatrix)(i, j));
         }
 
         kElm.push_back(kElmRow);
@@ -337,7 +342,7 @@ void FrameMember::AssembleElementGlobalStiffnessMatrix()
 
     for (unsigned int i = 0; i < 12; i++)
         for (unsigned int j = 0; j < 12; j++)
-            this->GlobalCoordinateStiffnessMatrix[i][j] = kElmGlob.at(i).at(j);
+            (*this->GlobalCoordinateStiffnessMatrix)(i, j) = kElmGlob.at(i).at(j);
 }
 
 void FrameMember::AssembleElementGlobalMassMatrix()
@@ -352,8 +357,8 @@ void FrameMember::AssembleElementGlobalMassMatrix()
 
         for (unsigned int j = 0; j < 12; j++)
         {
-            mElmRow.push_back(this->LocalCoordinateMassMatrix[i][j]);
-            rotRow.push_back(this->RotationMatrix[i][j]);
+            mElmRow.push_back((*this->LocalCoordinateMassMatrix)(i, j));
+            rotRow.push_back((*this->RotationMatrix)(i, j));
         }
 
         mElm.push_back(mElmRow);
@@ -367,5 +372,5 @@ void FrameMember::AssembleElementGlobalMassMatrix()
 
     for (unsigned int i = 0; i < 12; i++)
         for (unsigned int j = 0; j < 12; j++)
-            this->GlobalCoordinateMassMatrix[i][j] = mElmGlob.at(i).at(j);
+            (*this->GlobalCoordinateMassMatrix)(i, j) = mElmGlob.at(i).at(j);
 }

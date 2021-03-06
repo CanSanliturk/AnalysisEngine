@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <Map>
+#include "Matrix.h"
 #include "Node.h"
 
 namespace ElmType {
@@ -20,14 +21,14 @@ public:
         std::vector<std::shared_ptr<Node>> nodeList;
         return nodeList;
     };
-    virtual unsigned int GetElementIndex() { return 0; };
-    virtual ElmType::ElementType GetElementType() { return ElmType::ElementType::None; };
+    virtual unsigned int GetElementIndex() { return 0; }
+    virtual ElmType::ElementType GetElementType() { return ElmType::ElementType::None; }
     virtual unsigned int GetNumberOfDoF() { return 0; };
-    virtual void* GetLocalCoordinateStiffnessMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-    virtual void* GetLocalCoordinateMassMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-    virtual void* GetGlobalCoordinateStiffnessMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-    virtual void* GetGlobalCoordinateMassMatrix() { void* vPtr = 0x00000000;  return vPtr; };
-    virtual void* GetRotationMatrix() { void* vPtr = 0x00000000;  return vPtr; };
+    virtual std::shared_ptr<Matrix<double>> GetLocalCoordinateStiffnessMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetLocalCoordinateMassMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateStiffnessMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateMassMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetRotationMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
 
     virtual void GetElm() { };
 

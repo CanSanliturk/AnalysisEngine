@@ -1,9 +1,10 @@
-#include "ArmadilloSolver.h"
-#include "MatrixHelper.h"
 #include <armadillo>
 #include <iostream>
 #include <memory>
 #include <map>
+#include "ArmadilloSolver.h"
+#include "MatrixHelper.h"
+#include "Matrix.h"
 
 constexpr auto pi = 3.141592653589793;
 
@@ -33,10 +34,10 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
     // Fill armadillo matrices
     for (size_t i = 0; i < str.nUnrestrainedDOF; i++)
     {
-        f(i) = str.ForceVector[i];
+        f(i) = (*str.ForceVector)(i, 0);
         for (size_t j = 0; j < str.nUnrestrainedDOF; j++)
         {
-            k(i, j) = str.StiffnessMatrix[i][j];
+            k(i, j) = (*str.StiffnessMatrix)(i, j);
         }
     }
 
@@ -48,12 +49,8 @@ std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structur
     uK.zeros(nDofRestrained);
 
     for (size_t i = 0; i < nDofUnrestrained; i++)
-    {
         for (size_t j = nDofUnrestrained; j < nDof; j++)
-        {
-            kUk(i, j - nDofUnrestrained) = str.StiffnessMatrix[i][j];
-        }
-    }
+            kUk(i, j - nDofUnrestrained) = (*str.StiffnessMatrix)(i, j);
 
     auto restraints = *str.Restraints;
 
@@ -129,13 +126,13 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(Eleme
     // should be converted to local coordinates by multiplying it by rotation matrix of the given element.
 
     // Create arma matrix for rotation matrix
-    auto rotMatrix = static_cast<double*>(elm.GetRotationMatrix());
+    auto rotMatrix = elm.GetRotationMatrix();
     auto nDofElm = elm.GetNumberOfDoF();
 
     arma::mat rotMat(nDofElm, nDofElm);
     for (size_t i = 0; i < nDofElm; i++)
         for (size_t j = 0; j < nDofElm; j++)
-            rotMat(i, j) = rotMatrix[(i * nDofElm) + j];
+            rotMat(i, j) = (*rotMatrix)(i, j);
 
     // Retrieve displacements of element end nodes
     auto elmNodes = elm.GelElementNodes();
@@ -158,12 +155,12 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForLocalCoordinates(Eleme
     arma::vec localizedDisps = rotMat * disps;
 
     // Get local stiffness matrix
-    auto localKMat = static_cast<double*>(elm.GetLocalCoordinateStiffnessMatrix());
+    auto localKMat = elm.GetLocalCoordinateStiffnessMatrix();
     arma::mat kMat(nDofElm, nDofElm);
 
     for (size_t i = 0; i < nDofElm; i++)
         for (size_t j = 0; j < nDofElm; j++)
-            kMat(i, j) = localKMat[(i * nDofElm) + j];
+            kMat(i, j) = (*localKMat)(i, j);
 
     // Multiply local stiffness matrix and localized displacement vector to obtain element end forces
     arma::vec localForces = kMat * localizedDisps;
@@ -200,12 +197,12 @@ std::vector<double> ArmadilloSolver::GetMemberEndForcesForGlobalCoordinates(Elem
     }
 
     // Get global stiffness matrix
-    auto globalKMat = static_cast<double*>(elm.GetLocalCoordinateStiffnessMatrix());
+    auto globalKMat = elm.GetLocalCoordinateStiffnessMatrix();
     arma::mat kMat(nDofElm, nDofElm);
 
     for (size_t i = 0; i < nDofElm; i++)
         for (size_t j = 0; j < nDofElm; j++)
-            kMat(i, j) = globalKMat[(i * nDofElm) + j];
+            kMat(i, j) = (*globalKMat)(i, j);
 
     // Multiply global stiffness matrix and displacement vector to obtain element end forces
     arma::vec globalForces = kMat * disps;
@@ -265,7 +262,7 @@ std::vector<double> ArmadilloSolver::GetSupportReactions(const Structure& str, c
         d(i) = disps[i];
         for (size_t j = 0; j < str.nDOF; j++)
         {
-            k(i, j) = str.StiffnessMatrix[i][j];
+            k(i, j) = (*str.StiffnessMatrix)(i, j);
         }
     }
 
@@ -301,8 +298,8 @@ std::vector<double> ArmadilloSolver::GetModalPeriods(const Structure& str)
     {
         for (size_t j = 0; j < str.nUnrestrainedDOF; j++)
         {
-            K(i, j) = str.StiffnessMatrix[i][j];
-            M(i, j) = str.MassMatrix[i][j];
+            K(i, j) = (*str.StiffnessMatrix)(i, j);
+            M(i, j) = (*str.MassMatrix)(i, j);
         }
     }
 
