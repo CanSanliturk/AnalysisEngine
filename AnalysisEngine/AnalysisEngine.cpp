@@ -1,25 +1,24 @@
+#include <Windows.h>
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <Windows.h>
-#include "XYZPoint.h"
-#include "Vector.h"
+#include <chrono>
+#include <Eigen>
+#include "ArmadilloSolver.h"
+#include "MatrixHelper.h"
+#include "FrameMember.h"
 #include "Restraint.h"
-#include "Node.h"
+#include "Structure.h"
+#include "XYZPoint.h"
 #include "Section.h"
 #include "Element.h"
-#include "FrameMember.h"
-#include "MatrixHelper.h"
-#include "Structure.h"
-#include "ArmadilloSolver.h"
-#include <iostream>
-#include <Eigen>
-#include <chrono>
+#include "Vector.h"
+#include "Matrix.h"
+#include "Node.h"
 
 #pragma comment(lib, "user32")
 
 #define LOG(x) std::cout << x << "\n"
-#define MAKESHARED(x) std::make_shared<x>
 
 void CantileverDisplacements();
 void TableDisplacements();
@@ -39,11 +38,11 @@ int main()
     // Start timer
     auto timenow =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
+    
     // Call test function (Later on, these guys will be moved to a unit test project)
     TableDisplacements();
     LOG("\n Analysis completed without errors....");
-
+    
     // Log duration
     auto timenow2 =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());

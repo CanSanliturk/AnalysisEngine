@@ -168,6 +168,7 @@
     <ClInclude Include="DistributedLoad.h" />
     <ClInclude Include="EigenSolver.h" />
     <ClInclude Include="Element.h" />
+    <ClInclude Include="Matrix.h" />
     <ClInclude Include="MatrixHelper.h" />
     <ClInclude Include="FrameMember.h" />
     <ClInclude Include="Material.h" />

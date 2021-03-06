@@ -128,5 +128,8 @@
     <ClInclude Include="UtilMethods.h">
       <Filter>src\Utils</Filter>
     </ClInclude>
+    <ClInclude Include="Matrix.h">
+      <Filter>src\Utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
