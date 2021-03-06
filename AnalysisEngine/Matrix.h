@@ -11,7 +11,8 @@ public:
 
     // Initialize a square matrix
     Matrix(unsigned int size)
-        : m_rowCount(size), m_colCount(size)
+        : m_rowCount(size), m_colCount(size),
+        RowCount(size), ColCount(size)
     {
         this->allocate_memory();
         this->fillZeros();
@@ -19,7 +20,8 @@ public:
 
     // Initialize a matrix of size rowCount * colCount
     Matrix(unsigned int rowCount, unsigned int colCount)
-        : m_rowCount(rowCount), m_colCount(colCount)
+        : m_rowCount(rowCount), m_colCount(colCount),
+        RowCount(rowCount), ColCount(colCount)
     {
         this->allocate_memory();
         this->fillZeros();
@@ -28,11 +30,13 @@ public:
     // Copy constructor
     Matrix(const Matrix& that)
         : m_rowCount(that.m_rowCount), m_colCount(that.m_colCount),
+        RowCount(that.RowCount), ColCount(that.ColCount),
         firstElementAdress(that.firstElementAdress) { }
 
     // Move constructor
     Matrix(Matrix&& that)
         : m_rowCount(that.m_rowCount), m_colCount(that.m_colCount),
+        RowCount(that.RowCount), ColCount(that.ColCount),
         firstElementAdress(that.firstElementAdress)
     {
         that.firstElementAdress = nullptr;
@@ -43,6 +47,8 @@ public:
     {
         std::swap(m_rowCount, that.m_rowCount);
         std::swap(m_colCount, that.m_colCount);
+        std::swap(RowCount, that.RowCount);
+        std::swap(ColCount, that.ColCount);
         std::swap(firstElementAdress, that.firstElementAdress);
         return *this;
     }
@@ -55,7 +61,15 @@ public:
 
     T& operator()(unsigned int i, unsigned j)
     {
+        if ((this->m_rowCount <= i) || (this->m_colCount <= j))
+            throw std::runtime_error("Matrix Error: Subscript out of range");
+
         return this->firstElementAdress[(i * m_colCount) + j];
+    }
+
+    T& operator()(std::shared_ptr<Matrix> m, unsigned i, unsigned j)
+    {
+        return (*m)->firstElementAdress[(i * m_colCount) + j];
     }
 
     void printElements()
@@ -69,6 +83,9 @@ public:
             std::cout << "\n";
         }
     }
+
+    const unsigned int RowCount;
+    const unsigned int ColCount;
 
 private:
     unsigned int m_rowCount = 0;
