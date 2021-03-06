@@ -25,4 +25,4 @@ Solver
 ------------------
 * Eigen and Armadillo linear algebra solvers are implemented. 
 
-
+[![Build status](https://ci.appveyor.com/api/projects/status/6hinynxesc3hqfnk/branch/master?svg=true)](https://ci.appveyor.com/project/CanSanliturk/analysisengine/branch/master)
