@@ -300,77 +300,31 @@ void FrameMember::AssembleElementRotationMatrix()
 
     for (unsigned int i = 0; i < 3; i++)
         for (unsigned int j = 0; j < 3; j++)
-            (*this->RotationMatrix)(i, j) = minorRotMat.at(i).at(j);
+            (*this->RotationMatrix)(i, j) = minorRotMat(i, j);
 
     for (unsigned int i = 3; i < 6; i++)
         for (unsigned int j = 3; j < 6; j++)
-            (*this->RotationMatrix)(i, j) = minorRotMat.at(i - 3).at(j - 3);
+            (*this->RotationMatrix)(i, j) = minorRotMat(i - 3, j - 3);
 
     for (unsigned int i = 6; i < 9; i++)
         for (unsigned int j = 6; j < 9; j++)
-            (*this->RotationMatrix)(i, j) = minorRotMat.at(i - 6).at(j - 6);
+            (*this->RotationMatrix)(i, j) = minorRotMat(i - 6, j - 6);
 
     for (unsigned int i = 9; i < 12; i++)
         for (unsigned int j = 9; j < 12; j++)
-            (*this->RotationMatrix)(i, j) = minorRotMat.at(i - 9).at(j - 9);
-}
-
-void FrameMember::AssembleElementGlobalStiffnessMatrix()
-{
-    std::vector<std::vector<double>> kElm;
-    std::vector<std::vector<double>> rot;
-
-    for (unsigned int i = 0; i < 12; i++)
-    {
-        std::vector<double> kElmRow;
-        std::vector<double> rotRow;
-
-        for (unsigned int j = 0; j < 12; j++)
-        {
-            kElmRow.push_back((*this->LocalCoordinateStiffnessMatrix)(i, j));
-            rotRow.push_back((*this->RotationMatrix)(i, j));
-        }
-
-        kElm.push_back(kElmRow);
-        rot.push_back(rotRow);
-    }
-
-    auto rotTrans = MatrixHelper::GetTranspose(rot);
-
-    auto firstStep = MatrixHelper::MultiplyMatrices(rotTrans, kElm);
-    auto kElmGlob = MatrixHelper::MultiplyMatrices(firstStep, rot);
-
-    for (unsigned int i = 0; i < 12; i++)
-        for (unsigned int j = 0; j < 12; j++)
-            (*this->GlobalCoordinateStiffnessMatrix)(i, j) = kElmGlob.at(i).at(j);
+            (*this->RotationMatrix)(i, j) = minorRotMat(i - 9, j - 9);
 }
 
 void FrameMember::AssembleElementGlobalMassMatrix()
 {
-    std::vector<std::vector<double>> mElm;
-    std::vector<std::vector<double>> rot;
+    auto rotTrans = MatrixHelper::GetTranspose(*this->RotationMatrix);
+    auto firstStep = MatrixHelper::MultiplyMatrices(rotTrans, *this->LocalCoordinateMassMatrix);
+    *this->GlobalCoordinateMassMatrix = MatrixHelper::MultiplyMatrices(firstStep, *this->RotationMatrix);
+}
 
-    for (unsigned int i = 0; i < 12; i++)
-    {
-        std::vector<double> mElmRow;
-        std::vector<double> rotRow;
-
-        for (unsigned int j = 0; j < 12; j++)
-        {
-            mElmRow.push_back((*this->LocalCoordinateMassMatrix)(i, j));
-            rotRow.push_back((*this->RotationMatrix)(i, j));
-        }
-
-        mElm.push_back(mElmRow);
-        rot.push_back(rotRow);
-    }
-
-    auto rotTrans = MatrixHelper::GetTranspose(rot);
-
-    auto firstStep = MatrixHelper::MultiplyMatrices(rotTrans, mElm);
-    auto mElmGlob = MatrixHelper::MultiplyMatrices(firstStep, rot);
-
-    for (unsigned int i = 0; i < 12; i++)
-        for (unsigned int j = 0; j < 12; j++)
-            (*this->GlobalCoordinateMassMatrix)(i, j) = mElmGlob.at(i).at(j);
+void FrameMember::AssembleElementGlobalStiffnessMatrix()
+{
+    auto rotTrans = MatrixHelper::GetTranspose(*this->RotationMatrix);
+    auto firstStep = MatrixHelper::MultiplyMatrices(rotTrans, *this->LocalCoordinateStiffnessMatrix);
+    *this->GlobalCoordinateStiffnessMatrix = MatrixHelper::MultiplyMatrices(firstStep, *this->RotationMatrix);
 }

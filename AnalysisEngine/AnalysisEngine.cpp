@@ -215,7 +215,8 @@ void TableDisplacements()
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    /*auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
+    auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
+    LOG(" Displacement values:");
     for (auto& nodePair : nodes)
     {
         auto node = nodePair.second;
@@ -228,13 +229,13 @@ void TableDisplacements()
 
         for (size_t i = 0; i < 6; i++)
             std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
-    }*/
-
+    }
+    
     // Modal periods
     auto modalPeriods = ArmadilloSolver::GetModalPeriods(*str);
-    LOG("");
+    LOG(" Modal periods:");
     for (size_t i = 0; i < modalPeriods.size(); i++)
-        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << " s\n";
 
     return;
 }

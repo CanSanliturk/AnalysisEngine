@@ -68,11 +68,6 @@ public:
         return this->firstElementAdress[(i * m_colCount) + j];
     }
 
-    T& operator()(std::shared_ptr<Matrix> m, unsigned i, unsigned j)
-    {
-        return (*m)->firstElementAdress[(i * m_colCount) + j];
-    }
-
     void printElements()
     {
         for (size_t i = 0; i < this->m_rowCount; i++)
