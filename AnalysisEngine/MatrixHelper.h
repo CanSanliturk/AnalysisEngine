@@ -6,16 +6,11 @@
 #include "Matrix.h"
 #include "vector.h"
 
-struct MatrixHelper
+namespace MatrixHelper
 {
-public:
-	static Matrix<double> GetRotationMatrix(double thetaX, double thetaY, double thetaZs);
-	static Matrix<double> GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle);
-	static Matrix<double> GetRotationMatrixAboutX(double thetaX);
-	static Matrix<double> GetRotationMatrixAboutY(double thetaY);
-	static Matrix<double> GetRotationMatrixAboutZ(double thetaZ);
-
-private:
-	
-
+    Matrix<double> GetRotationMatrix(double thetaX, double thetaY, double thetaZs);
+    Matrix<double> GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle);
+    Matrix<double> GetRotationMatrixAboutX(double thetaX);
+    Matrix<double> GetRotationMatrixAboutY(double thetaY);
+    Matrix<double> GetRotationMatrixAboutZ(double thetaZ);
 };
