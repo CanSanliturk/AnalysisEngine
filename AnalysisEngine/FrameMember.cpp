@@ -318,13 +318,13 @@ void FrameMember::AssembleElementRotationMatrix()
 void FrameMember::AssembleElementGlobalMassMatrix()
 {
     auto rotTrans = MatrixHelper::GetTranspose(*this->RotationMatrix);
-    auto firstStep = MatrixHelper::MultiplyMatrices(rotTrans, *this->LocalCoordinateMassMatrix);
-    *this->GlobalCoordinateMassMatrix = MatrixHelper::MultiplyMatrices(firstStep, *this->RotationMatrix);
+    *this->GlobalCoordinateMassMatrix = 
+        (rotTrans * (*this->LocalCoordinateMassMatrix)) * (*this->RotationMatrix);
 }
 
 void FrameMember::AssembleElementGlobalStiffnessMatrix()
 {
     auto rotTrans = MatrixHelper::GetTranspose(*this->RotationMatrix);
-    auto firstStep = MatrixHelper::MultiplyMatrices(rotTrans, *this->LocalCoordinateStiffnessMatrix);
-    *this->GlobalCoordinateStiffnessMatrix = MatrixHelper::MultiplyMatrices(firstStep, *this->RotationMatrix);
+    *this->GlobalCoordinateStiffnessMatrix = 
+        (rotTrans * (*this->LocalCoordinateStiffnessMatrix)) * (*this->RotationMatrix);
 }

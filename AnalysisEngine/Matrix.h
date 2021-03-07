@@ -60,12 +60,38 @@ public:
         free(firstElementAdress);
     }
 
+    // Index usage
     T& operator()(unsigned int i, unsigned j)
     {
         if ((this->m_rowCount <= i) || (this->m_colCount <= j))
             throw std::runtime_error("Matrix Error: Subscript out of range");
 
         return this->firstElementAdress[(i * m_colCount) + j];
+    }
+
+    // Matrix multiplication
+    Matrix<T> operator*(Matrix<T>& const that)
+    {
+        // Check if dimensions match
+        if (this->m_colCount != that.m_rowCount)
+            throw std::runtime_error("Matrix Multiplication Error: Subscript indices does not match!\n");
+
+        Matrix<T> result(this->m_rowCount, that.m_colCount);
+
+        for (size_t i = 0; i < this->m_rowCount; i++)
+        {
+            for (size_t j = 0; j < that.m_colCount; j++)
+            {
+                auto sum = 0.0;
+                for (size_t k = 0; k < this->m_colCount; k++)
+                {
+                    sum += (*this)(i, k) * that(k, j);
+                }
+                result(i, j) = sum;
+            }
+        }
+
+        return result;
     }
 
     void printElements()

@@ -10,7 +10,6 @@ struct MatrixHelper
 {
 public:
 	static Matrix<double> GetTranspose(Matrix<double>& matrix);
-	static Matrix<double> MultiplyMatrices(Matrix<double>& leftMatrix, Matrix<double>& rightMatrix);
 	static Matrix<double> GetRotationMatrix(double thetaX, double thetaY, double thetaZs);
 	static Matrix<double> GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle);
 	static Matrix<double> GetRotationMatrixAboutX(double thetaX);

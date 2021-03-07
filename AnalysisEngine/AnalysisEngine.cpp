@@ -1,4 +1,3 @@
-#include <Windows.h>
 #include <iostream>
 #include <vector>
 #include <memory>
@@ -16,8 +15,6 @@
 #include "Matrix.h"
 #include "Node.h"
 
-#pragma comment(lib, "user32")
-
 #define LOG(x) std::cout << x << "\n"
 
 void CantileverDisplacements();
@@ -25,8 +22,6 @@ void TableDisplacements();
 
 int main()
 {
-    // Full screen
-    //::SendMessage(::GetConsoleWindow(), WM_SYSKEYDOWN, VK_RETURN, 0x20000000);
     LOG("__________________________________________________");
     LOG("|                                                |");
     LOG("|    3-Dimensional Structural Analysis Engine    |");

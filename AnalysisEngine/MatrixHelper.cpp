@@ -1,6 +1,6 @@
+#include <iostream>
 #include <vector>
 #include <math.h>
-#include <iostream>
 #include "MatrixHelper.h"
 #include "UtilMethods.h"
 
@@ -9,8 +9,7 @@ Matrix<double> MatrixHelper::GetRotationMatrix(double thetaX, double thetaY, dou
     auto rotX = MatrixHelper::GetRotationMatrixAboutX(thetaX);
     auto rotY = MatrixHelper::GetRotationMatrixAboutY(thetaY);
     auto rotZ = MatrixHelper::GetRotationMatrixAboutZ(thetaZ);
-    auto helper = MatrixHelper::MultiplyMatrices(rotZ, rotY);
-    return MatrixHelper::MultiplyMatrices(helper, rotX);
+    return ((rotZ * rotY) * rotX);
 }
 
 Matrix<double> MatrixHelper::GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle)
@@ -18,7 +17,7 @@ Matrix<double> MatrixHelper::GetTranslationalRotationMatrix(Vector elmVector, do
     // Skew angle is ignored. Create section in a skewed way for now.
     //auto alpha = rotationAngle;
 
-    // For vertical members (i.e., both cX and cY are zero, different approach should be followd)
+    // For vertical members (i.e., both cX and cY are zero, different approach should be followed)
     auto cX = elmVector.X / elmVector.Length;
     auto cY = elmVector.Y / elmVector.Length;
     auto cZ = elmVector.Z / elmVector.Length;
@@ -78,30 +77,6 @@ Matrix<double> MatrixHelper::GetTranspose(Matrix<double>& matrix)
             trans(colIdx, rowIdx) = matrix(rowIdx, colIdx);
 
     return trans;
-}
-
-Matrix<double> MatrixHelper::MultiplyMatrices(Matrix<double>& leftMatrix, Matrix<double>& rightMatrix)
-{
-    // Check if dimensions match
-    if (leftMatrix.ColCount != rightMatrix.ColCount)
-        throw std::runtime_error("Matrix Multiplication Error: Subscript indices does not match!\n");
-
-    Matrix<double> result(leftMatrix.RowCount, rightMatrix.ColCount);
-
-    for (size_t i = 0; i < leftMatrix.RowCount; i++)
-    {
-        for (size_t j = 0; j < rightMatrix.ColCount; j++)
-        {
-            auto sum = 0.0;
-            for (size_t k = 0; k < leftMatrix.ColCount; k++)
-            {
-                sum += leftMatrix(i, k) * rightMatrix(k, j);
-            }
-            result(i, j) = sum;
-        }
-    }
-
-    return result;
 }
 
 Matrix<double> MatrixHelper::GetRotationMatrixAboutX(double thetaX)
