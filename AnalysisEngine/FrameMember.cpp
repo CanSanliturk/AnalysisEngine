@@ -1,7 +1,7 @@
 #include "FrameMember.h"
 #include "XYZPoint.h"
 #include "Vector.h"
-#include "MatrixHelper.h"
+#include "GeometryHelper.h"
 #include <math.h>
 
 constexpr double G = 9.807;
@@ -292,7 +292,7 @@ void FrameMember::AssembleElementRotationMatrix()
     double pi = 3.141592653589793;
 
     Vector elmVector(this->Nodes[0]->Coordinate, this->Nodes[1]->Coordinate);
-    auto minorRotMat = MatrixHelper::GetTranslationalRotationMatrix(elmVector, 0);
+    auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(elmVector, 0);
 
     for (unsigned int i = 0; i < 12; i++)
         for (unsigned int j = 0; j < 12; j++)

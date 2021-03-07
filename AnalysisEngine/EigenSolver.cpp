@@ -3,7 +3,7 @@
 #include <Eigen>
 #include <map>
 #include "EigenSolver.h"
-#include "MatrixHelper.h"
+#include "GeometryHelper.h"
 
 constexpr auto pi = 3.141592653589793;
 

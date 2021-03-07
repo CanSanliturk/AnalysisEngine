@@ -6,7 +6,7 @@
 #include "Matrix.h"
 #include "vector.h"
 
-namespace MatrixHelper
+namespace GeometryHelper
 {
     Matrix<double> GetRotationMatrix(double thetaX, double thetaY, double thetaZs);
     Matrix<double> GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle);

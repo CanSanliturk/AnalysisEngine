@@ -3,10 +3,10 @@
 #include <memory>
 #include <map>
 #include "ArmadilloSolver.h"
-#include "MatrixHelper.h"
+#include "GeometryHelper.h"
 #include "Matrix.h"
 
-constexpr auto pi = 3.141592653589793;
+constexpr double pi = 3.141592653589793;
 
 std::vector<double> ArmadilloSolver::GetDisplacementForStaticCase(const Structure& str)
 {

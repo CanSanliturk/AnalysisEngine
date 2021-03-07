@@ -4,7 +4,7 @@
 #include <chrono>
 #include <Eigen>
 #include "ArmadilloSolver.h"
-#include "MatrixHelper.h"
+#include "GeometryHelper.h"
 #include "FrameMember.h"
 #include "Restraint.h"
 #include "Structure.h"

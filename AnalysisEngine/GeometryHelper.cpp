@@ -1,18 +1,18 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
-#include "MatrixHelper.h"
+#include "GeometryHelper.h"
 #include "UtilMethods.h"
 
-Matrix<double> MatrixHelper::GetRotationMatrix(double thetaX, double thetaY, double thetaZ)
+Matrix<double> GeometryHelper::GetRotationMatrix(double thetaX, double thetaY, double thetaZ)
 {
-    auto rotX = MatrixHelper::GetRotationMatrixAboutX(thetaX);
-    auto rotY = MatrixHelper::GetRotationMatrixAboutY(thetaY);
-    auto rotZ = MatrixHelper::GetRotationMatrixAboutZ(thetaZ);
+    auto rotX = GeometryHelper::GetRotationMatrixAboutX(thetaX);
+    auto rotY = GeometryHelper::GetRotationMatrixAboutY(thetaY);
+    auto rotZ = GeometryHelper::GetRotationMatrixAboutZ(thetaZ);
     return ((rotZ * rotY) * rotX);
 }
 
-Matrix<double> MatrixHelper::GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle)
+Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle)
 {
     // Skew angle is ignored. Create section in a skewed way for now.
     //auto alpha = rotationAngle;
@@ -65,7 +65,7 @@ Matrix<double> MatrixHelper::GetTranslationalRotationMatrix(Vector elmVector, do
     return retVal;
 }
 
-Matrix<double> MatrixHelper::GetRotationMatrixAboutX(double thetaX)
+Matrix<double> GeometryHelper::GetRotationMatrixAboutX(double thetaX)
 {
     // Define rotation matrix
     Matrix<double> rotAboutX(3);
@@ -88,7 +88,7 @@ Matrix<double> MatrixHelper::GetRotationMatrixAboutX(double thetaX)
     return rotAboutX;
 }
 
-Matrix<double> MatrixHelper::GetRotationMatrixAboutY(double thetaY)
+Matrix<double> GeometryHelper::GetRotationMatrixAboutY(double thetaY)
 {
     // Define rotation matrix
     Matrix<double> rotAboutY(3);
@@ -111,7 +111,7 @@ Matrix<double> MatrixHelper::GetRotationMatrixAboutY(double thetaY)
     return rotAboutY;
 }
 
-Matrix<double> MatrixHelper::GetRotationMatrixAboutZ(double thetaZ)
+Matrix<double> GeometryHelper::GetRotationMatrixAboutZ(double thetaZ)
 {
     // Define rotation matrix
     Matrix<double> rotAboutZ(3);

@@ -54,9 +54,6 @@
     <ClCompile Include="FrameMember.cpp">
       <Filter>src\Elements</Filter>
     </ClCompile>
-    <ClCompile Include="MatrixHelper.cpp">
-      <Filter>src\Utils</Filter>
-    </ClCompile>
     <ClCompile Include="Vector.cpp">
       <Filter>src\Utils</Filter>
     </ClCompile>
@@ -71,6 +68,9 @@
     </ClCompile>
     <ClCompile Include="EigenSolver.cpp">
       <Filter>src\Solvers</Filter>
+    </ClCompile>
+    <ClCompile Include="GeometryHelper.cpp">
+      <Filter>src\Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -97,9 +97,6 @@
     </ClInclude>
     <ClInclude Include="NodalLoad.h">
       <Filter>src\BoundaryConditions</Filter>
-    </ClInclude>
-    <ClInclude Include="MatrixHelper.h">
-      <Filter>src\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Vector.h">
       <Filter>src\Utils</Filter>
@@ -129,6 +126,9 @@
       <Filter>src\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Matrix.h">
+      <Filter>src\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="GeometryHelper.h">
       <Filter>src\Utils</Filter>
     </ClInclude>
   </ItemGroup>
