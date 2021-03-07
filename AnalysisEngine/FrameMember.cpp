@@ -317,14 +317,14 @@ void FrameMember::AssembleElementRotationMatrix()
 
 void FrameMember::AssembleElementGlobalMassMatrix()
 {
-    auto rotTrans = MatrixHelper::GetTranspose(*this->RotationMatrix);
+    auto rotTrans = (*this->RotationMatrix).transpose();
     *this->GlobalCoordinateMassMatrix = 
         (rotTrans * (*this->LocalCoordinateMassMatrix)) * (*this->RotationMatrix);
 }
 
 void FrameMember::AssembleElementGlobalStiffnessMatrix()
 {
-    auto rotTrans = MatrixHelper::GetTranspose(*this->RotationMatrix);
+    auto rotTrans = (*this->RotationMatrix).transpose();
     *this->GlobalCoordinateStiffnessMatrix = 
         (rotTrans * (*this->LocalCoordinateStiffnessMatrix)) * (*this->RotationMatrix);
 }

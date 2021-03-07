@@ -65,20 +65,6 @@ Matrix<double> MatrixHelper::GetTranslationalRotationMatrix(Vector elmVector, do
     return retVal;
 }
 
-Matrix<double> MatrixHelper::GetTranspose(Matrix<double>& matrix)
-{
-    auto rowCount = matrix.RowCount;
-    auto colCount = matrix.ColCount;
-
-    Matrix<double> trans(colCount, rowCount);
-
-    for (unsigned int colIdx = 0; colIdx < colCount; colIdx++)
-        for (unsigned int rowIdx = 0; rowIdx < rowCount; rowIdx++)
-            trans(colIdx, rowIdx) = matrix(rowIdx, colIdx);
-
-    return trans;
-}
-
 Matrix<double> MatrixHelper::GetRotationMatrixAboutX(double thetaX)
 {
     // Define rotation matrix

@@ -94,6 +94,15 @@ public:
         return result;
     }
 
+    Matrix<T> transpose()
+    {
+        Matrix<T> retVal(this->ColCount, this->RowCount);
+        for (size_t i = 0; i < this->RowCount; i++)
+            for (size_t j = 0; j < this->ColCount; j++)
+                retVal(j, i) = (*this)(i, j);
+        return retVal;
+    }
+
     void printElements()
     {
         for (size_t i = 0; i < this->m_rowCount; i++)
