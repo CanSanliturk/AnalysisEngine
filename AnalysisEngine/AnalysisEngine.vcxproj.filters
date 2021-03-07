@@ -72,6 +72,9 @@
     <ClCompile Include="GeometryHelper.cpp">
       <Filter>src\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="StructureSolver.cpp">
+      <Filter>src\Solvers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Node.h">
@@ -130,6 +133,9 @@
     </ClInclude>
     <ClInclude Include="GeometryHelper.h">
       <Filter>src\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="StructureSolver.h">
+      <Filter>src\Solvers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

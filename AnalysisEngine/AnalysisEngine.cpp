@@ -4,6 +4,7 @@
 #include <chrono>
 #include <Eigen>
 #include "ArmadilloSolver.h"
+#include "StructureSolver.h"
 #include "GeometryHelper.h"
 #include "FrameMember.h"
 #include "Restraint.h"
@@ -33,11 +34,11 @@ int main()
     // Start timer
     auto timenow =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    
+
     // Call test function (Later on, these guys will be moved to a unit test project)
     TableDisplacements();
     LOG("\n Analysis completed without errors....");
-    
+
     // Log duration
     auto timenow2 =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -102,7 +103,7 @@ void CantileverDisplacements()
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
     for (auto& nodePair : nodes)
     {
         auto node = nodePair.second;
@@ -111,10 +112,10 @@ void CantileverDisplacements()
         LOG(" Node Index: ");
         std::cout << " " << node->NodeIndex << "\n";
 
-        auto nodalDisps = ArmadilloSolver::GetNodalDisplacements(*node, disps);
+        auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
 
         for (size_t i = 0; i < 6; i++)
-            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
+            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
     }
 
     // Modal periods
@@ -210,7 +211,7 @@ void TableDisplacements()
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    auto disps = ArmadilloSolver::GetDisplacementForStaticCase(*str);
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Eigen);
     LOG(" Displacement values:");
     for (auto& nodePair : nodes)
     {
@@ -220,17 +221,17 @@ void TableDisplacements()
         LOG(" Node Index: ");
         std::cout << " " << node->NodeIndex << "\n";
 
-        auto nodalDisps = ArmadilloSolver::GetNodalDisplacements(*node, disps);
+        auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
 
         for (size_t i = 0; i < 6; i++)
-            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps[i] << "\n";
+            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
     }
-    
+
     // Modal periods
-    auto modalPeriods = ArmadilloSolver::GetModalPeriods(*str);
-    LOG(" Modal periods:");
-    for (size_t i = 0; i < modalPeriods.size(); i++)
-        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << " s\n";
+    auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Eigen);
+    LOG("\n Modal periods:");
+    for (size_t i = 0; i < modalPeriods.RowCount; i++)
+        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
 
     return;
 }

@@ -31,8 +31,11 @@ public:
     // Copy constructor
     Matrix(const Matrix& that)
         : m_rowCount(that.m_rowCount), m_colCount(that.m_colCount),
-        RowCount(that.RowCount), ColCount(that.ColCount),
-        firstElementAdress(that.firstElementAdress) { }
+        RowCount(that.RowCount), ColCount(that.ColCount)
+    {
+        this->allocate_memory();
+        std::memcpy(this->firstElementAdress, that.firstElementAdress, m_rowCount * m_colCount);
+    }
 
     // Move constructor
     Matrix(Matrix&& that)
@@ -74,7 +77,7 @@ public:
     {
         // Check if dimensions match
         if (this->m_colCount != that.m_rowCount)
-            throw std::runtime_error("Matrix Multiplication Error: Subscript indices does not match!\n");
+            throw std::runtime_error("Matrix Multiplication Error: Subscript indices does not match\n");
 
         Matrix<T> result(this->m_rowCount, that.m_colCount);
 
@@ -94,12 +97,60 @@ public:
         return result;
     }
 
+    // Matrix addition
+    Matrix<T> operator+(Matrix<T>& const that)
+    {
+        // Check if dimensions match
+        if ((this->m_colCount != that.m_colCount) || (this->m_rowCount != that.m_rowCount))
+            throw std::runtime_error("Matrix Addition Error: Matrix sizes does not match\n");
+
+        Matrix<T> result(*this);
+        for (size_t i = 0; i < result.m_rowCount; i++)
+            for (size_t j = 0; j < result.m_colCount; j++)
+                result(i, j) += that(i, j);
+        return result;
+    }
+
+    // Matrix subtraction
+    Matrix<T> operator-(Matrix<T>& const that)
+    {
+        // Check if dimensions match
+        if ((this->m_colCount != that.m_colCount) || (this->m_rowCount != that.m_rowCount))
+            throw std::runtime_error("Matrix Subtraction Error: Matrix sizes does not match\n");
+
+        Matrix<T> result(this->RowCount, this->ColCount);
+        for (size_t i = 0; i < result.m_rowCount; i++)
+            for (size_t j = 0; j < result.m_colCount; j++)
+                result(i, j) = (*this)(i, j) - that(i, j);
+        return result;
+    }
+
+    // Transpose of matrix
     Matrix<T> transpose()
     {
         Matrix<T> retVal(this->ColCount, this->RowCount);
         for (size_t i = 0; i < this->RowCount; i++)
             for (size_t j = 0; j < this->ColCount; j++)
                 retVal(j, i) = (*this)(i, j);
+        return retVal;
+    }
+
+    // Get submatrix within given 0-based indices
+    Matrix<T> getSubmatrix(unsigned int rowStart, unsigned int rowEnd, unsigned int colStart, unsigned int colEnd)
+    {
+        if ((rowStart < 0) || (colStart < 0) ||
+            (this->m_rowCount <= rowEnd) || (this->m_colCount <= colEnd) ||
+            (rowEnd < rowStart) || (colEnd < colStart))
+            throw std::runtime_error("Get Submatrix Error: Check desired submatrix indices\n");
+
+        Matrix<T> retVal(rowEnd - rowStart + 1, colEnd - colStart + 1);
+
+        for (size_t i = rowStart; i <= rowEnd; i++)
+        {
+            for (size_t j = colStart; j <= colEnd; j++)
+                retVal(i - rowStart, j - colStart) = (*this)(i, j);
+        }
+
         return retVal;
     }
 
