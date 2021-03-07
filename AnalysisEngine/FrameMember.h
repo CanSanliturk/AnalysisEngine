@@ -18,6 +18,7 @@ public:
     std::shared_ptr<Material> FrameMaterial;
     ElmType::ElementType Type;
     double Length;
+    bool isLumpedMassMatrix = true;
 
     std::shared_ptr<Matrix<double>> LocalCoordinateStiffnessMatrix;
     std::shared_ptr<Matrix<double>> LocalCoordinateMassMatrix;
@@ -26,7 +27,7 @@ public:
     std::shared_ptr<Matrix<double>> GlobalCoordinateMassMatrix;
 
     FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, 
-        std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge);
+        std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge, bool isLumpedMassMatrix);
     FrameMember();
     ~FrameMember();
 

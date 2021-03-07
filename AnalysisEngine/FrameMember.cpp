@@ -7,11 +7,11 @@
 constexpr double G = 9.807;
 
 FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode,
-    std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge)
+    std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge, bool isLumpedMassMatrix)
 {
     this->Nodes.resize(2);
     this->Hinges.resize(2);
-
+    this->isLumpedMassMatrix = isLumpedMassMatrix;
     this->ElementIndex = elmIndex;
     this->Nodes[0] = iNode;
     this->Nodes[1] = jNode;
@@ -172,10 +172,6 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
             (*this->LocalCoordinateStiffnessMatrix)(i, j) = kElm[i][j];
 }
 
-/// <summary>
-/// Taken from
-/// http://what-when-how.com/the-finite-element-method/fem-for-frames-finite-element-method-part-1/
-/// </summary>
 void FrameMember::AssembleElementLocalMassMatrix()
 {
     auto A = this->FrameSection->Area;
@@ -189,98 +185,41 @@ void FrameMember::AssembleElementLocalMassMatrix()
         for (unsigned int j = 0; j < 12; j++)
             mElm[i][j] = 0;
 
-    m = 0.5 * rho * L;
-    mElm[0][0] = m;
-    mElm[1][1] = m;
-    mElm[2][2] = m;
-    mElm[3][3] = 0 * m / 2;
-    mElm[4][4] = 0 * m / 2;
-    mElm[5][5] = 0 * m / 2;
-    mElm[6][6] = m;
-    mElm[7][7] = m;
-    mElm[8][8] = m;
-    mElm[9][9] = 0 * m / 2;
-    mElm[10][10] = 0 * m / 2;
-    mElm[11][11] = 0 * m / 2;
+    if (this->isLumpedMassMatrix)
+    {
+        m = 0.5 * rho * L;
+        mElm[0][0] = m;
+        mElm[1][1] = m;
+        mElm[2][2] = m;
+        mElm[6][6] = m;
+        mElm[7][7] = m;
+        mElm[8][8] = m;
+    }
+    else
+    {
+        mElm[0][0] = mElm[6][6] = m * 140.0;
+        mElm[0][6] = mElm[6][0] = m * 70.0;
+        mElm[3][3] = mElm[9][9] = m * rX2 * 140.0;
+        mElm[3][9] = mElm[9][3] = m * rX2 * 70.0;
 
-    /*mElm[0][0] = mElm[6][6] = m * 140.0;
-    mElm[0][6] = mElm[6][0] = m * 70.0;
-    mElm[3][3] = mElm[9][9] = m * rX2 * 140.0;
-    mElm[3][9] = mElm[9][3] = m * rX2 * 70.0;
+        mElm[2][2] = mElm[8][8] = m * 156.0;
+        mElm[2][8] = mElm[8][2] = m * 54.0;
+        mElm[4][4] = mElm[10][10] = m * 4.0 * L * L;
+        mElm[4][10] = mElm[10][4] = -m * 3.0 * L * L;
+        mElm[2][4] = mElm[4][2] = -m * 22.0 * L;
+        mElm[8][10] = mElm[10][8] = -mElm[2][4];
+        mElm[2][10] = mElm[10][2] = m * 13.0 * L;
+        mElm[4][8] = mElm[8][4] = -mElm[2][10];
 
-    mElm[2][2] = mElm[8][8] = m * 156.0;
-    mElm[2][8] = mElm[8][2] = m * 54.0;
-    mElm[4][4] = mElm[10][10] = m * 4.0 * L * L;
-    mElm[4][10] = mElm[10][4] = -m * 3.0 * L * L;
-    mElm[2][4] = mElm[4][2] = -m * 22.0 * L;
-    mElm[8][10] = mElm[10][8] = -mElm[2][4];
-    mElm[2][10] = mElm[10][2] = m * 13.0 * L;
-    mElm[4][8] = mElm[8][4] = -mElm[2][10];
-
-    mElm[1][1] = mElm[7][7] = m * 156.0;
-    mElm[1][7] = mElm[7][1] = m * 54.0;
-    mElm[5][5] = mElm[11][11] = m * 4.0 * L * L;
-    mElm[5][11] = mElm[11][5] = -m * 3.0 * L * L;
-    mElm[1][5] = mElm[5][1] = m * 22.0 * L;
-    mElm[7][11] = mElm[11][7] = -mElm[1][5];
-    mElm[1][11] = mElm[11][1] = -m * 13.0 * L;
-    mElm[5][7] = mElm[7][5] = -mElm[1][11];*/
-
-    /*auto a = this->Length / 2;
-    auto a2 = a * a;
-    auto mult = rho * a / 105;
-
-    mElm[0][0] = mult * 70;
-    mElm[0][6] = mult * 25;
-
-    mElm[1][1] = mult * 78;
-    mElm[1][5] = mult * 22 * a;
-    mElm[1][7] = mult * 27;
-    mElm[1][11] = mult * -13 * a;
-
-    mElm[2][2] = mult * 78;
-    mElm[2][4] = mult * -22 * a;
-    mElm[2][8] = mult * 27;
-    mElm[2][10] = mult * 13 * a;
-
-    mElm[3][3] = mult * 70 * rX2;
-    mElm[3][9] = mult * -35 * rX2;
-
-    mElm[4][2] = mElm[2][4];
-    mElm[4][4] = mult * 8 * a2;
-    mElm[4][8] = mult * -13 * a;
-    mElm[4][10] = mult * -6 * a2;
-
-    mElm[5][1] = mElm[1][5];
-    mElm[5][5] = mult * 8 * a2;
-    mElm[5][7] = mult * 12 * a;
-    mElm[5][11] = mult * -6 * a2;
-
-    mElm[6][0] = mElm[0][6];
-    mElm[6][6] = mult * 70;
-
-    mElm[7][1] = mElm[1][7];
-    mElm[7][5] = mElm[5][7];
-    mElm[7][7] = mult * 78;
-    mElm[7][11] = mult * -22 * a;
-
-    mElm[8][2] = mElm[2][8];
-    mElm[8][4] = mElm[4][8];
-    mElm[8][8] = mult * 78;
-    mElm[8][10] = mult * 22 * a;
-
-    mElm[9][3] = mElm[3][9];
-    mElm[9][9] = mult * 70 * rX2;
-
-    mElm[10][2] = mElm[2][10];
-    mElm[10][4] = mElm[4][10];
-    mElm[10][8] = mElm[8][10];
-    mElm[10][10] = mult * 8 * a2;
-
-    mElm[11][1] = mElm[1][11];
-    mElm[11][5] = mElm[5][11];
-    mElm[11][7] = mElm[7][11];
-    mElm[11][11] = mult * 8 * a2;*/
+        mElm[1][1] = mElm[7][7] = m * 156.0;
+        mElm[1][7] = mElm[7][1] = m * 54.0;
+        mElm[5][5] = mElm[11][11] = m * 4.0 * L * L;
+        mElm[5][11] = mElm[11][5] = -m * 3.0 * L * L;
+        mElm[1][5] = mElm[5][1] = m * 22.0 * L;
+        mElm[7][11] = mElm[11][7] = -mElm[1][5];
+        mElm[1][11] = mElm[11][1] = -m * 13.0 * L;
+        mElm[5][7] = mElm[7][5] = -mElm[1][11];
+    }
 
     for (unsigned int i = 0; i < 12; i++)
         for (unsigned int j = 0; j < 12; j++)
@@ -318,13 +257,13 @@ void FrameMember::AssembleElementRotationMatrix()
 void FrameMember::AssembleElementGlobalMassMatrix()
 {
     auto rotTrans = (*this->RotationMatrix).transpose();
-    *this->GlobalCoordinateMassMatrix = 
+    *this->GlobalCoordinateMassMatrix =
         (rotTrans * (*this->LocalCoordinateMassMatrix)) * (*this->RotationMatrix);
 }
 
 void FrameMember::AssembleElementGlobalStiffnessMatrix()
 {
     auto rotTrans = (*this->RotationMatrix).transpose();
-    *this->GlobalCoordinateStiffnessMatrix = 
+    *this->GlobalCoordinateStiffnessMatrix =
         (rotTrans * (*this->LocalCoordinateStiffnessMatrix)) * (*this->RotationMatrix);
 }
