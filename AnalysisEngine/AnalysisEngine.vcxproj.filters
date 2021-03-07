@@ -60,14 +60,8 @@
     <ClCompile Include="Structure.cpp">
       <Filter>src\Structure</Filter>
     </ClCompile>
-    <ClCompile Include="ArmadilloSolver.cpp">
-      <Filter>src\Solvers</Filter>
-    </ClCompile>
     <ClCompile Include="UtilMethods.cpp">
       <Filter>src\Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="EigenSolver.cpp">
-      <Filter>src\Solvers</Filter>
     </ClCompile>
     <ClCompile Include="GeometryHelper.cpp">
       <Filter>src\Utils</Filter>
@@ -112,12 +106,6 @@
     </ClInclude>
     <ClInclude Include="Element.h">
       <Filter>src\Elements</Filter>
-    </ClInclude>
-    <ClInclude Include="EigenSolver.h">
-      <Filter>src\Solvers</Filter>
-    </ClInclude>
-    <ClInclude Include="ArmadilloSolver.h">
-      <Filter>src\Solvers</Filter>
     </ClInclude>
     <ClInclude Include="Hinge.h">
       <Filter>src\BoundaryConditions</Filter>

@@ -152,8 +152,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AnalysisEngine.cpp" />
-    <ClCompile Include="ArmadilloSolver.cpp" />
-    <ClCompile Include="EigenSolver.cpp" />
     <ClCompile Include="FrameMember.cpp" />
     <ClCompile Include="GeometryHelper.cpp" />
     <ClCompile Include="Node.cpp" />
@@ -165,9 +163,7 @@
     <ClCompile Include="Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ArmadilloSolver.h" />
     <ClInclude Include="DistributedLoad.h" />
-    <ClInclude Include="EigenSolver.h" />
     <ClInclude Include="Element.h" />
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="GeometryHelper.h" />

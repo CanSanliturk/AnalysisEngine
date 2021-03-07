@@ -3,7 +3,6 @@
 #include <memory>
 #include <chrono>
 #include <Eigen>
-#include "ArmadilloSolver.h"
 #include "StructureSolver.h"
 #include "GeometryHelper.h"
 #include "FrameMember.h"
