@@ -9,57 +9,35 @@
 class Hinge
 {
 public:
-	double ForceX;
-	double ForceY;
-	double ForceZ;
-	double MomentX;
-	double MomentY;
-	double MomentZ;
+    double ForceX;
+    double ForceY;
+    double ForceZ;
+    double MomentX;
+    double MomentY;
+    double MomentZ;
 
-	bool IsReleasedForceX = false;
-	bool IsReleasedForceY = false;
-	bool IsReleasedForceZ = false;
-	bool IsReleasedMomentX = false;
-	bool IsReleasedMomentY = false;
-	bool IsReleasedMomentZ = false;
+    bool IsReleasedForceX = false;
+    bool IsReleasedForceY = false;
+    bool IsReleasedForceZ = false;
+    bool IsReleasedMomentX = false;
+    bool IsReleasedMomentY = false;
+    bool IsReleasedMomentZ = false;
 
-	Hinge(std::vector<bool> isReleased, std::vector<double> release)
-	{
-		this->IsReleasedForceX = isReleased.at(0);
-		this->IsReleasedForceY = isReleased.at(1);
-		this->IsReleasedForceZ = isReleased.at(2);
-		this->IsReleasedMomentX = isReleased.at(3);
-		this->IsReleasedMomentY = isReleased.at(4);
-		this->IsReleasedMomentZ = isReleased.at(5);
+    Hinge(std::vector<bool> isReleased, std::vector<double> release)
+        : IsReleasedForceX(isReleased[0]), IsReleasedForceY(isReleased[1]), IsReleasedForceZ(isReleased[2]),
+        IsReleasedMomentX(isReleased[3]), IsReleasedMomentY(isReleased[4]), IsReleasedMomentZ(isReleased[5]),
+        ForceX(release[0]), ForceY(release[1]), ForceZ(release[2]),
+        MomentX(release[3]), MomentY(release[4]), MomentZ(release[5])
+    { };
 
-		this->ForceX = release.at(0);
-		this->ForceY = release.at(1);
-		this->ForceZ = release.at(2);
-		this->MomentX = release.at(3);
-		this->MomentY = release.at(4);
-		this->MomentZ = release.at(5);
-	};
+    Hinge()
+        : IsReleasedForceX(false), IsReleasedForceY(false), IsReleasedForceZ(false),
+        IsReleasedMomentX(false), IsReleasedMomentY(false), IsReleasedMomentZ(false),
+        ForceX(0.0), ForceY(0.0), ForceZ(0.0),
+        MomentX(0.0), MomentY(0.0), MomentZ(0.0)
+    { };
 
-	Hinge()
-	{
-		this->IsReleasedForceX = false;
-		this->IsReleasedForceY = false;
-		this->IsReleasedForceZ = false;
-		this->IsReleasedMomentX = false;
-		this->IsReleasedMomentY = false;
-		this->IsReleasedMomentZ = false;
-
-		this->ForceX = 0.0;
-		this->ForceY = 0.0;
-		this->ForceZ = 0.0;
-		this->MomentX = 0.0;
-		this->MomentY = 0.0;
-		this->MomentZ = 0.0;
-	};
-
-	~Hinge()
-	{
-
-	};
+    ~Hinge()
+    { };
 
 };

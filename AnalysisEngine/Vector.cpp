@@ -1,6 +1,29 @@
 #include "Vector.h"
 #include <Math.h>
 
+Vector::Vector(XYZPoint Point)
+    : X(Point.X), Y(Point.Y), Z(Point.Z),
+    Length(sqrt((X * X) + (Y * Y) + (Z * Z)))
+{ }
+
+template <class T>
+Vector::Vector(T x, T y, T z)
+    : X(x), Y(y), Z(z),
+    Length(sqrt((X* X) + (Y * Y) + (Z * Z)))
+{ }
+
+Vector::Vector(XYZPoint IEnd, XYZPoint JEnd)
+    : X((JEnd.X - IEnd.X)), Y((JEnd.Y - IEnd.Y)),
+    Z((JEnd.Z - IEnd.Z)), Length(JEnd.DistanceTo(IEnd))
+{ }
+
+Vector::Vector()
+    : X(0.0), Y(0.0), Z(0.0), Length(0.0)
+{ }
+
+Vector::~Vector()
+{ }
+
 double Vector::AngleTo(Vector v)
 {
     double pi = 3.141592653589793;
@@ -18,47 +41,6 @@ double Vector::AngleTo(Vector v)
         return pi;
 
     return acos(((this->X * v.X) + (this->Y * v.Y) + (this->Z * v.Z)) / (this->Length * v.Length));
-}
-
-Vector::Vector(XYZPoint Point)
-{
-    XYZPoint origin(0.0, 0.0, 0.0);
-    this->X = Point.X;
-    this->Y = Point.Y;
-    this->Z = Point.Z;
-    this->Length = Point.DistanceTo(origin);
-}
-
-template <class T>
-Vector::Vector(T x, T y, T z)
-{
-    XYZPoint Point(x, y, z);
-    XYZPoint origin(0.0, 0.0, 0.0);
-
-    this->X = Point.X;
-    this->Y = Point.Y;
-    this->Z = Point.Z;
-    this->Length = Point.DistanceTo(origin);
-}
-
-Vector::Vector(XYZPoint IEnd, XYZPoint JEnd)
-{
-    this->X = (JEnd.X - IEnd.X);
-    this->Y = (JEnd.Y - IEnd.Y);
-    this->Z = (JEnd.Z - IEnd.Z);
-    this->Length = JEnd.DistanceTo(IEnd);
-}
-
-Vector::Vector()
-{
-    this->X = 0;
-    this->Y = 0;
-    this->Z = 0;
-    this->Length = 0;
-}
-
-Vector::~Vector()
-{
 }
 
 Vector Vector::operator+(const Vector& v)

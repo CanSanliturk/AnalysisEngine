@@ -1,19 +1,17 @@
 #include "Node.h"
 
 Node::Node(unsigned int nodeIdx, XYZPoint pt)
-{
-	this->NodeIndex = nodeIdx;
-	this->Coordinate = pt;
-}
-
-Node::~Node()
-{
-
-}
+    : NodeIndex(nodeIdx), Coordinate(pt)
+{ }
 
 Node::Node()
+    : NodeIndex(0)
 {
-	this->NodeIndex = 0;
-	XYZPoint pt;
-	this->Coordinate = pt;
+    XYZPoint pt;
+    this->Coordinate = pt;
+}
+
+Node::~Node() 
+{
+
 }

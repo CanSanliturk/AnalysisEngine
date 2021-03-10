@@ -9,26 +9,18 @@ struct XYZPoint
     double Z;
 
     XYZPoint(double x, double y, double z)
-    {
-        this->X = x;
-        this->Y = y;
-        this->Z = z;
-    };
+        : X(x), Y(y), Z(z)
+    { };
 
     XYZPoint()
-    {
-        this->X = 0;
-        this->Y = 0;
-        this->Z = 0;
-    };
+        : X(0.0), Y(0.0), Z(0.0)
+    { };
 
     ~XYZPoint()
-    {
-
-    };
+    { };
 
     double DistanceTo(XYZPoint pt)
     {
-        return sqrt(((this->X - pt.X) * (this->X - pt.X)) + ((this->Y - pt.Y) * (this->Y - pt.Y)) + ((this->Z - pt.Z) * (this->Z - pt.Z)));
+        return sqrt(((X - pt.X) * (X - pt.X)) + ((Y - pt.Y) * (Y - pt.Y)) + ((Z - pt.Z) * (Z - pt.Z)));
     };
 };

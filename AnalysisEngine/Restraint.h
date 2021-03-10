@@ -24,47 +24,22 @@ public:
     bool IsRestraintRotationZ = false;
 
     Restraint(std::shared_ptr<Node> resNode, std::vector<bool> isRest, std::vector<double> rest)
-    {
-        this->RestrainedNode = resNode;
-
-        this->IsRestraintTranslationX = isRest.at(0);
-        this->IsRestraintTranslationY = isRest.at(1);
-        this->IsRestraintTranslationZ = isRest.at(2);
-        this->IsRestraintRotationX = isRest.at(3);
-        this->IsRestraintRotationY = isRest.at(4);
-        this->IsRestraintRotationZ = isRest.at(5);
-
-        this->TranslationX = rest.at(0);
-        this->TranslationY = rest.at(1);
-        this->TranslationZ = rest.at(2);
-        this->RotationX = rest.at(3);
-        this->RotationY = rest.at(4);
-        this->RotationZ = rest.at(5);
-    };
+        : RestrainedNode(resNode), 
+        IsRestraintTranslationX(isRest.at(0)), IsRestraintTranslationY(isRest.at(1)), IsRestraintTranslationZ(isRest.at(2)),
+        IsRestraintRotationX(isRest.at(3)), IsRestraintRotationY(isRest.at(4)), IsRestraintRotationZ(isRest.at(5)),
+        TranslationX(rest.at(0)), TranslationY(rest.at(1)), TranslationZ(rest.at(2)),
+        RotationX(rest.at(3)), RotationY(rest.at(4)), RotationZ(rest.at(5))
+    { };
 
     Restraint()
-    {
-        std::shared_ptr<Node> node;
-        this->RestrainedNode = node;
-
-        this->IsRestraintTranslationX = false;
-        this->IsRestraintTranslationY = false;
-        this->IsRestraintTranslationZ = false;
-        this->IsRestraintRotationX = false;
-        this->IsRestraintRotationY = false;
-        this->IsRestraintRotationZ = false;
-
-        this->TranslationX = -123.456789;
-        this->TranslationY = -123.456789;
-        this->TranslationZ = -123.456789;
-        this->RotationX = -123.456789;
-        this->RotationY = -123.456789;
-        this->RotationZ = -123.456789;
-    };
+        : RestrainedNode(std::make_shared<Node>()),
+        IsRestraintTranslationX(false), IsRestraintTranslationY(false), IsRestraintTranslationZ(false),
+        IsRestraintRotationX(false), IsRestraintRotationY(false), IsRestraintRotationZ(false),
+        TranslationX(0.0), TranslationY(0.0), TranslationZ(0.0),
+        RotationX(0.0), RotationY(0.0), RotationZ(0.0)
+    { };
 
     ~Restraint()
-    {
-
-    };
+    { };
 
 };

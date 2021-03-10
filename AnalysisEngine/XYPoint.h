@@ -2,23 +2,17 @@
 
 struct XYPoint
 {
-	double X;
-	double Y;
+    double X;
+    double Y;
 
-	XYPoint(double x, double y)
-	{
-		this->X = x;
-		this->Y = y;
-	};
+    XYPoint(double x, double y)
+        : X(x), Y(y)
+    { };
 
-	XYPoint()
-	{
-		this->X = -123.456789;
-		this->Y = -123.456789;
-	};
+    XYPoint()
+        : X(0.0), Y(0.0)
+    { };
 
-	~XYPoint()
-	{
-
-	};
+    ~XYPoint()
+    { };
 };

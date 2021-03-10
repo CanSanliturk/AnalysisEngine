@@ -10,8 +10,8 @@ public:
     double Loads[6] = { 0, 0, 0, 0, 0, 0 }; // Forces and moments in X, Y and Z directions
 
     NodalLoad(std::shared_ptr<Node> node, double loads[6])
+        : ActingNode(node)
     {
-        this->ActingNode = node;
         this->Loads[0] = loads[0];
         this->Loads[1] = loads[1];
         this->Loads[2] = loads[2];
@@ -21,15 +21,11 @@ public:
     };
 
     NodalLoad()
-    {
-        std::shared_ptr<Node> n;
-        this->ActingNode = n;
-    };
+        : ActingNode(std::make_shared<Node>())
+    { };
 
     ~NodalLoad()
-    {
-
-    };
+    { };
 
 private:
 };
