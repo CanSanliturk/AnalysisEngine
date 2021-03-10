@@ -13,8 +13,6 @@ Current Capabilities
 
 Future Development
 --------------------
-* Damping matrices will be introduced to members (and to overall structural) which uses Rayleigh damping.
-
 * Newmark-Beta algorithm will be implemented for dynamic analysis.
 
 * Material and geometrical nonlinearities will be considered.
