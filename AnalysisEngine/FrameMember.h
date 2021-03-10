@@ -30,17 +30,20 @@ public:
 
     FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, 
         std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix,
-        std::shared_ptr<Hinge> iEndHinge = nullptr, std::shared_ptr<Hinge> jEndHinge = nullptr);
+        std::shared_ptr<Hinge> iEndHinge = nullptr, std::shared_ptr<Hinge> jEndHinge = nullptr,
+        double rayleighDampingMassMultiplier = 0, double rayleighDampingStiffnessMultiplier = 0);
     FrameMember();
     ~FrameMember();
 
     unsigned int GetElementIndex() { return this->ElementIndex; };
     unsigned int GetNumberOfDoF() { return 12; };
     ElmType::ElementType GetElementType() { return this->Type; };
-    std::shared_ptr<Matrix<double>> GetLocalCoordinateStiffnessMatrix() { return this->LocalCoordinateStiffnessMatrix; };
     std::shared_ptr<Matrix<double>> GetLocalCoordinateMassMatrix() { return this->LocalCoordinateMassMatrix; };
-    std::shared_ptr<Matrix<double>> GetGlobalCoordinateStiffnessMatrix() { return this->GlobalCoordinateStiffnessMatrix; };
+    std::shared_ptr<Matrix<double>> GetLocalCoordinateStiffnessMatrix() { return this->LocalCoordinateStiffnessMatrix; };
+    std::shared_ptr<Matrix<double>> GetLocalCoordinateDampingMatrix() { return this->LocalCoordinateDampingMatrix; };
     std::shared_ptr<Matrix<double>> GetGlobalCoordinateMassMatrix() { return this->GlobalCoordinateMassMatrix; };
+    std::shared_ptr<Matrix<double>> GetGlobalCoordinateStiffnessMatrix() { return this->GlobalCoordinateStiffnessMatrix; };
+    std::shared_ptr<Matrix<double>> GetGlobalCoordinateDampingMatrix() { return this->GlobalCoordinateDampingMatrix; };
     std::shared_ptr<Matrix<double>> GetRotationMatrix() { return this->RotationMatrix; };
     std::vector<std::shared_ptr<Node>> GelElementNodes()
     {
@@ -51,10 +54,11 @@ public:
     };
 
 private:
-    void AssembleElementLocalStiffnessMatrix();
     void AssembleElementLocalMassMatrix();
+    void AssembleElementLocalStiffnessMatrix();
+    void AssembleElementLocalDampingMatrix(double mult1, double mult2);
     void AssembleElementRotationMatrix();
-    void AssembleElementGlobalStiffnessMatrix();
     void AssembleElementGlobalMassMatrix();
-
+    void AssembleElementGlobalStiffnessMatrix();
+    void AssembleElementGlobalDampingMatrix(double mult1, double mult2);
 };

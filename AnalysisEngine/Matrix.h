@@ -97,8 +97,18 @@ public:
         return result;
     }
 
+    // Matrix multiplication with scalar
+    Matrix<T> operator*(double mult)
+    {
+        Matrix<T> result(*this);
+        for (size_t i = 0; i < result.m_rowCount; i++)
+            for (size_t j = 0; j < result.m_colCount; j++)
+                result(i, j) *= mult;
+        return result;
+    }
+
     // Matrix addition
-    Matrix<T> operator+(Matrix<T>& const that)
+    Matrix<T> operator+(Matrix<T> that)
     {
         // Check if dimensions match
         if ((this->m_colCount != that.m_colCount) || (this->m_rowCount != that.m_rowCount))

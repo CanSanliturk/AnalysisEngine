@@ -7,30 +7,33 @@
 constexpr double G = 9.807;
 
 FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode,
-    std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge)
+    std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge,
+    double rayleighDampingMassMultiplier, double rayleighDampingStiffnessMultiplier)
 {
-    this->Nodes.resize(2);
-    this->Hinges.resize(2);
-    this->isLumpedMassMatrix = isLumpedMassMatrix;
-    this->ElementIndex = elmIndex;
-    this->Nodes[0] = iNode;
-    this->Nodes[1] = jNode;
-    this->Hinges[0] = iEndHinge;
-    this->Hinges[1] = jEndHinge;
-    this->FrameSection = section;
-    this->FrameMaterial = material;
-    this->Type = (ElmType::ElementType::Frame);
-    this->Length = jNode->Coordinate.DistanceTo(iNode->Coordinate);
-    this->LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
-    this->LocalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
-    this->RotationMatrix = std::make_shared<Matrix<double>>(12);
-    this->GlobalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
-    this->GlobalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
-    AssembleElementLocalStiffnessMatrix();
+    Nodes.resize(2);
+    Hinges.resize(2);
+    isLumpedMassMatrix = isLumpedMassMatrix;
+    ElementIndex = elmIndex;
+    Nodes[0] = iNode;
+    Nodes[1] = jNode;
+    Hinges[0] = iEndHinge;
+    Hinges[1] = jEndHinge;
+    FrameSection = section;
+    FrameMaterial = material;
+    Type = (ElmType::ElementType::Frame);
+    Length = jNode->Coordinate.DistanceTo(iNode->Coordinate);
+    LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
+    LocalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
+    RotationMatrix = std::make_shared<Matrix<double>>(12);
+    GlobalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
+    GlobalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
     AssembleElementLocalMassMatrix();
+    AssembleElementLocalStiffnessMatrix();
+    AssembleElementLocalDampingMatrix(rayleighDampingMassMultiplier, rayleighDampingStiffnessMultiplier);
     AssembleElementRotationMatrix();
-    AssembleElementGlobalStiffnessMatrix();
     AssembleElementGlobalMassMatrix();
+    AssembleElementGlobalStiffnessMatrix();
+    AssembleElementGlobalDampingMatrix(rayleighDampingMassMultiplier, rayleighDampingStiffnessMultiplier);
     iNode->ConnectedElements.push_back(elmIndex);
     jNode->ConnectedElements.push_back(elmIndex);
 }
@@ -50,6 +53,60 @@ FrameMember::FrameMember()
 
 FrameMember::~FrameMember()
 {
+}
+
+void FrameMember::AssembleElementLocalMassMatrix()
+{
+    auto A = this->FrameSection->Area;
+    auto rho = this->FrameMaterial->UnitWeight * A / G;
+    auto rX2 = this->FrameSection->Inertia11 / A;
+    double L = this->Length;
+    double m = rho * L / 420.0;
+    double mElm[12][12];
+
+    for (unsigned int i = 0; i < 12; i++)
+        for (unsigned int j = 0; j < 12; j++)
+            mElm[i][j] = 0;
+
+    if (this->isLumpedMassMatrix)
+    {
+        m = 0.5 * rho * L;
+        mElm[0][0] = m;
+        mElm[1][1] = m;
+        mElm[2][2] = m;
+        mElm[6][6] = m;
+        mElm[7][7] = m;
+        mElm[8][8] = m;
+    }
+    else
+    {
+        mElm[0][0] = mElm[6][6] = m * 140.0;
+        mElm[0][6] = mElm[6][0] = m * 70.0;
+        mElm[3][3] = mElm[9][9] = m * rX2 * 140.0;
+        mElm[3][9] = mElm[9][3] = m * rX2 * 70.0;
+
+        mElm[2][2] = mElm[8][8] = m * 156.0;
+        mElm[2][8] = mElm[8][2] = m * 54.0;
+        mElm[4][4] = mElm[10][10] = m * 4.0 * L * L;
+        mElm[4][10] = mElm[10][4] = -m * 3.0 * L * L;
+        mElm[2][4] = mElm[4][2] = -m * 22.0 * L;
+        mElm[8][10] = mElm[10][8] = -mElm[2][4];
+        mElm[2][10] = mElm[10][2] = m * 13.0 * L;
+        mElm[4][8] = mElm[8][4] = -mElm[2][10];
+
+        mElm[1][1] = mElm[7][7] = m * 156.0;
+        mElm[1][7] = mElm[7][1] = m * 54.0;
+        mElm[5][5] = mElm[11][11] = m * 4.0 * L * L;
+        mElm[5][11] = mElm[11][5] = -m * 3.0 * L * L;
+        mElm[1][5] = mElm[5][1] = m * 22.0 * L;
+        mElm[7][11] = mElm[11][7] = -mElm[1][5];
+        mElm[1][11] = mElm[11][1] = -m * 13.0 * L;
+        mElm[5][7] = mElm[7][5] = -mElm[1][11];
+    }
+
+    for (unsigned int i = 0; i < 12; i++)
+        for (unsigned int j = 0; j < 12; j++)
+            (*this->LocalCoordinateMassMatrix)(i, j) = mElm[i][j];
 }
 
 void FrameMember::AssembleElementLocalStiffnessMatrix()
@@ -172,58 +229,10 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
             (*this->LocalCoordinateStiffnessMatrix)(i, j) = kElm[i][j];
 }
 
-void FrameMember::AssembleElementLocalMassMatrix()
+void FrameMember::AssembleElementLocalDampingMatrix(double mult1, double mult2)
 {
-    auto A = this->FrameSection->Area;
-    auto rho = this->FrameMaterial->UnitWeight * A / G;
-    auto rX2 = this->FrameSection->Inertia11 / A;
-    double L = this->Length;
-    double m = rho * L / 420.0;
-    double mElm[12][12];
-
-    for (unsigned int i = 0; i < 12; i++)
-        for (unsigned int j = 0; j < 12; j++)
-            mElm[i][j] = 0;
-
-    if (this->isLumpedMassMatrix)
-    {
-        m = 0.5 * rho * L;
-        mElm[0][0] = m;
-        mElm[1][1] = m;
-        mElm[2][2] = m;
-        mElm[6][6] = m;
-        mElm[7][7] = m;
-        mElm[8][8] = m;
-    }
-    else
-    {
-        mElm[0][0] = mElm[6][6] = m * 140.0;
-        mElm[0][6] = mElm[6][0] = m * 70.0;
-        mElm[3][3] = mElm[9][9] = m * rX2 * 140.0;
-        mElm[3][9] = mElm[9][3] = m * rX2 * 70.0;
-
-        mElm[2][2] = mElm[8][8] = m * 156.0;
-        mElm[2][8] = mElm[8][2] = m * 54.0;
-        mElm[4][4] = mElm[10][10] = m * 4.0 * L * L;
-        mElm[4][10] = mElm[10][4] = -m * 3.0 * L * L;
-        mElm[2][4] = mElm[4][2] = -m * 22.0 * L;
-        mElm[8][10] = mElm[10][8] = -mElm[2][4];
-        mElm[2][10] = mElm[10][2] = m * 13.0 * L;
-        mElm[4][8] = mElm[8][4] = -mElm[2][10];
-
-        mElm[1][1] = mElm[7][7] = m * 156.0;
-        mElm[1][7] = mElm[7][1] = m * 54.0;
-        mElm[5][5] = mElm[11][11] = m * 4.0 * L * L;
-        mElm[5][11] = mElm[11][5] = -m * 3.0 * L * L;
-        mElm[1][5] = mElm[5][1] = m * 22.0 * L;
-        mElm[7][11] = mElm[11][7] = -mElm[1][5];
-        mElm[1][11] = mElm[11][1] = -m * 13.0 * L;
-        mElm[5][7] = mElm[7][5] = -mElm[1][11];
-    }
-
-    for (unsigned int i = 0; i < 12; i++)
-        for (unsigned int j = 0; j < 12; j++)
-            (*this->LocalCoordinateMassMatrix)(i, j) = mElm[i][j];
+    this->LocalCoordinateDampingMatrix = 
+        std::make_shared<Matrix<double>>((*LocalCoordinateMassMatrix * mult1) + (*LocalCoordinateStiffnessMatrix * mult2));
 }
 
 void FrameMember::AssembleElementRotationMatrix()
@@ -266,4 +275,10 @@ void FrameMember::AssembleElementGlobalStiffnessMatrix()
     auto rotTrans = (*this->RotationMatrix).transpose();
     *this->GlobalCoordinateStiffnessMatrix =
         (rotTrans * (*this->LocalCoordinateStiffnessMatrix)) * (*this->RotationMatrix);
+}
+
+void FrameMember::AssembleElementGlobalDampingMatrix(double mult1, double mult2)
+{
+    this->LocalCoordinateDampingMatrix =
+        std::make_shared<Matrix<double>>((*GlobalCoordinateMassMatrix * mult1) + (*GlobalCoordinateStiffnessMatrix * mult2));
 }

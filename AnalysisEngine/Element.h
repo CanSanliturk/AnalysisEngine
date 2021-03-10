@@ -24,12 +24,13 @@ public:
     virtual unsigned int GetElementIndex() { return 0; }
     virtual ElmType::ElementType GetElementType() { return ElmType::ElementType::None; }
     virtual unsigned int GetNumberOfDoF() { return 0; };
-    virtual std::shared_ptr<Matrix<double>> GetLocalCoordinateStiffnessMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
     virtual std::shared_ptr<Matrix<double>> GetLocalCoordinateMassMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
-    virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateStiffnessMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
-    virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateMassMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetLocalCoordinateStiffnessMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetLocalCoordinateDampingMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
     virtual std::shared_ptr<Matrix<double>> GetRotationMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
-
+    virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateMassMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateStiffnessMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
+    virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateDampingMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
     virtual void GetElm() { };
 
     ElmType::ElementType Type;
