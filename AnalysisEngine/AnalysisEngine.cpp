@@ -132,10 +132,10 @@ void TableDisplacements()
     // Coordinates
     XYZPoint bottomPt1(0, 0, 0); // Origin
     XYZPoint bottomPt2(10, 0, 0);
-    XYZPoint bottomPt3(10, 10, 0);
-    XYZPoint bottomPt4(0, 10, 0);
-    XYZPoint topPt1(0, 0, 10); // Top of the origin
-    XYZPoint topPt2(10, 0, 10);
+    XYZPoint bottomPt3(10, 0, 10);
+    XYZPoint bottomPt4(0, 0, 10);
+    XYZPoint topPt1(0, 10, 0); // Top of the origin
+    XYZPoint topPt2(10, 10, 0);
     XYZPoint topPt3(10, 10, 10);
     XYZPoint topPt4(0, 10, 10);
 

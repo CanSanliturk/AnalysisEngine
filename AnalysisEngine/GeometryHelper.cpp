@@ -21,7 +21,7 @@ Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, 
     auto cX = elmVector.X / elmVector.Length;
     auto cY = elmVector.Y / elmVector.Length;
     auto cZ = elmVector.Z / elmVector.Length;
-    auto cXY = sqrt((cX * cX) + (cY * cY));
+    auto cXZ = sqrt((cX * cX) + (cZ * cZ));
 
     std::vector<double> firstRow;
     std::vector<double> secondRow;
@@ -33,13 +33,13 @@ Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, 
 
     Matrix<double> retVal(3);
 
-    if (Utils::AreEqual(cXY, compareVal, tol)) // Vertical members
+    if (Utils::AreEqual(cXZ, compareVal, tol)) // Vertical members
     {
         retVal(0, 0) = 0.0;
-        retVal(0, 1) = cZ;
+        retVal(0, 1) = cY;
         retVal(0, 2) = 0.0;
 
-        retVal(1, 0) = -1 * cZ;
+        retVal(1, 0) = -1 * cY;
         retVal(1, 1) = 0;
         retVal(1, 2) = 0;
 
@@ -50,16 +50,16 @@ Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, 
     else // General case
     {
         retVal(0, 0) = cX;
-        retVal(0, 1) = cZ;
-        retVal(0, 2) = cY;
+        retVal(0, 1) = cY;
+        retVal(0, 2) = cZ;
 
-        retVal(1, 0) = -1 * ((cX * cZ * cos(alpha)) + (cY * sin(alpha))) / cXY;
-        retVal(1, 1) = cXY * cos(alpha);
-        retVal(1, 2) = ((-cZ * cY * cos(alpha)) + (cX * sin(alpha))) / cXY;
+        retVal(1, 0) = -1 * ((cX * cZ * cos(alpha)) + (cZ * sin(alpha))) / cXZ;
+        retVal(1, 1) = cXZ * cos(alpha);
+        retVal(1, 2) = ((-cY * cZ * cos(alpha)) + (cX * sin(alpha))) / cXZ;
 
-        retVal(2, 0) = ((cX * cZ * sin(alpha)) - (cY * cos(alpha))) / cXY;
-        retVal(2, 1) = -1 * cXY * sin(alpha);
-        retVal(2, 2) = ((cZ * cY * sin(alpha)) + (cX * cos(alpha))) / cXY;
+        retVal(2, 0) = ((cX * cY * sin(alpha)) - (cZ * cos(alpha))) / cXZ;
+        retVal(2, 1) = -1 * cXZ * sin(alpha);
+        retVal(2, 2) = ((cY * cZ * sin(alpha)) + (cX * cos(alpha))) / cXZ;
     }
 
     return retVal;
