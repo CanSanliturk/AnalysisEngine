@@ -37,6 +37,7 @@ public:
 private:
     void AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount);
     void AssembleMassMatrix(unsigned int totalDofCount);
+    void AssembleDampingMatrix(unsigned int totalDofCount);
     void AssembleStiffnessMatrix(unsigned int totalDofCount);
     void AssembleForceVector(unsigned int totalDofCount);
 };
