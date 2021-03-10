@@ -37,6 +37,9 @@
     <Filter Include="src\Solvers">
       <UniqueIdentifier>{cab09c87-b423-4006-89bc-410f2ae91a52}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Loadings">
+      <UniqueIdentifier>{754ba1d6-50ed-4303-9aaa-ee9a4bccd2d3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AnalysisEngine.cpp">
@@ -92,14 +95,8 @@
     <ClInclude Include="Material.h">
       <Filter>src\Material</Filter>
     </ClInclude>
-    <ClInclude Include="NodalLoad.h">
-      <Filter>src\BoundaryConditions</Filter>
-    </ClInclude>
     <ClInclude Include="Vector.h">
       <Filter>src\Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="DistributedLoad.h">
-      <Filter>src\BoundaryConditions</Filter>
     </ClInclude>
     <ClInclude Include="Structure.h">
       <Filter>src\Structure</Filter>
@@ -124,6 +121,12 @@
     </ClInclude>
     <ClInclude Include="StructureSolver.h">
       <Filter>src\Solvers</Filter>
+    </ClInclude>
+    <ClInclude Include="DistributedLoad.h">
+      <Filter>src\Loadings</Filter>
+    </ClInclude>
+    <ClInclude Include="NodalLoad.h">
+      <Filter>src\Loadings</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

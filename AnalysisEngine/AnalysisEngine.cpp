@@ -69,15 +69,11 @@ void CantileverDisplacements()
 
     // Material
     auto mat = std::make_shared<Material>(200e9, 0.3, 78500);
-
-    // Releases
-    auto h1 = std::make_shared<Hinge>();
-    auto h2 = std::make_shared<Hinge>();
-
+    
     // Members
     std::map<unsigned int, std::shared_ptr<Element>> elements;
     bool isLumpedMassMatrix = true;
-    auto beam = std::make_shared<FrameMember>(1, node1, node2, sect, mat, h1, h2, isLumpedMassMatrix); elements[beam->ElementIndex] = beam;
+    auto beam = std::make_shared<FrameMember>(1, node1, node2, sect, mat, isLumpedMassMatrix); elements[beam->ElementIndex] = beam;
 
     // Restraints
     std::vector<bool> isRest;
@@ -159,28 +155,18 @@ void TableDisplacements()
 
     // Material
     auto mat = std::make_shared<Material>(200e9, 0.3, 78500);
-
-    // Releases
-    std::shared_ptr<Hinge> h1i, h1j;
-    std::shared_ptr<Hinge> h2i, h2j;
-    std::shared_ptr<Hinge> h3i, h3j;
-    std::shared_ptr<Hinge> h4i, h4j;
-    std::shared_ptr<Hinge> h5i, h5j;
-    std::shared_ptr<Hinge> h6i, h6j;
-    std::shared_ptr<Hinge> h7i, h7j;
-    std::shared_ptr<Hinge> h8i, h8j;
-
+    
     // Members
     std::map<unsigned int, std::shared_ptr<Element>> elements;
     bool isLumpedMassMatrix = true;
-    auto col1 = std::make_shared<FrameMember >(1, bottomNode1, topNode1, sect, mat, h1i, h1j, isLumpedMassMatrix); elements[1] = col1;
-    auto col2 = std::make_shared<FrameMember >(2, bottomNode2, topNode2, sect, mat, h2i, h2j, isLumpedMassMatrix); elements[2] = col2;
-    auto col3 = std::make_shared<FrameMember >(3, bottomNode3, topNode3, sect, mat, h3i, h3j, isLumpedMassMatrix); elements[3] = col3;
-    auto col4 = std::make_shared<FrameMember >(4, bottomNode4, topNode4, sect, mat, h4i, h4j, isLumpedMassMatrix); elements[4] = col4;
-    auto beam1 = std::make_shared<FrameMember >(5, topNode1, topNode2, sect, mat, h5i, h5j, isLumpedMassMatrix); elements[5] = beam1;
-    auto beam2 = std::make_shared<FrameMember >(6, topNode2, topNode3, sect, mat, h6i, h6j, isLumpedMassMatrix); elements[6] = beam2;
-    auto beam3 = std::make_shared<FrameMember >(7, topNode3, topNode4, sect, mat, h7i, h7j, isLumpedMassMatrix); elements[7] = beam3;
-    auto beam4 = std::make_shared<FrameMember >(8, topNode4, topNode1, sect, mat, h8i, h8j, isLumpedMassMatrix); elements[8] = beam4;
+    auto col1 = std::make_shared<FrameMember >(1, bottomNode1, topNode1, sect, mat, isLumpedMassMatrix); elements[1] = col1;
+    auto col2 = std::make_shared<FrameMember >(2, bottomNode2, topNode2, sect, mat, isLumpedMassMatrix); elements[2] = col2;
+    auto col3 = std::make_shared<FrameMember >(3, bottomNode3, topNode3, sect, mat, isLumpedMassMatrix); elements[3] = col3;
+    auto col4 = std::make_shared<FrameMember >(4, bottomNode4, topNode4, sect, mat, isLumpedMassMatrix); elements[4] = col4;
+    auto beam1 = std::make_shared<FrameMember >(5, topNode1, topNode2, sect, mat, isLumpedMassMatrix); elements[5] = beam1;
+    auto beam2 = std::make_shared<FrameMember >(6, topNode2, topNode3, sect, mat, isLumpedMassMatrix); elements[6] = beam2;
+    auto beam3 = std::make_shared<FrameMember >(7, topNode3, topNode4, sect, mat, isLumpedMassMatrix); elements[7] = beam3;
+    auto beam4 = std::make_shared<FrameMember >(8, topNode4, topNode1, sect, mat, isLumpedMassMatrix); elements[8] = beam4;
 
     // Restraints
     std::vector<bool> isRest;

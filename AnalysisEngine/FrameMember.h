@@ -20,14 +20,17 @@ public:
     double Length;
     bool isLumpedMassMatrix = true;
 
-    std::shared_ptr<Matrix<double>> LocalCoordinateStiffnessMatrix;
     std::shared_ptr<Matrix<double>> LocalCoordinateMassMatrix;
+    std::shared_ptr<Matrix<double>> LocalCoordinateStiffnessMatrix;
+    std::shared_ptr<Matrix<double>> LocalCoordinateDampingMatrix;
     std::shared_ptr<Matrix<double>> RotationMatrix;
-    std::shared_ptr<Matrix<double>> GlobalCoordinateStiffnessMatrix;
     std::shared_ptr<Matrix<double>> GlobalCoordinateMassMatrix;
+    std::shared_ptr<Matrix<double>> GlobalCoordinateStiffnessMatrix;
+    std::shared_ptr<Matrix<double>> GlobalCoordinateDampingMatrix;
 
     FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, 
-        std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge, bool isLumpedMassMatrix);
+        std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix,
+        std::shared_ptr<Hinge> iEndHinge = nullptr, std::shared_ptr<Hinge> jEndHinge = nullptr);
     FrameMember();
     ~FrameMember();
 

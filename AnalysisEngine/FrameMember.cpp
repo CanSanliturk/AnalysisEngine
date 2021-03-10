@@ -7,7 +7,7 @@
 constexpr double G = 9.807;
 
 FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode,
-    std::shared_ptr<Section> section, std::shared_ptr<Material> material, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge, bool isLumpedMassMatrix)
+    std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge)
 {
     this->Nodes.resize(2);
     this->Hinges.resize(2);
