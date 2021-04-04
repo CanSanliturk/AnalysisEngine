@@ -27,31 +27,28 @@ public:
     std::shared_ptr<Matrix<double>> GlobalCoordinateMassMatrix;
     std::shared_ptr<Matrix<double>> GlobalCoordinateStiffnessMatrix;
     std::shared_ptr<Matrix<double>> GlobalCoordinateDampingMatrix;
+    std::shared_ptr<Matrix<double>> ElementLoads;
 
     FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, 
         std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix,
+        std::shared_ptr<Matrix<double>> elementLoads = nullptr,
         std::shared_ptr<Hinge> iEndHinge = nullptr, std::shared_ptr<Hinge> jEndHinge = nullptr,
         double rayleighDampingMassMultiplier = 0, double rayleighDampingStiffnessMultiplier = 0);
     FrameMember();
     ~FrameMember();
 
-    unsigned int GetElementIndex() { return this->ElementIndex; };
-    unsigned int GetNumberOfDoF() { return 12; };
-    ElmType::ElementType GetElementType() { return this->Type; };
-    std::shared_ptr<Matrix<double>> GetLocalCoordinateMassMatrix() { return this->LocalCoordinateMassMatrix; };
-    std::shared_ptr<Matrix<double>> GetLocalCoordinateStiffnessMatrix() { return this->LocalCoordinateStiffnessMatrix; };
-    std::shared_ptr<Matrix<double>> GetLocalCoordinateDampingMatrix() { return this->LocalCoordinateDampingMatrix; };
-    std::shared_ptr<Matrix<double>> GetGlobalCoordinateMassMatrix() { return this->GlobalCoordinateMassMatrix; };
-    std::shared_ptr<Matrix<double>> GetGlobalCoordinateStiffnessMatrix() { return this->GlobalCoordinateStiffnessMatrix; };
-    std::shared_ptr<Matrix<double>> GetGlobalCoordinateDampingMatrix() { return this->GlobalCoordinateDampingMatrix; };
-    std::shared_ptr<Matrix<double>> GetRotationMatrix() { return this->RotationMatrix; };
-    std::vector<std::shared_ptr<Node>> GelElementNodes()
-    {
-        std::vector<std::shared_ptr<Node>> retVal;
-        retVal.push_back(this->Nodes[0]);
-        retVal.push_back(this->Nodes[1]);
-        return retVal;
-    };
+    unsigned int GetElementIndex();
+    unsigned int GetNumberOfDoF();
+    ElmType::ElementType GetElementType();
+    std::shared_ptr<Matrix<double>> GetLocalCoordinateMassMatrix();
+    std::shared_ptr<Matrix<double>> GetLocalCoordinateStiffnessMatrix();
+    std::shared_ptr<Matrix<double>> GetLocalCoordinateDampingMatrix();
+    std::shared_ptr<Matrix<double>> GetGlobalCoordinateMassMatrix();
+    std::shared_ptr<Matrix<double>> GetGlobalCoordinateStiffnessMatrix();
+    std::shared_ptr<Matrix<double>> GetGlobalCoordinateDampingMatrix();
+    std::shared_ptr<Matrix<double>> GetRotationMatrix();
+    std::shared_ptr<Matrix<double>> GetElementLoads();
+    std::vector<std::shared_ptr<Node>> GelElementNodes();
 
 private:
     void AssembleElementLocalMassMatrix();

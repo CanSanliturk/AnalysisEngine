@@ -14,6 +14,7 @@ Structure::Structure(std::map<unsigned int, std::shared_ptr<Node>>* nodeMap, std
     this->AssignDegreesOfFreedom(unrestDofCount, totalDofCount);
     this->AssembleMassMatrix(totalDofCount);
     this->AssembleStiffnessMatrix(totalDofCount);
+    this->AssembleDampingMatrix(totalDofCount);
     this->AssembleForceVector(totalDofCount);
 }
 
@@ -264,6 +265,7 @@ void Structure::AssembleStiffnessMatrix(unsigned int totalDofCount)
 
 void Structure::AssembleForceVector(unsigned int totalDofCount)
 {
+    // Nodal forces
     this->ForceVector = std::make_shared<Matrix<double>>(totalDofCount, 1);
     for (auto& nodalLoadPair : *this->NodalLoads)
     {
@@ -278,4 +280,22 @@ void Structure::AssembleForceVector(unsigned int totalDofCount)
         (*this->ForceVector)(node->DofIndexRZ - 1, 0) = load->Loads[5];
     }
 
+    // Element forces
+    for (auto& elmPair : *this->Elements)
+    {
+        auto elm = elmPair.second;
+        auto nodes = elm->GelElementNodes();
+        std::vector<unsigned int> steerVector;
+
+        for (auto& n : nodes)
+        {
+            steerVector.push_back(n->DofIndexTX);
+            steerVector.push_back(n->DofIndexTY);
+            steerVector.push_back(n->DofIndexTZ);
+            steerVector.push_back(n->DofIndexRX);
+            steerVector.push_back(n->DofIndexRY);
+            steerVector.push_back(n->DofIndexRZ);
+        }
+
+    }
 }

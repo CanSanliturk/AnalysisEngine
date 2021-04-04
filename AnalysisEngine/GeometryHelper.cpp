@@ -53,7 +53,7 @@ Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, 
         retVal(0, 1) = cY;
         retVal(0, 2) = cZ;
 
-        retVal(1, 0) = -1 * ((cX * cZ * cos(alpha)) + (cZ * sin(alpha))) / cXZ;
+        retVal(1, 0) = -1 * ((cX * cY * cos(alpha)) + (cZ * sin(alpha))) / cXZ;
         retVal(1, 1) = cXZ * cos(alpha);
         retVal(1, 2) = ((-cY * cZ * cos(alpha)) + (cX * sin(alpha))) / cXZ;
 

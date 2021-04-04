@@ -7,8 +7,8 @@
 constexpr double G = 9.807;
 
 FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode,
-    std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix, std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge,
-    double rayleighDampingMassMultiplier, double rayleighDampingStiffnessMultiplier)
+    std::shared_ptr<Section> section, std::shared_ptr<Material> material, bool isLumpedMassMatrix, std::shared_ptr<Matrix<double>> elementLoads, 
+    std::shared_ptr<Hinge> iEndHinge, std::shared_ptr<Hinge> jEndHinge, double rayleighDampingMassMultiplier, double rayleighDampingStiffnessMultiplier)
 {
     Nodes.resize(2);
     Hinges.resize(2);
@@ -20,6 +20,7 @@ FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std
     Hinges[1] = jEndHinge;
     FrameSection = section;
     FrameMaterial = material;
+    ElementLoads = elementLoads;
     Type = (ElmType::ElementType::Frame);
     Length = jNode->Coordinate.DistanceTo(iNode->Coordinate);
     LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
@@ -231,7 +232,7 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
 
 void FrameMember::AssembleElementLocalDampingMatrix(double mult1, double mult2)
 {
-    this->LocalCoordinateDampingMatrix = 
+    this->LocalCoordinateDampingMatrix =
         std::make_shared<Matrix<double>>((*LocalCoordinateMassMatrix * mult1) + (*LocalCoordinateStiffnessMatrix * mult2));
 }
 
@@ -279,6 +280,23 @@ void FrameMember::AssembleElementGlobalStiffnessMatrix()
 
 void FrameMember::AssembleElementGlobalDampingMatrix(double mult1, double mult2)
 {
-    this->LocalCoordinateDampingMatrix =
+    this->GlobalCoordinateDampingMatrix =
         std::make_shared<Matrix<double>>((*GlobalCoordinateMassMatrix * mult1) + (*GlobalCoordinateStiffnessMatrix * mult2));
 }
+
+unsigned int FrameMember::GetElementIndex() { return ElementIndex; };
+unsigned int FrameMember::GetNumberOfDoF() { return 12; };
+ElmType::ElementType FrameMember::GetElementType() { return Type; };
+std::shared_ptr<Matrix<double>> FrameMember::GetLocalCoordinateMassMatrix() { return LocalCoordinateMassMatrix; };
+std::shared_ptr<Matrix<double>> FrameMember::GetLocalCoordinateStiffnessMatrix() { return LocalCoordinateStiffnessMatrix; };
+std::shared_ptr<Matrix<double>> FrameMember::GetLocalCoordinateDampingMatrix() { return LocalCoordinateDampingMatrix; };
+std::shared_ptr<Matrix<double>> FrameMember::GetGlobalCoordinateMassMatrix() { return GlobalCoordinateMassMatrix; };
+std::shared_ptr<Matrix<double>> FrameMember::GetGlobalCoordinateStiffnessMatrix() { return GlobalCoordinateStiffnessMatrix; };
+std::shared_ptr<Matrix<double>> FrameMember::GetGlobalCoordinateDampingMatrix() { return GlobalCoordinateDampingMatrix; };
+std::shared_ptr<Matrix<double>> FrameMember::GetRotationMatrix() { return RotationMatrix; };
+std::shared_ptr<Matrix<double>> FrameMember::GetElementLoads() { return ElementLoads; };
+std::vector<std::shared_ptr<Node>> FrameMember::GelElementNodes()
+{
+    std::vector<std::shared_ptr<Node>> retVal = { Nodes[0], Nodes[1] };
+    return retVal;
+};

@@ -2,33 +2,25 @@
 #include <vector>
 #include <memory>
 #include <chrono>
-#include <Eigen>
 #include "StructureSolver.h"
-#include "GeometryHelper.h"
-#include "FrameMember.h"
-#include "Restraint.h"
-#include "Structure.h"
-#include "XYZPoint.h"
-#include "Section.h"
-#include "Element.h"
-#include "Vector.h"
-#include "Matrix.h"
-#include "Node.h"
 
 #define LOG(x) std::cout << x << "\n"
 
-void CantileverDisplacements();
+void CantileverDisplacements3D();
+void CantileverDisplacements2D();
 void TableDisplacements();
+void CE583Sample();
+void CE583Assignment1_3();
 
 int main()
 {
-    LOG("__________________________________________________");
-    LOG("|                                                |");
-    LOG("|    3-Dimensional Structural Analysis Engine    |");
-    LOG("|       Created by Mustafa Can Sanliturk         |");
-    LOG("|           All rights reserved ©                |");
-    LOG("|________________________________________________|");
-    LOG("");
+    //LOG("__________________________________________________");
+    //LOG("|                                                |");
+    //LOG("|    3-Dimensional Structural Analysis Engine    |");
+    //LOG("|       Created by Mustafa Can Sanliturk         |");
+    //LOG("|           All rights reserved ©                |");
+    //LOG("|________________________________________________|");
+    //LOG("");
 
     // Start timer
     auto timenow =
@@ -43,11 +35,10 @@ int main()
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     LOG(" Elapsed Time = " << timenow2 - timenow << " seconds\n");
 
-    std::cin.get();
     return 0;
 }
 
-void CantileverDisplacements()
+void CantileverDisplacements3D()
 {
     // Units are in N & m
 
@@ -69,7 +60,7 @@ void CantileverDisplacements()
 
     // Material
     auto mat = std::make_shared<Material>(200e9, 0.3, 78500);
-    
+
     // Members
     std::map<unsigned int, std::shared_ptr<Element>> elements;
     bool isLumpedMassMatrix = true;
@@ -90,6 +81,79 @@ void CantileverDisplacements()
     // Nodal loads
     std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
     double nodalLoad[6] = { 0, 0, -5000e3, 0, 0, 0 };
+    auto nl1 = std::make_shared<NodalLoad>(node2, nodalLoad); nodalLoads[1] = nl1;
+
+    // Distributed loads
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+    for (auto& nodePair : nodes)
+    {
+        auto node = nodePair.second;
+
+        LOG("");
+        LOG(" Node Index: ");
+        std::cout << " " << node->NodeIndex << "\n";
+
+        auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
+
+        for (size_t i = 0; i < 6; i++)
+            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
+    }
+
+    // Modal periods
+    // auto modalPeriods = ArmadilloSolver::GetModalPeriods(str);
+    // LOG("");
+    // for (size_t i = 0; i < modalPeriods.size(); i++)
+    //     std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods[i] << "\n";
+
+    return;
+}
+
+void CantileverDisplacements2D()
+{
+    // Units are in N & m
+
+    // Coordinates
+    XYZPoint pt1(0, 0, 0); // Origin
+    XYZPoint pt2(10, 0, 0);
+
+    // Nodes
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    auto node1 = std::make_shared<Node>(1, pt1); nodes[node1->NodeIndex] = node1;
+    auto node2 = std::make_shared<Node>(2, pt2); nodes[node2->NodeIndex] = node2;
+
+    // Section
+    auto area = 10;
+    auto inertia11 = 100;
+    auto inertia22 = 100;
+    auto inertia12 = 100;
+    auto sect = std::make_shared<Section>(area, inertia11, inertia22, inertia12);
+
+    // Material
+    auto mat = std::make_shared<Material>(1000, 0.3, 78500);
+
+    // Members
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    bool isLumpedMassMatrix = true;
+    auto beam = std::make_shared<FrameMember>(1, node1, node2, sect, mat, isLumpedMassMatrix); elements[beam->ElementIndex] = beam;
+
+    // Restraints
+    std::vector<bool> isRest = { true, true, true, true, true, true };
+    std::vector<double> rest = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    std::vector<bool> secondIsRest = { false, false, true, true, true, false };
+
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    auto res1 = std::make_shared<Restraint>(node1, isRest, rest); restraints[1] = res1;
+    auto res2 = std::make_shared<Restraint>(node2, secondIsRest, rest); restraints[2] = res2;
+
+    // Nodal loads
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    double nodalLoad[6] = { 0, 100, 0, 0, 0, 0 };
     auto nl1 = std::make_shared<NodalLoad>(node2, nodalLoad); nodalLoads[1] = nl1;
 
     // Distributed loads
@@ -155,7 +219,7 @@ void TableDisplacements()
 
     // Material
     auto mat = std::make_shared<Material>(200e9, 0.3, 78500);
-    
+
     // Members
     std::map<unsigned int, std::shared_ptr<Element>> elements;
     bool isLumpedMassMatrix = true;
@@ -221,4 +285,184 @@ void TableDisplacements()
         std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
 
     return;
+}
+
+void CE583Sample()
+{
+    // Units are in N & m
+
+    // Coordinates
+    XYZPoint pt1(0, 0, 0); // Origin
+    XYZPoint pt2(0, 3, 0);
+    XYZPoint pt3(4, 3, 0);
+    XYZPoint pt4(4, 0, 0);
+
+    // Nodes
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    auto node1 = std::make_shared<Node>(1, pt1); nodes[node1->NodeIndex] = node1;
+    auto node2 = std::make_shared<Node>(2, pt2); nodes[node2->NodeIndex] = node2;
+    auto node3 = std::make_shared<Node>(3, pt3); nodes[node3->NodeIndex] = node3;
+    auto node4 = std::make_shared<Node>(4, pt4); nodes[node4->NodeIndex] = node4;
+
+    // Section
+    auto sect1 = std::make_shared<Section>(0.02, 0.08, 0.08, 0.08);
+    auto sect2 = std::make_shared<Section>(0.01, 0.01, 0.01, 0.01);
+
+    // Material
+    auto mat = std::make_shared<Material>(2e5, 0.3, 78500);
+
+    // Members
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    bool isLumpedMassMatrix = true;
+    auto elm1 = std::make_shared<FrameMember>(1, node1, node2, sect1, mat, isLumpedMassMatrix); elements[elm1->ElementIndex] = elm1;
+    auto elm2 = std::make_shared<FrameMember>(2, node2, node3, sect1, mat, isLumpedMassMatrix); elements[elm2->ElementIndex] = elm2;
+    auto elm3 = std::make_shared<FrameMember>(3, node4, node3, sect1, mat, isLumpedMassMatrix); elements[elm3->ElementIndex] = elm3;
+    auto elm4 = std::make_shared<FrameMember>(4, node1, node3, sect2, mat, isLumpedMassMatrix); elements[elm4->ElementIndex] = elm4;
+
+    // Restraints
+    std::vector<double> zeros = { 0, 0, 0, 0, 0, 0 };
+    std::vector<bool> node1RestConds = { true, true, true, true, true, false };
+    std::vector<bool> node2RestConds = { false, false, true, true, true, false };
+    std::vector<bool> node3RestConds = { false, false, true, true, true, false };
+    std::vector<bool> node4RestConds = { false, true, true, true, true, false };
+
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    auto rest1 = std::make_shared<Restraint>(node1, node1RestConds, zeros); restraints[1] = rest1;
+    auto rest2 = std::make_shared<Restraint>(node2, node2RestConds, zeros); restraints[2] = rest2;
+    auto rest3 = std::make_shared<Restraint>(node3, node3RestConds, zeros); restraints[3] = rest3;
+    auto rest4 = std::make_shared<Restraint>(node4, node4RestConds, zeros); restraints[4] = rest4;
+
+    // Nodal loads
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    double nodalLoad1[6] = { 10, -10, 0, 0, 0, 0 };
+    double nodalLoad2[6] = { 10, -10, 0, 0, 0, 0 };
+    auto nl1 = std::make_shared<NodalLoad>(node2, nodalLoad1); nodalLoads[1] = nl1;
+    auto nl2 = std::make_shared<NodalLoad>(node3, nodalLoad2); nodalLoads[2] = nl2;
+
+    // Distributed loads
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+    for (auto& nodePair : nodes)
+    {
+        auto node = nodePair.second;
+
+        LOG("");
+        LOG(" Node Index: ");
+        std::cout << " " << node->NodeIndex << "\n";
+
+        auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
+
+        for (size_t i = 0; i < 6; i++)
+            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
+    }
+
+    // Modal periods
+    auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Armadillo);
+    LOG("");
+    for (size_t i = 0; i < modalPeriods.ColCount; i++)
+        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << "\n";
+
+    auto asd = str->StiffnessMatrix->getSubmatrix(0, str->nUnrestrainedDOF - 1, 0, str->nUnrestrainedDOF - 1);
+    asd.printElements();
+
+    return;
+}
+
+void CE583Assignment1_3()
+{
+    // Units are N & m
+    XYZPoint leftBottom(0.0, 0.0, 0.0);
+    XYZPoint leftTop(0.0, 6.0, 0.0);
+    XYZPoint rightTop(6.0, 6.0, 0.0);
+    XYZPoint rightBottom(6.0, 0.0, 0.0);
+
+    // Nodes
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    auto node1 = std::make_shared<Node>(1, leftBottom); nodes[node1->NodeIndex] = node1;
+    auto node2 = std::make_shared<Node>(2, leftTop); nodes[node2->NodeIndex] = node2;
+    auto node3 = std::make_shared<Node>(3, rightTop); nodes[node3->NodeIndex] = node3;
+    auto node4 = std::make_shared<Node>(4, rightBottom); nodes[node4->NodeIndex] = node4;
+
+    // Section
+    auto area = 1;
+    auto inertia11 = 1;
+    auto inertia22 = 1;
+    auto inertia12 = 1;
+    auto sect1 = std::make_shared<Section>(area, inertia11, inertia22, inertia12);
+
+    // Material
+    auto mat = std::make_shared<Material>(1, 0, 78500);
+
+    // Members
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    bool isLumpedMassMatrix = true;
+    auto elm1 = std::make_shared<FrameMember>(1, node1, node2, sect1, mat, isLumpedMassMatrix); elements[elm1->ElementIndex] = elm1;
+    auto elm2 = std::make_shared<FrameMember>(2, node2, node3, sect1, mat, isLumpedMassMatrix); elements[elm2->ElementIndex] = elm2;
+    auto elm3 = std::make_shared<FrameMember>(3, node3, node4, sect1, mat, isLumpedMassMatrix); elements[elm3->ElementIndex] = elm3;
+
+    // Restraints
+    std::vector<double> zeros = { 0, 0, 0, 0, 0, 0 };
+    std::vector<bool> node1RestConds = { true, true, true, true, true, true };
+    std::vector<bool> node2RestConds = { false, false, true, true, true, false };
+    std::vector<bool> node3RestConds = { false, false, true, true, true, false };
+    std::vector<bool> node4RestConds = { false, true, true, true, true, false };
+
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    auto rest1 = std::make_shared<Restraint>(node1, node1RestConds, zeros); restraints[1] = rest1;
+    auto rest2 = std::make_shared<Restraint>(node2, node2RestConds, zeros); restraints[2] = rest2;
+    auto rest3 = std::make_shared<Restraint>(node3, node3RestConds, zeros); restraints[3] = rest3;
+    auto rest4 = std::make_shared<Restraint>(node4, node4RestConds, zeros); restraints[4] = rest4;
+
+    // Nodal loads
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    double nodalLoad1[6] = { 0, -15000, 0, 0, 0, -15000 };
+    double nodalLoad2[6] = { 0, -15000, 0, 0, 0, 15000 };
+    auto nl1 = std::make_shared<NodalLoad>(node2, nodalLoad1); nodalLoads[1] = nl1;
+    auto nl2 = std::make_shared<NodalLoad>(node3, nodalLoad2); nodalLoads[2] = nl2;
+
+    // Distributed loads
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Eigen);
+    LOG(" Displacement values:");
+    for (auto& nodePair : nodes)
+    {
+        auto node = nodePair.second;
+
+        LOG("");
+        LOG(" Node Index: " << node->NodeIndex << "\n");
+
+        auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
+
+        for (size_t i = 0; i < 6; i++)
+            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
+    }
+
+    // Modal periods
+    auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Eigen);
+    LOG("\n Modal periods:");
+    for (size_t i = 0; i < modalPeriods.RowCount; i++)
+        if (modalPeriods(i, 0) != 0)
+            std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
+
+    // Find equivalent stiffness matrix for translation in x-direction for third node.
+    auto equivalentStiffness = StructureSolver::CondenseStiffnessMatrixForSpecificDOF(*str, node3->DofIndexTX, SolverChoice::Eigen);
+    auto equivalentForceVector = StructureSolver::CondenseForceVectorForSpecificDOF(*str, node3->DofIndexTX, SolverChoice::Eigen);
+    auto dispFromEquivalentVals = equivalentForceVector / equivalentStiffness;
+
+    LOG("");
+    LOG("Equivalent translational stiffness: " << equivalentStiffness);
+    LOG("Equivalent horizontal force: " << equivalentForceVector);
+    LOG("Displacement calculated using equivalent value: " << dispFromEquivalentVals);
+
+
 }

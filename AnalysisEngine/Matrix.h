@@ -148,8 +148,7 @@ public:
     // Get submatrix within given 0-based indices
     Matrix<T> getSubmatrix(unsigned int rowStart, unsigned int rowEnd, unsigned int colStart, unsigned int colEnd)
     {
-        if ((rowStart < 0) || (colStart < 0) ||
-            (this->m_rowCount <= rowEnd) || (this->m_colCount <= colEnd) ||
+        if ((this->m_rowCount <= rowEnd) || (this->m_colCount <= colEnd) ||
             (rowEnd < rowStart) || (colEnd < colStart))
             throw std::runtime_error("Get Submatrix Error: Check desired submatrix indices\n");
 
@@ -174,6 +173,145 @@ public:
             }
             std::cout << "\n";
         }
+    }
+
+    Matrix<T> sendToCornerForSquareMatrix(unsigned int rowIdx, unsigned int colIdx, bool isRightBottom)
+    {
+        // Check if matrix is square or not
+        if (m_rowCount != m_colCount)
+            throw std::runtime_error("Send to Corner Error: Matrix is not square\n");
+
+        // Check if indices are within boundaries or not
+        if ((m_rowCount <= rowIdx) || (m_colCount <= colIdx))
+            throw std::runtime_error("Send to Corner Error: Indices are out of bounds\n");
+
+        // Check if element is diagonal or not
+        if (rowIdx != colIdx)
+            throw std::runtime_error("Send to Corner Error: Element is not on diagonal\n");
+
+        // Get row and column of element
+        auto row = this->getSubmatrix(rowIdx, rowIdx, 0, m_colCount - 1);
+        auto col = this->getSubmatrix(0, m_rowCount - 1, colIdx, colIdx);
+
+        // Create a new matrix as return value
+        Matrix<T> retVal(m_rowCount, m_colCount);
+
+        if (isRightBottom)
+        {
+            // Start to store elements of original matrix starting from
+            // left top excluding row and column of given element. Store
+            // them as last row and column.
+            for (size_t i = 0; i < m_rowCount; i++)
+            {
+                for (size_t j = 0; j < m_colCount; j++)
+                {
+                    if ((i == rowIdx) || (j == colIdx))
+                        continue;
+
+                    unsigned storeRowIdx = i < rowIdx ? i : i - 1;
+                    unsigned storeColIdx = j < colIdx ? j : j - 1;
+                    retVal(storeRowIdx, storeColIdx) = (*this)(i, j);
+                }
+            }
+
+            // Fill last column
+            for (size_t i = 0; i < m_rowCount; i++)
+            {
+                if (i == rowIdx)
+                    continue;
+                unsigned storeRowIdx = i < rowIdx ? i : i - 1;
+                retVal(storeRowIdx, m_colCount - 1) = col(i, 0);
+            }
+
+            // Fill last row
+            for (size_t j = 0; j < m_colCount; j++)
+            {
+                if (j == colIdx)
+                    continue;
+                unsigned storeColIdx = j < colIdx ? j : j - 1;
+                retVal(m_rowCount - 1, storeColIdx) = row(0, j);
+            }
+
+            retVal(m_rowCount - 1, m_colCount - 1) = (*this)(rowIdx, colIdx);
+        }
+        else
+        {
+
+            for (size_t i = 0; i < m_rowCount; i++)
+            {
+                for (size_t j = 0; j < m_colCount; j++)
+                {
+                    if ((i == rowIdx) || (j == colIdx))
+                        continue;
+
+                    unsigned storeRowIdx = i < rowIdx ? i + 1 : i;
+                    unsigned storeColIdx = j < colIdx ? j + 1 : j;
+                    retVal(storeRowIdx, storeColIdx) = (*this)(i, j);
+                }
+            }
+
+            // Fill first column
+            for (size_t i = 0; i < m_rowCount; i++)
+            {
+                if (i == rowIdx)
+                    continue;
+                unsigned storeRowIdx = i < rowIdx ? i + 1 : i;
+                retVal(storeRowIdx, 0) = col(i, 0);
+            }
+
+            // Fill last row
+            for (size_t j = 0; j < m_colCount; j++)
+            {
+                if (j == colIdx)
+                    continue;
+                unsigned storeColIdx = j < colIdx ? j + 1 : j;
+                retVal(0, storeColIdx) = row(0, j);
+            }
+
+            retVal(0, 0) = (*this)(rowIdx, colIdx);
+
+        }
+
+        return retVal;
+    }
+
+    Matrix<T> sendItemToBoundVector(unsigned int rowIdx, bool isBot)
+    {
+        // Check if given matrix is a vector
+        if (m_colCount != 1)
+            throw std::runtime_error("Vector Operation Error: Given matrix is not vector\n");
+
+        // Check whether given index is within boundaries
+        if (m_rowCount <= rowIdx)
+            throw std::runtime_error("Vector Operation Error: Index is out of bound\n");
+
+        Matrix<T> retVal(m_rowCount, 1);
+
+        if (isBot)
+        {
+            for (size_t i = 0; i < m_rowCount; i++)
+            {
+                if (i == rowIdx)
+                    continue;
+                auto storeRowIdx = i < rowIdx ? i : i - 1;
+                retVal(storeRowIdx, 0) = (*this)(i, 0);
+            }
+            retVal(m_rowCount - 1, 0) = (*this)(rowIdx, 0);
+        }
+        else
+        {
+            for (size_t i = 0; i < m_rowCount; i++)
+            {
+                if (i == rowIdx)
+                    continue;
+                auto storeRowIdx = i < rowIdx ? i + 1 : i;
+                retVal(storeRowIdx, 0) = (*this)(i, 0);
+            }
+            retVal(0, 0) = (*this)(rowIdx, 0);
+        }
+
+
+        return retVal;
     }
 
     unsigned int RowCount;

@@ -24,7 +24,6 @@ Matrix<double> StructureSolver::GetDisplacementForStaticCase(const Structure& st
     auto kUK = str.StiffnessMatrix->getSubmatrix(0, str.nUnrestrainedDOF - 1, str.nUnrestrainedDOF, str.nDOF - 1);
     auto kKU = kUK.transpose();
     auto kKK = str.StiffnessMatrix->getSubmatrix(str.nUnrestrainedDOF, str.nDOF - 1, str.nUnrestrainedDOF, str.nDOF - 1);
-
     auto fK = str.ForceVector->getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, 0);
 
     // Subtract support settlements from force vector
@@ -232,7 +231,7 @@ Matrix<double> StructureSolver::GetModalPeriods(const Structure& str, SolverChoi
 {
     // Return value
     Matrix<double> periods(str.nUnrestrainedDOF, 1);
-    
+
     // Temporary return value (to be able to sort data)
     std::vector<double> t;
 
@@ -291,6 +290,49 @@ Matrix<double> StructureSolver::GetModalPeriods(const Structure& str, SolverChoi
     return periods;
 }
 
+double StructureSolver::CondenseStiffnessMatrixForSpecificDOF(const Structure& str, unsigned int dofIndex, SolverChoice solverChoice)
+{
+    dofIndex--;
+    auto rearrangedStiffnessMatrix = (*str.StiffnessMatrix).getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, str.nUnrestrainedDOF - 1).
+        sendToCornerForSquareMatrix(dofIndex, dofIndex, false);
+    auto kRR = rearrangedStiffnessMatrix.getSubmatrix(0, 0, 0, 0);
+    auto kRC = rearrangedStiffnessMatrix.getSubmatrix(0, 0, 1, rearrangedStiffnessMatrix.ColCount - 1);
+    auto kCR = kRC.transpose();
+    auto kCC = rearrangedStiffnessMatrix.getSubmatrix(1, rearrangedStiffnessMatrix.RowCount - 1, 1, rearrangedStiffnessMatrix.ColCount - 1);
+
+    auto kccInv = GetInverse(kCC, solverChoice);
+    auto step1 = kRC * kccInv;
+    auto right = step1 * kCR;
+    auto kC = kRR - right;
+    double retVal = kC(0, 0);
+
+    return retVal;
+}
+
+double StructureSolver::CondenseForceVectorForSpecificDOF(const Structure& str, unsigned int dofIndex, SolverChoice solverChoice)
+{
+    dofIndex--;
+    auto rearrangedForceVector = (*str.ForceVector).getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, 0).
+        sendItemToBoundVector(dofIndex, false);
+
+    auto rearrangedStiffnessMatrix = (*str.StiffnessMatrix).getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, str.nUnrestrainedDOF - 1).
+    sendToCornerForSquareMatrix(dofIndex, dofIndex, false);
+    auto kRR = rearrangedStiffnessMatrix.getSubmatrix(0, 0, 0, 0);
+    auto kRC = rearrangedStiffnessMatrix.getSubmatrix(0, 0, 1, rearrangedStiffnessMatrix.ColCount - 1);
+    auto kCR = kRC.transpose();
+    auto kCC = rearrangedStiffnessMatrix.getSubmatrix(1, rearrangedStiffnessMatrix.RowCount - 1, 1, rearrangedStiffnessMatrix.ColCount - 1);
+
+    auto fR = rearrangedForceVector.getSubmatrix(0, 0, 0, 0);
+    auto fC = rearrangedForceVector.getSubmatrix(1, str.nUnrestrainedDOF - 1, 0, 0);
+
+    auto kccInv = GetInverse(kCC, solverChoice);
+    auto step1 = kRC * kccInv;
+    auto right = step1 * fC;
+    auto FC = fR - right;
+    double retVal = FC(0, 0);
+
+    return retVal;
+}
 
 // Returns x as in A * x = b (Assumption is A is square matrix and b is vector)
 Matrix<double> StructureSolver::LinearEquationSolver(Matrix<double>& A, Matrix<double>& b, SolverChoice solverChoice)
