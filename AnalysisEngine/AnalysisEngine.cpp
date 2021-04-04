@@ -11,23 +11,24 @@ void CantileverDisplacements2D();
 void TableDisplacements();
 void CE583Sample();
 void CE583Assignment1_3();
+void TrussExample();
 
 int main()
 {
-    //LOG("__________________________________________________");
-    //LOG("|                                                |");
-    //LOG("|    3-Dimensional Structural Analysis Engine    |");
-    //LOG("|       Created by Mustafa Can Sanliturk         |");
-    //LOG("|           All rights reserved ©                |");
-    //LOG("|________________________________________________|");
-    //LOG("");
+    LOG("__________________________________________________");
+    LOG("|                                                |");
+    LOG("|    3-Dimensional Structural Analysis Engine    |");
+    LOG("|       Created by Mustafa Can Sanliturk         |");
+    LOG("|           All rights reserved ©                |");
+    LOG("|________________________________________________|");
+    LOG("");
 
     // Start timer
     auto timenow =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
     // Call test function (Later on, these guys will be moved to a unit test project)
-    TableDisplacements();
+    CantileverDisplacements3D();
     LOG("\n Analysis completed without errors....");
 
     // Log duration
@@ -282,7 +283,8 @@ void TableDisplacements()
     auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Eigen);
     LOG("\n Modal periods:");
     for (size_t i = 0; i < modalPeriods.RowCount; i++)
-        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
+        if (modalPeriods(i, 0))
+            std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
 
     return;
 }
@@ -366,9 +368,6 @@ void CE583Sample()
     LOG("");
     for (size_t i = 0; i < modalPeriods.ColCount; i++)
         std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << "\n";
-
-    auto asd = str->StiffnessMatrix->getSubmatrix(0, str->nUnrestrainedDOF - 1, 0, str->nUnrestrainedDOF - 1);
-    asd.printElements();
 
     return;
 }
@@ -463,6 +462,9 @@ void CE583Assignment1_3()
     LOG("Equivalent translational stiffness: " << equivalentStiffness);
     LOG("Equivalent horizontal force: " << equivalentForceVector);
     LOG("Displacement calculated using equivalent value: " << dispFromEquivalentVals);
+}
 
+void TrussExample()
+{
 
 }

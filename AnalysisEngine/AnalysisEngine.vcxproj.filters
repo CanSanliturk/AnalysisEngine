@@ -72,6 +72,9 @@
     <ClCompile Include="StructureSolver.cpp">
       <Filter>src\Solvers</Filter>
     </ClCompile>
+    <ClCompile Include="TrussMember.cpp">
+      <Filter>src\Elements</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Node.h">
@@ -127,6 +130,9 @@
     </ClInclude>
     <ClInclude Include="NodalLoad.h">
       <Filter>src\Loadings</Filter>
+    </ClInclude>
+    <ClInclude Include="TrussMember.h">
+      <Filter>src\Elements</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
