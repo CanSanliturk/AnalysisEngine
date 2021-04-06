@@ -5,6 +5,7 @@
 #include "Node.h"
 #include "DistributedLoad.h"
 #include "FrameMember.h"
+#include "TrussMember.h"
 #include "Restraint.h"
 #include "NodalLoad.h"
 #include "Element.h"
