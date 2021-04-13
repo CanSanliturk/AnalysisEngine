@@ -491,8 +491,8 @@ void TrussExample()
     std::map<unsigned int, std::shared_ptr<Element>> elements;
     bool isLumpedMassMatrix = true;
     auto elm1 = std::make_shared<TrussMember>(1, node1, node2, sect1, mat, isLumpedMassMatrix); elements[elm1->ElementIndex] = elm1;
-    auto elm2 = std::make_shared<FrameMember>(2, node2, node3, sect1, mat, isLumpedMassMatrix); elements[elm2->ElementIndex] = elm2;
-    auto elm3 = std::make_shared<FrameMember>(3, node3, node1, sect1, mat, isLumpedMassMatrix); elements[elm3->ElementIndex] = elm3;
+    auto elm2 = std::make_shared<TrussMember>(2, node2, node3, sect1, mat, isLumpedMassMatrix); elements[elm2->ElementIndex] = elm2;
+    auto elm3 = std::make_shared<TrussMember>(3, node3, node1, sect1, mat, isLumpedMassMatrix); elements[elm3->ElementIndex] = elm3;
 
     // Restraints
     std::vector<double> zeros = { 0, 0, 0, 0, 0, 0 };
