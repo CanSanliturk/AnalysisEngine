@@ -23,11 +23,13 @@ FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std
     ElementLoads = elementLoads;
     Type = (ElmType::ElementType::Frame);
     Length = jNode->Coordinate.DistanceTo(iNode->Coordinate);
-    LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
     LocalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
+    LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
+    LocalCoordinateDampingMatrix = std::make_shared<Matrix<double>>(12);
     RotationMatrix = std::make_shared<Matrix<double>>(12);
-    GlobalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
     GlobalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
+    GlobalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(12);
+    GlobalCoordinateDampingMatrix = std::make_shared<Matrix<double>>(12);
     AssembleElementLocalMassMatrix();
     AssembleElementLocalStiffnessMatrix();
     AssembleElementLocalDampingMatrix(rayleighDampingMassMultiplier, rayleighDampingStiffnessMultiplier);

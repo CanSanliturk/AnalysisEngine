@@ -75,6 +75,9 @@
     <ClCompile Include="TrussMember.cpp">
       <Filter>src\Elements</Filter>
     </ClCompile>
+    <ClCompile Include="Shell.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Node.h">
@@ -132,6 +135,9 @@
       <Filter>src\Loadings</Filter>
     </ClInclude>
     <ClInclude Include="TrussMember.h">
+      <Filter>src\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="Shell.h">
       <Filter>src\Elements</Filter>
     </ClInclude>
   </ItemGroup>

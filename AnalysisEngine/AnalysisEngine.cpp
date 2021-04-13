@@ -28,7 +28,7 @@ int main()
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
     // Call test function (Later on, these guys will be moved to a unit test project)
-    TrussExample();
+    TableDisplacements();
     LOG("\n Analysis completed without errors....");
     
     // Log duration

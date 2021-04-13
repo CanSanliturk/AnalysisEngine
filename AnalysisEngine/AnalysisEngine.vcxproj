@@ -157,6 +157,7 @@
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="Piece.cpp" />
     <ClCompile Include="Section.cpp" />
+    <ClCompile Include="Shell.cpp" />
     <ClCompile Include="Structure.cpp" />
     <ClCompile Include="StructureSolver.cpp" />
     <ClCompile Include="TrussMember.cpp" />
@@ -176,6 +177,7 @@
     <ClInclude Include="Hinge.h" />
     <ClInclude Include="Restraint.h" />
     <ClInclude Include="Section.h" />
+    <ClInclude Include="Shell.h" />
     <ClInclude Include="Structure.h" />
     <ClInclude Include="StructureSolver.h" />
     <ClInclude Include="TrussMember.h" />
