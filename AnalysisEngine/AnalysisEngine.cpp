@@ -496,18 +496,16 @@ void TrussExample()
 
     // Restraints
     std::vector<double> zeros = { 0, 0, 0, 0, 0, 0 };
-    std::vector<bool> node1RestConds = { true, true, true, true, true, false};
-    std::vector<bool> node2RestConds = { false, true, true, true, true, false };
-    std::vector<bool> node3RestConds = { false, false, true, true, true, false };
+    std::vector<bool> node1RestConds = { true, true, true, false, false, false};
+    std::vector<bool> node2RestConds = { false, true, true, false, false, false };
 
     std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
     auto rest1 = std::make_shared<Restraint>(node1, node1RestConds, zeros); restraints[1] = rest1;
     auto rest2 = std::make_shared<Restraint>(node2, node2RestConds, zeros); restraints[2] = rest2;
-    auto rest3 = std::make_shared<Restraint>(node3, node3RestConds, zeros); restraints[3] = rest3;
 
     // Nodal loads
     std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
-    double nodalLoad1[6] = { 0, -15000, 0, 0, 0, -15000 };
+    double nodalLoad1[6] = { 0, -5e6, 0, 0, 0, 0};
     auto nl1 = std::make_shared<NodalLoad>(node3, nodalLoad1); nodalLoads[1] = nl1;
 
     // Distributed loads

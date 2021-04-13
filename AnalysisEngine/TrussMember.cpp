@@ -74,15 +74,9 @@ void TrussMember::AssembleElementLocalMassMatrix()
 
 void TrussMember::AssembleElementLocalStiffnessMatrix()
 {
-    auto A = this->TrussSection->Area;
     auto E = this->TrussMaterial->E;
-    auto G = this->TrussMaterial->G;
-    auto I11 = this->TrussSection->Inertia11;
-    auto I22 = this->TrussSection->Inertia22;
-    auto J = this->TrussSection->Inertia12;
+    auto A = this->TrussSection->Area;
     auto L = this->Length;
-    auto L2 = L * L;
-    auto L3 = L * L * L;
     double kElm[12][12];
 
     for (unsigned int i = 0; i < 12; i++)
@@ -91,7 +85,7 @@ void TrussMember::AssembleElementLocalStiffnessMatrix()
 
     kElm[0][0] = E * A / L;
     kElm[0][6] = -1 * E * A / L;
-    kElm[6][0] = -E * A / L;
+    kElm[6][0] = -1 * E * A / L;
     kElm[6][6] = E * A / L;
 
     for (unsigned int i = 0; i < 12; i++)
