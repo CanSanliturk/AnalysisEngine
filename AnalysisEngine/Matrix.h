@@ -29,16 +29,16 @@ public:
     }
 
     // Copy constructor
-    Matrix(const Matrix& that)
+    Matrix(Matrix& const that)
         : m_rowCount(that.m_rowCount), m_colCount(that.m_colCount),
         RowCount(that.RowCount), ColCount(that.ColCount)
     {
         this->allocate_memory();
-        std::memcpy(this->firstElementAdress, that.firstElementAdress, m_rowCount * m_colCount);
+        std::memcpy(this->firstElementAdress, that.firstElementAdress, m_rowCount * m_colCount * sizeof(T));
     }
 
     // Move constructor
-    Matrix(Matrix&& that)
+    Matrix(Matrix&& const that)
         : m_rowCount(that.m_rowCount), m_colCount(that.m_colCount),
         RowCount(that.RowCount), ColCount(that.ColCount),
         firstElementAdress(that.firstElementAdress)
@@ -60,7 +60,7 @@ public:
     // Destructor
     ~Matrix()
     {
-        free(firstElementAdress);
+        delete[] firstElementAdress;
     }
 
     // Index usage
@@ -98,26 +98,12 @@ public:
     }
 
     // Matrix multiplication with scalar
-    Matrix<T> operator*(double mult)
+    Matrix<T> operator*(const T& mult)
     {
         Matrix<T> result(*this);
         for (size_t i = 0; i < result.m_rowCount; i++)
             for (size_t j = 0; j < result.m_colCount; j++)
-                result(i, j) *= mult;
-        return result;
-    }
-
-    // Matrix addition
-    Matrix<T> operator+(Matrix<T> that)
-    {
-        // Check if dimensions match
-        if ((this->m_colCount != that.m_colCount) || (this->m_rowCount != that.m_rowCount))
-            throw std::runtime_error("Matrix Addition Error: Matrix sizes does not match\n");
-
-        Matrix<T> result(*this);
-        for (size_t i = 0; i < result.m_rowCount; i++)
-            for (size_t j = 0; j < result.m_colCount; j++)
-                result(i, j) += that(i, j);
+                result(i, j) = result(i, j) * mult;
         return result;
     }
 
@@ -132,6 +118,20 @@ public:
         for (size_t i = 0; i < result.m_rowCount; i++)
             for (size_t j = 0; j < result.m_colCount; j++)
                 result(i, j) = (*this)(i, j) - that(i, j);
+        return result;
+    }
+
+    // Matrix summation
+    Matrix<T> operator+(Matrix<T>& const that)
+    {
+        // Check if dimensions match
+        if ((this->m_colCount != that.m_colCount) || (this->m_rowCount != that.m_rowCount))
+            throw std::runtime_error("Matrix Summation Error: Matrix sizes does not match\n");
+
+        Matrix<T> result(this->RowCount, this->ColCount);
+        for (size_t i = 0; i < result.m_rowCount; i++)
+            for (size_t j = 0; j < result.m_colCount; j++)
+                result(i, j) = (*this)(i, j) + that(i, j);
         return result;
     }
 
@@ -324,7 +324,8 @@ private:
 
     void allocate_memory()
     {
-        firstElementAdress = (T*)malloc(m_rowCount * m_colCount * sizeof(T));
+        //firstElementAdress = (T*)malloc(m_rowCount * m_colCount * sizeof(T));
+        firstElementAdress = new T[m_rowCount * m_colCount];
     };
 
     void fillZeros()

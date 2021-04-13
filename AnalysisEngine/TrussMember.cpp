@@ -95,8 +95,10 @@ void TrussMember::AssembleElementLocalStiffnessMatrix()
 
 void TrussMember::AssembleElementLocalDampingMatrix(double mult1, double mult2)
 {
+    auto mat1 = *LocalCoordinateMassMatrix * mult1;
+    auto mat2 = *LocalCoordinateStiffnessMatrix * mult2;
     this->LocalCoordinateDampingMatrix =
-        std::make_shared<Matrix<double>>((*LocalCoordinateMassMatrix * mult1) + (*LocalCoordinateStiffnessMatrix * mult2));
+        std::make_shared<Matrix<double>>(mat1 + mat2);
 }
 
 void TrussMember::AssembleElementRotationMatrix()
@@ -143,8 +145,10 @@ void TrussMember::AssembleElementGlobalStiffnessMatrix()
 
 void TrussMember::AssembleElementGlobalDampingMatrix(double mult1, double mult2)
 {
+    auto mat1 = *GlobalCoordinateMassMatrix * mult1;
+    auto mat2 = *GlobalCoordinateStiffnessMatrix * mult2;
     this->GlobalCoordinateDampingMatrix =
-        std::make_shared<Matrix<double>>((*GlobalCoordinateMassMatrix * mult1) + (*GlobalCoordinateStiffnessMatrix * mult2));
+        std::make_shared<Matrix<double>>(mat1 + mat2);
 }
 
 unsigned int TrussMember::GetElementIndex() { return ElementIndex; };
