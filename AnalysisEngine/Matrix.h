@@ -107,6 +107,13 @@ public:
         return result;
     }
 
+    void operator*=(const T& mult)
+    {
+        for (size_t i = 0; i < this->m_rowCount; i++)
+            for (size_t j = 0; j < this->m_colCount; j++)
+                (*this)(i, j) *= mult;
+    }
+
     // Matrix subtraction
     Matrix<T> operator-(Matrix<T>& const that)
     {
@@ -133,6 +140,17 @@ public:
             for (size_t j = 0; j < result.m_colCount; j++)
                 result(i, j) = (*this)(i, j) + that(i, j);
         return result;
+    }
+
+    void operator+=(Matrix<T>& const that)
+    {
+        // Check if dimensions match
+        if ((this->m_colCount != that.m_colCount) || (this->m_rowCount != that.m_rowCount))
+            throw std::runtime_error("Matrix Summation Error: Matrix sizes does not match\n");
+
+        for (size_t i = 0; i < this->m_rowCount; i++)
+            for (size_t j = 0; j < this->m_colCount; j++)
+                (*this)(i, j) += that(i, j);
     }
 
     // Transpose of matrix
@@ -173,6 +191,13 @@ public:
             }
             std::cout << "\n";
         }
+    }
+
+    void fill(T filler)
+    {
+        for (size_t i = 0; i < m_rowCount; i++)
+            for (size_t j = 0; j < m_colCount; j++)
+                (*this)(i, j) = filler;
     }
 
     Matrix<T> sendToCornerForSquareMatrix(unsigned int rowIdx, unsigned int colIdx, bool isRightBottom)

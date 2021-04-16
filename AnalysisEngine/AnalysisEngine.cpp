@@ -3,8 +3,13 @@
 #include <memory>
 #include <chrono>
 #include "StructureSolver.h"
+#include "Vector.h"
+#include "Shell.h"
+
 
 #define LOG(x) std::cout << x << "\n"
+#define MATRIX Matrix<double>
+constexpr double pi = 3.141592653589793;
 
 void CantileverDisplacements3D();
 void CantileverDisplacements2D();
@@ -23,18 +28,85 @@ int main()
     LOG("|________________________________________________|");
     LOG("");
 
-    // Start timer
-    auto timenow =
-        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    /*Matrix<double> m1(3, 3); m1.fill(2);
+    Matrix<double> m2(3, 3); m2.fill(3);
+    m1 *= 4;
+    m1.printElements();*/
 
-    // Call test function (Later on, these guys will be moved to a unit test project)
-    TableDisplacements();
-    LOG("\n Analysis completed without errors....");
+    XYZPoint firstPtCoord(0, 0, 0);
+    XYZPoint secondPtCoord(4, 0, 0);
+    XYZPoint thirdPtCoord(4, 0.6, 0);
+    XYZPoint fourthPtCoord(0, 0.6, 0);
+
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    auto i = std::make_shared<Node>(1, firstPtCoord); nodes[i->NodeIndex] = i;
+    auto j = std::make_shared<Node>(2, secondPtCoord); nodes[j->NodeIndex] = j;
+    auto k = std::make_shared<Node>(3, thirdPtCoord); nodes[k->NodeIndex] = k;
+    auto l = std::make_shared<Node>(4, fourthPtCoord); nodes[l->NodeIndex] = l;
+
+    auto mt = std::make_shared<Material>(25e9, 0.2, 0);
+    double thickness = 0.4;
+    auto isMembrane = true;
+    unsigned int elmIdx = 1;
     
-    // Log duration
-    auto timenow2 =
-        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    LOG(" Elapsed Time = " << timenow2 - timenow << " seconds\n");
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    auto sm = std::make_shared<ShellMember>(elmIdx, i, j, k, l, mt, thickness, isMembrane, !isMembrane); elements[sm->ElementIndex] = sm;
+
+    // Restraints
+    std::vector<bool> isRest = {true, true, true, true, true, true};
+    std::vector<bool> universal = { false, false, true, true, true, true };
+    std::vector<double> rest = {0, 0, 0, 0, 0, 0};
+
+
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    auto res1 = std::make_shared<Restraint>(i, isRest, rest); restraints[1] = res1;
+    auto res2 = std::make_shared<Restraint>(l, isRest, rest); restraints[2] = res2;
+    auto res3 = std::make_shared<Restraint>(j, universal, rest); restraints[3] = res3;
+    auto res4 = std::make_shared<Restraint>(k, universal, rest); restraints[4] = res4;
+
+    // Nodal loads
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    double nodalLoad[6] = { 0, -10000, 0, 0, 0, 0 };
+    auto nl1 = std::make_shared<NodalLoad>(j, nodalLoad); nodalLoads[1] = nl1;
+    auto nl2 = std::make_shared<NodalLoad>(k, nodalLoad); nodalLoads[2] = nl2;
+
+    // Distributed loads
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+    //str->StiffnessMatrix->printElements();
+    //sm->LocalCoordinateStiffnessMatrix->printElements();
+    str->ForceVector->printElements();
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Eigen);
+    for (auto& nodePair : nodes)
+    {
+        auto node = nodePair.second;
+
+        LOG("");
+        LOG(" Node Index: ");
+        std::cout << " " << node->NodeIndex << "\n";
+
+        auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
+
+        for (size_t i = 0; i < 6; i++)
+            std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
+    }
+
+    //// Start timer
+    //auto timenow =
+    //    std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    //
+    //// Call test function (Later on, these guys will be moved to a unit test project)
+    //CE583Sample();
+    //LOG("\n Analysis completed without errors....");
+    //
+    //// Log duration
+    //auto timenow2 =
+    //    std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    //LOG(" Elapsed Time = " << timenow2 - timenow << " seconds\n");
+
     std::cin.get();
     return 0;
 }
@@ -496,7 +568,7 @@ void TrussExample()
 
     // Restraints
     std::vector<double> zeros = { 0, 0, 0, 0, 0, 0 };
-    std::vector<bool> node1RestConds = { true, true, true, false, false, false};
+    std::vector<bool> node1RestConds = { true, true, true, false, false, false };
     std::vector<bool> node2RestConds = { false, true, true, false, false, false };
 
     std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
@@ -505,7 +577,7 @@ void TrussExample()
 
     // Nodal loads
     std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
-    double nodalLoad1[6] = { 0, -5e6, 0, 0, 0, 0};
+    double nodalLoad1[6] = { 0, -5e6, 0, 0, 0, 0 };
     auto nl1 = std::make_shared<NodalLoad>(node3, nodalLoad1); nodalLoads[1] = nl1;
 
     // Distributed loads

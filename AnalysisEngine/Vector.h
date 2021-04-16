@@ -2,8 +2,9 @@
 
 #include "XYZPoint.h"
 
-struct Vector
+class Vector
 {
+public:
     double X;
     double Y;
     double Z;
@@ -16,8 +17,7 @@ struct Vector
     /// </summary>
     Vector(XYZPoint Point);
 
-    template <class T>
-    Vector(T x, T y, T z);
+    Vector(double x, double y, double z);
 
     /// <summary>
     /// Creates a vector starting from I-End to J-End
@@ -28,7 +28,13 @@ struct Vector
 
     ~Vector();
 
+    Vector getUnitVector();
+
     Vector operator+(const Vector& v);
     Vector operator-(const Vector& v);
+    Vector operator*(const Vector& v);
+    Vector operator*(const double mult);
+    bool operator==(const Vector& v);
+
 };
 
