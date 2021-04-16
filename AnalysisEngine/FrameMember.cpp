@@ -242,8 +242,6 @@ void FrameMember::AssembleElementLocalDampingMatrix(double mult1, double mult2)
 
 void FrameMember::AssembleElementRotationMatrix()
 {
-    double pi = 3.141592653589793;
-
     Vector elmVector(this->Nodes[0]->Coordinate, this->Nodes[1]->Coordinate);
     auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(elmVector, 0);
 
