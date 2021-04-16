@@ -231,15 +231,15 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
             }
         }
 
-        elmK(0, 0) = kMembrane(0, 0); elmK(0, 1) = kMembrane(0, 1); elmK(0, 7) = kMembrane(0, 2); elmK(0, 8) = kMembrane(0, 3); elmK(0, 12) = kMembrane(0, 4); elmK(0, 13) = kMembrane(0, 5); elmK(0, 18) = kMembrane(0, 6); elmK(0, 19) = kMembrane(0, 7);
-        elmK(1, 0) = kMembrane(1, 0); elmK(1, 1) = kMembrane(1, 1); elmK(1, 7) = kMembrane(1, 2); elmK(1, 8) = kMembrane(1, 3); elmK(1, 12) = kMembrane(1, 4); elmK(1, 13) = kMembrane(1, 5); elmK(1, 18) = kMembrane(1, 6); elmK(1, 19) = kMembrane(1, 7);
-        elmK(6, 0) = kMembrane(2, 0); elmK(6, 1) = kMembrane(2, 1); elmK(6, 7) = kMembrane(2, 2); elmK(6, 8) = kMembrane(2, 3); elmK(6, 12) = kMembrane(2, 4); elmK(6, 13) = kMembrane(2, 5); elmK(6, 18) = kMembrane(2, 6); elmK(6, 19) = kMembrane(2, 7);
-        elmK(7, 0) = kMembrane(3, 0); elmK(7, 1) = kMembrane(3, 1); elmK(7, 7) = kMembrane(3, 2); elmK(7, 8) = kMembrane(3, 3); elmK(7, 12) = kMembrane(3, 4); elmK(7, 13) = kMembrane(3, 5); elmK(7, 18) = kMembrane(3, 6); elmK(7, 19) = kMembrane(3, 7);
+        elmK(0, 0) = kMembrane(0, 0); elmK(0, 1) = kMembrane(0, 1); elmK(0, 6) = kMembrane(0, 2); elmK(0, 7) = kMembrane(0, 3); elmK(0, 11) = kMembrane(0, 4); elmK(0, 12) = kMembrane(0, 5); elmK(0, 17) = kMembrane(0, 6); elmK(0, 18) = kMembrane(0, 7);
+        elmK(1, 0) = kMembrane(1, 0); elmK(1, 1) = kMembrane(1, 1); elmK(1, 6) = kMembrane(1, 2); elmK(1, 7) = kMembrane(1, 3); elmK(1, 11) = kMembrane(1, 4); elmK(1, 12) = kMembrane(1, 5); elmK(1, 17) = kMembrane(1, 6); elmK(1, 18) = kMembrane(1, 7);
+        elmK(6, 0) = kMembrane(2, 0); elmK(6, 1) = kMembrane(2, 1); elmK(6, 6) = kMembrane(2, 2); elmK(6, 7) = kMembrane(2, 3); elmK(6, 11) = kMembrane(2, 4); elmK(6, 12) = kMembrane(2, 5); elmK(6, 17) = kMembrane(2, 6); elmK(6, 18) = kMembrane(2, 7);
+        elmK(7, 0) = kMembrane(3, 0); elmK(7, 1) = kMembrane(3, 1); elmK(7, 6) = kMembrane(3, 2); elmK(7, 7) = kMembrane(3, 3); elmK(7, 11) = kMembrane(3, 4); elmK(7, 12) = kMembrane(3, 5); elmK(7, 17) = kMembrane(3, 6); elmK(7, 18) = kMembrane(3, 7);
 
-        elmK(12, 0) = kMembrane(4, 0); elmK(12, 1) = kMembrane(4, 1); elmK(12, 7) = kMembrane(4, 2); elmK(12, 8) = kMembrane(4, 3); elmK(12, 12) = kMembrane(4, 4); elmK(12, 13) = kMembrane(4, 5); elmK(12, 18) = kMembrane(4, 6); elmK(12, 19) = kMembrane(4, 7);
-        elmK(13, 0) = kMembrane(5, 0); elmK(13, 1) = kMembrane(5, 1); elmK(13, 7) = kMembrane(5, 2); elmK(13, 8) = kMembrane(5, 3); elmK(13, 12) = kMembrane(5, 4); elmK(13, 13) = kMembrane(5, 5); elmK(13, 18) = kMembrane(5, 6); elmK(13, 19) = kMembrane(5, 7);
-        elmK(18, 0) = kMembrane(6, 0); elmK(18, 1) = kMembrane(6, 1); elmK(18, 7) = kMembrane(6, 2); elmK(18, 8) = kMembrane(6, 3); elmK(18, 12) = kMembrane(6, 4); elmK(18, 13) = kMembrane(6, 5); elmK(18, 18) = kMembrane(6, 6); elmK(18, 19) = kMembrane(6, 7);
-        elmK(13, 0) = kMembrane(7, 0); elmK(13, 1) = kMembrane(7, 1); elmK(13, 7) = kMembrane(7, 2); elmK(13, 8) = kMembrane(7, 3); elmK(13, 12) = kMembrane(7, 4); elmK(13, 13) = kMembrane(7, 5); elmK(13, 18) = kMembrane(7, 6); elmK(13, 19) = kMembrane(7, 7);
+        elmK(12, 0) = kMembrane(4, 0); elmK(12, 1) = kMembrane(4, 1); elmK(12, 6) = kMembrane(4, 2); elmK(12, 7) = kMembrane(4, 3); elmK(12, 11) = kMembrane(4, 4); elmK(12, 12) = kMembrane(4, 5); elmK(12, 17) = kMembrane(4, 6); elmK(12, 18) = kMembrane(4, 7);
+        elmK(13, 0) = kMembrane(5, 0); elmK(13, 1) = kMembrane(5, 1); elmK(13, 6) = kMembrane(5, 2); elmK(13, 7) = kMembrane(5, 3); elmK(13, 11) = kMembrane(5, 4); elmK(13, 12) = kMembrane(5, 5); elmK(13, 17) = kMembrane(5, 6); elmK(13, 18) = kMembrane(5, 7);
+        elmK(18, 0) = kMembrane(6, 0); elmK(18, 1) = kMembrane(6, 1); elmK(18, 6) = kMembrane(6, 2); elmK(18, 7) = kMembrane(6, 3); elmK(18, 11) = kMembrane(6, 4); elmK(18, 12) = kMembrane(6, 5); elmK(18, 17) = kMembrane(6, 6); elmK(18, 18) = kMembrane(6, 7);
+        elmK(19, 0) = kMembrane(7, 0); elmK(19, 1) = kMembrane(7, 1); elmK(19, 6) = kMembrane(7, 2); elmK(19, 7) = kMembrane(7, 3); elmK(19, 11) = kMembrane(7, 4); elmK(19, 12) = kMembrane(7, 5); elmK(19, 17) = kMembrane(7, 6); elmK(19, 18) = kMembrane(7, 7);
     }
 
     // Plate action is not implemented yet
@@ -282,7 +282,14 @@ void ShellMember::AssembleElementRotationMatrix()
     //auto minorRotMat = normalMat;
 
     for (unsigned int i = 0; i < 3; i++)
-        for (unsigned int j = 0; j < 3; j++)
+    
+    Vector opt1(1, 0, 0);
+
+    auto rotVec = (planeNormal == corrector) ? opt1 : corrector * planeNormal;
+
+    auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(rotVec, 0);
+
+    /*for (unsigned int i = 0; i < 3; i++)
             (*this->RotationMatrix)(i, j) = minorRotMat(i, j);
 
     for (unsigned int i = 3; i < 6; i++)
@@ -311,7 +318,12 @@ void ShellMember::AssembleElementRotationMatrix()
 
     for (unsigned int i = 21; i < 24; i++)
         for (unsigned int j = 21; j < 24; j++)
-            (*this->RotationMatrix)(i, j) = minorRotMat(i - 21, j - 21);
+            (*this->RotationMatrix)(i, j) = minorRotMat(i - 21, j - 21);*/
+ 
+    for (size_t i = 0; i < 24; i++)
+        for (size_t j = 0; j < 24; j++)
+            if (i == j)
+                (*this->RotationMatrix)(i, j) = 1;
 }
 
 void ShellMember::AssembleElementGlobalMassMatrix()

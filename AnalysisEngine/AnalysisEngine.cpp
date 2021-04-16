@@ -44,7 +44,7 @@ int main()
     auto k = std::make_shared<Node>(3, thirdPtCoord); nodes[k->NodeIndex] = k;
     auto l = std::make_shared<Node>(4, fourthPtCoord); nodes[l->NodeIndex] = l;
 
-    auto mt = std::make_shared<Material>(25e6, 0.2, 0);
+    auto mt = std::make_shared<Material>(25e9, 0.2, 0);
     double thickness = 0.4;
     auto isMembrane = true;
     unsigned int elmIdx = 1;
@@ -54,7 +54,7 @@ int main()
 
     // Restraints
     std::vector<bool> isRest = {true, true, true, true, true, true};
-    std::vector<bool> universal = { false, false, true, true, true, false};
+    std::vector<bool> universal = { false, false, true, true, true, true };
     std::vector<double> rest = {0, 0, 0, 0, 0, 0};
 
 
@@ -66,7 +66,7 @@ int main()
 
     // Nodal loads
     std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
-    double nodalLoad[6] = { 0, 0, -10, 0, 0, 0 };
+    double nodalLoad[6] = { 0, -10000, 0, 0, 0, 0 };
     auto nl1 = std::make_shared<NodalLoad>(j, nodalLoad); nodalLoads[1] = nl1;
     auto nl2 = std::make_shared<NodalLoad>(k, nodalLoad); nodalLoads[2] = nl2;
 
@@ -75,7 +75,6 @@ int main()
 
     // Create structure
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
-    str->StiffnessMatrix->getSubmatrix(0, 5, 0, 5).printElements();
 
     // Solve displacement
     auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Eigen);

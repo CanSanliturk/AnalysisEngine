@@ -76,7 +76,7 @@
       <Filter>src\Elements</Filter>
     </ClCompile>
     <ClCompile Include="Shell.cpp">
-      <Filter>src</Filter>
+      <Filter>src\Elements</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

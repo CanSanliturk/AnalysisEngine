@@ -28,10 +28,12 @@ public:
 
     ~Vector();
 
+    Vector getUnitVector();
+
     Vector operator+(const Vector& v);
     Vector operator-(const Vector& v);
     Vector operator*(const Vector& v);
     Vector operator*(const double mult);
-
+    bool operator==(const Vector& v);
 };
 

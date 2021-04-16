@@ -23,6 +23,16 @@ Vector::Vector()
 Vector::~Vector()
 { }
 
+Vector Vector::getUnitVector()
+{
+    Vector v;
+    v.X = this->X / this->Length;
+    v.Y = this->Y / this->Length;
+    v.Z = this->Z / this->Length;
+    v.Length = 1;
+    return v;
+}
+
 double Vector::AngleTo(Vector v)
 {
     double pi = 3.141592653589793;
@@ -103,4 +113,9 @@ Vector Vector::operator*(const double mult)
     XYZPoint origin(0.0, 0.0, 0.0);
     vec.Length = p.DistanceTo(origin);
     return vec;
+}
+
+bool Vector::operator==(const Vector& v)
+{
+    return ((this->X == v.X) && (this->Y == v.Y) && (this->Z == v.Z));
 }
