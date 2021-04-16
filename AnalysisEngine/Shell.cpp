@@ -281,13 +281,11 @@ void ShellMember::AssembleElementRotationMatrix()
     auto minorRotMat = normalMat * correctorMat;
     //auto minorRotMat = normalMat;
 
-    for (unsigned int i = 0; i < 3; i++)
-    
     Vector opt1(1, 0, 0);
 
     auto rotVec = (planeNormal == corrector) ? opt1 : corrector * planeNormal;
 
-    auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(rotVec, 0);
+    //auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(rotVec, 0);
 
     /*for (unsigned int i = 0; i < 3; i++)
             (*this->RotationMatrix)(i, j) = minorRotMat(i, j);
