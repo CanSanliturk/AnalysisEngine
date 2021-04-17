@@ -1,4 +1,5 @@
 #include "Vector.h"
+#include "UtilMethods.h"
 #include <Math.h>
 
 Vector::Vector(XYZPoint Point)
@@ -39,15 +40,6 @@ double Vector::AngleTo(Vector v)
     auto x = this->X;
     auto y = this->Y;
     auto z = this->Z;
-
-    if ((x == -1 * v.X) && (y == v.Y) && (z == v.Z))
-        return pi;
-
-    if ((x == v.X) && (y == -1 * v.Y) && (z == v.Z))
-        return pi;
-
-    if ((x == v.X) && (y == v.Y) && (z == -1 * v.Z))
-        return pi;
 
     return acos(((this->X * v.X) + (this->Y * v.Y) + (this->Z * v.Z)) / (this->Length * v.Length));
 }
@@ -117,5 +109,5 @@ Vector Vector::operator*(const double mult)
 
 bool Vector::operator==(const Vector& v)
 {
-    return ((this->X == v.X) && (this->Y == v.Y) && (this->Z == v.Z));
+    return (Utils::AreEqual(this->X, v.X) && Utils::AreEqual(this->Y, v.Y) && Utils::AreEqual(this->Z, v.Z));
 }

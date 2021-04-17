@@ -28,7 +28,7 @@ Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, 
     std::vector<double> thirdRow;
 
     double compareVal = 0.0;
-    double alpha = 0.0;
+    double alpha = rotationAngle;
     double tol = 1e-8;
 
     Matrix<double> retVal(3);
@@ -39,13 +39,13 @@ Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, 
         retVal(0, 1) = cY;
         retVal(0, 2) = 0.0;
 
-        retVal(1, 0) = -1 * cY;
+        retVal(1, 0) = -1 * cY * cos(alpha);
         retVal(1, 1) = 0;
-        retVal(1, 2) = 0;
+        retVal(1, 2) = sin(alpha);
 
-        retVal(2, 0) = 0.0;
+        retVal(2, 0) = cY * sin(alpha);
         retVal(2, 1) = 0.0;
-        retVal(2, 2) = 1.0;
+        retVal(2, 2) = cos(alpha);
     }
     else // General case
     {

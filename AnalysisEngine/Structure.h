@@ -11,6 +11,7 @@
 #include "Element.h"
 #include "Matrix.h"
 #include "Hinge.h"
+#include "Shell.h"
 
 class Structure
 {

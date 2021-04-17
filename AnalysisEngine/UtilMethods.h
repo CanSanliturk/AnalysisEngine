@@ -3,5 +3,6 @@
 
 namespace Utils
 {
-	bool AreEqual(double& firstVal, double& secondVal, double& tolerance);
+	bool AreEqual(const double& firstVal, const double& secondVal, const double& tolerance);
+	bool AreEqual(const double& firstVal, const double& secondVal);
 }

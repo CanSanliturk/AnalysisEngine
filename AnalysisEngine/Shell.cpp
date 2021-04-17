@@ -231,15 +231,15 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
             }
         }
 
-        elmK(0, 0) = kMembrane(0, 0); elmK(0, 1) = kMembrane(0, 1); elmK(0, 6) = kMembrane(0, 2); elmK(0, 7) = kMembrane(0, 3); elmK(0, 11) = kMembrane(0, 4); elmK(0, 12) = kMembrane(0, 5); elmK(0, 17) = kMembrane(0, 6); elmK(0, 18) = kMembrane(0, 7);
-        elmK(1, 0) = kMembrane(1, 0); elmK(1, 1) = kMembrane(1, 1); elmK(1, 6) = kMembrane(1, 2); elmK(1, 7) = kMembrane(1, 3); elmK(1, 11) = kMembrane(1, 4); elmK(1, 12) = kMembrane(1, 5); elmK(1, 17) = kMembrane(1, 6); elmK(1, 18) = kMembrane(1, 7);
-        elmK(6, 0) = kMembrane(2, 0); elmK(6, 1) = kMembrane(2, 1); elmK(6, 6) = kMembrane(2, 2); elmK(6, 7) = kMembrane(2, 3); elmK(6, 11) = kMembrane(2, 4); elmK(6, 12) = kMembrane(2, 5); elmK(6, 17) = kMembrane(2, 6); elmK(6, 18) = kMembrane(2, 7);
-        elmK(7, 0) = kMembrane(3, 0); elmK(7, 1) = kMembrane(3, 1); elmK(7, 6) = kMembrane(3, 2); elmK(7, 7) = kMembrane(3, 3); elmK(7, 11) = kMembrane(3, 4); elmK(7, 12) = kMembrane(3, 5); elmK(7, 17) = kMembrane(3, 6); elmK(7, 18) = kMembrane(3, 7);
+        elmK(0, 0) = kMembrane(0, 0); elmK(0, 1) = kMembrane(0, 1); elmK(0, 6) = kMembrane(0, 2); elmK(0, 7) = kMembrane(0, 3); elmK(0, 12) = kMembrane(0, 4); elmK(0, 13) = kMembrane(0, 5); elmK(0, 18) = kMembrane(0, 6); elmK(0, 19) = kMembrane(0, 7);
+        elmK(1, 0) = kMembrane(1, 0); elmK(1, 1) = kMembrane(1, 1); elmK(1, 6) = kMembrane(1, 2); elmK(1, 7) = kMembrane(1, 3); elmK(1, 12) = kMembrane(1, 4); elmK(1, 13) = kMembrane(1, 5); elmK(1, 18) = kMembrane(1, 6); elmK(1, 19) = kMembrane(1, 7);
+        elmK(6, 0) = kMembrane(2, 0); elmK(6, 1) = kMembrane(2, 1); elmK(6, 6) = kMembrane(2, 2); elmK(6, 7) = kMembrane(2, 3); elmK(6, 12) = kMembrane(2, 4); elmK(6, 13) = kMembrane(2, 5); elmK(6, 18) = kMembrane(2, 6); elmK(6, 19) = kMembrane(2, 7);
+        elmK(7, 0) = kMembrane(3, 0); elmK(7, 1) = kMembrane(3, 1); elmK(7, 6) = kMembrane(3, 2); elmK(7, 7) = kMembrane(3, 3); elmK(7, 12) = kMembrane(3, 4); elmK(7, 13) = kMembrane(3, 5); elmK(7, 18) = kMembrane(3, 6); elmK(7, 19) = kMembrane(3, 7);
 
-        elmK(12, 0) = kMembrane(4, 0); elmK(12, 1) = kMembrane(4, 1); elmK(12, 6) = kMembrane(4, 2); elmK(12, 7) = kMembrane(4, 3); elmK(12, 11) = kMembrane(4, 4); elmK(12, 12) = kMembrane(4, 5); elmK(12, 17) = kMembrane(4, 6); elmK(12, 18) = kMembrane(4, 7);
-        elmK(13, 0) = kMembrane(5, 0); elmK(13, 1) = kMembrane(5, 1); elmK(13, 6) = kMembrane(5, 2); elmK(13, 7) = kMembrane(5, 3); elmK(13, 11) = kMembrane(5, 4); elmK(13, 12) = kMembrane(5, 5); elmK(13, 17) = kMembrane(5, 6); elmK(13, 18) = kMembrane(5, 7);
-        elmK(18, 0) = kMembrane(6, 0); elmK(18, 1) = kMembrane(6, 1); elmK(18, 6) = kMembrane(6, 2); elmK(18, 7) = kMembrane(6, 3); elmK(18, 11) = kMembrane(6, 4); elmK(18, 12) = kMembrane(6, 5); elmK(18, 17) = kMembrane(6, 6); elmK(18, 18) = kMembrane(6, 7);
-        elmK(19, 0) = kMembrane(7, 0); elmK(19, 1) = kMembrane(7, 1); elmK(19, 6) = kMembrane(7, 2); elmK(19, 7) = kMembrane(7, 3); elmK(19, 11) = kMembrane(7, 4); elmK(19, 12) = kMembrane(7, 5); elmK(19, 17) = kMembrane(7, 6); elmK(19, 18) = kMembrane(7, 7);
+        elmK(12, 0) = kMembrane(4, 0); elmK(12, 1) = kMembrane(4, 1); elmK(12, 6) = kMembrane(4, 2); elmK(12, 7) = kMembrane(4, 3); elmK(12, 12) = kMembrane(4, 4); elmK(12, 13) = kMembrane(4, 5); elmK(12, 18) = kMembrane(4, 6); elmK(12, 19) = kMembrane(4, 7);
+        elmK(13, 0) = kMembrane(5, 0); elmK(13, 1) = kMembrane(5, 1); elmK(13, 6) = kMembrane(5, 2); elmK(13, 7) = kMembrane(5, 3); elmK(13, 12) = kMembrane(5, 4); elmK(13, 13) = kMembrane(5, 5); elmK(13, 18) = kMembrane(5, 6); elmK(13, 19) = kMembrane(5, 7);
+        elmK(18, 0) = kMembrane(6, 0); elmK(18, 1) = kMembrane(6, 1); elmK(18, 6) = kMembrane(6, 2); elmK(18, 7) = kMembrane(6, 3); elmK(18, 12) = kMembrane(6, 4); elmK(18, 13) = kMembrane(6, 5); elmK(18, 18) = kMembrane(6, 6); elmK(18, 19) = kMembrane(6, 7);
+        elmK(19, 0) = kMembrane(7, 0); elmK(19, 1) = kMembrane(7, 1); elmK(19, 6) = kMembrane(7, 2); elmK(19, 7) = kMembrane(7, 3); elmK(19, 12) = kMembrane(7, 4); elmK(19, 13) = kMembrane(7, 5); elmK(19, 18) = kMembrane(7, 6); elmK(19, 19) = kMembrane(7, 7);
     }
 
     // Plate action is not implemented yet
@@ -248,8 +248,8 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         // Place holder
     }
 
-    auto asd = std::make_shared<Matrix<double>>(elmK);
-    this->LocalCoordinateStiffnessMatrix = asd;
+    
+    this->LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(elmK);
 }
 
 void ShellMember::AssembleElementLocalDampingMatrix(double mult1, double mult2)
@@ -263,31 +263,24 @@ void ShellMember::AssembleElementLocalDampingMatrix(double mult1, double mult2)
 void ShellMember::AssembleElementRotationMatrix()
 {
     // For 1-D elements, local and global matrices are same if their element vectors are in global positive X-Direction. For 2-D members,
-    // local and global matrices are same if their normal vectors are in global positive X-Direction. Right now, element matrices are set
-    // like it lies in XY-Plane. So, two rotations are required. First, rotation from XY-plane to YZ-plane to make like its stiffness matrix
-    // is set for YZ-plane. Then, normal rotation.
+    // local and global matrices are same if their normal vectors are in global positive Z-Direction and their local X-Directions coincide with 
+    // global X-Direction. So, use elements local x-axis and skew angle to find rotation matrix. Skew matrix is the angle between global-Z direction
+    // and element normak vector, which is local-z vector. Note that nodes are assumed to be in counter-clockwise orientation.
 
-    // Calculate element normal vector
-    Vector p1V(Nodes[0]->Coordinate);
-    Vector p2V(Nodes[1]->Coordinate);
-    Vector p3V(Nodes[2]->Coordinate);
-    auto planeVector1 = p2V - p1V;
-    auto planeVector2 = p3V - p2V;
-    auto planeNormal = planeVector1 * planeVector2;
-    Vector corrector(0, 0, 1);
+    // Find element local-x vector
+    Vector xVector(Nodes[0]->Coordinate, Nodes[1]->Coordinate);
 
-    auto correctorMat = GeometryHelper::GetTranslationalRotationMatrix(corrector, 0);
-    auto normalMat = GeometryHelper::GetTranslationalRotationMatrix(planeNormal, 0);
-    auto minorRotMat = normalMat * correctorMat;
-    //auto minorRotMat = normalMat;
+    // Find skew angle
+    //  Multiplication of two vector in a plane gives normal vector
+    Vector secondPlaneVector(Nodes[1]->Coordinate, Nodes[2]->Coordinate);
+    auto normalVector = xVector * secondPlaneVector;
+    Vector globalZ(0.0, 0.0, 1.0);
+    double skewAngle = globalZ.AngleTo(normalVector);
+    
+    auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(xVector, skewAngle);
 
-    Vector opt1(1, 0, 0);
-
-    auto rotVec = (planeNormal == corrector) ? opt1 : corrector * planeNormal;
-
-    //auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(rotVec, 0);
-
-    /*for (unsigned int i = 0; i < 3; i++)
+    for (unsigned int i = 0; i < 3; i++)
+        for (unsigned int j = 0; j < 3; j++)
             (*this->RotationMatrix)(i, j) = minorRotMat(i, j);
 
     for (unsigned int i = 3; i < 6; i++)
@@ -316,7 +309,7 @@ void ShellMember::AssembleElementRotationMatrix()
 
     for (unsigned int i = 21; i < 24; i++)
         for (unsigned int j = 21; j < 24; j++)
-            (*this->RotationMatrix)(i, j) = minorRotMat(i - 21, j - 21);*/
+            (*this->RotationMatrix)(i, j) = minorRotMat(i - 21, j - 21);
  
     for (size_t i = 0; i < 24; i++)
         for (size_t j = 0; j < 24; j++)
@@ -333,10 +326,9 @@ void ShellMember::AssembleElementGlobalMassMatrix()
 
 void ShellMember::AssembleElementGlobalStiffnessMatrix()
 {
-    this->GlobalCoordinateStiffnessMatrix = this->LocalCoordinateStiffnessMatrix;
-    //auto rotTrans = (*this->RotationMatrix).transpose();
-    //*this->GlobalCoordinateStiffnessMatrix =
-    //    (rotTrans * (*this->LocalCoordinateStiffnessMatrix)) * (*this->RotationMatrix);
+    auto rotTrans = (*this->RotationMatrix).transpose();
+    *this->GlobalCoordinateStiffnessMatrix =
+        (rotTrans * (*this->LocalCoordinateStiffnessMatrix)) * (*this->RotationMatrix);
 }
 
 void ShellMember::AssembleElementGlobalDampingMatrix(double mult1, double mult2)
