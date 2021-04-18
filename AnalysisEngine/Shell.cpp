@@ -221,8 +221,10 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
                 auto b = mat1 * mat2 * mat3;
                 auto bT = b.transpose();
 
+                // Stiffness calculated at given Gauss point
                 auto kPt = bT * eMat * b * thickness * detjacobi;
 
+                // Update stifness
                 for (size_t row = 0; row < 8; row++)
                     for (size_t col = 0; col < 8; col++)
                         kMembrane(row, col) += kPt(row, col);

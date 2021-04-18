@@ -290,6 +290,134 @@ Matrix<double> StructureSolver::GetModalPeriods(const Structure& str, SolverChoi
     return periods;
 }
 
+Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex)
+{
+    // For now, it is assumed that membrane is at XY-plane. If displacement vector is transformed into plane
+    // where shell element lies, it will work for any case.
+
+    // Get nodal displacements
+    auto iNodeDisps = GetNodalDisplacements(*elm.Nodes[0], disps);
+    auto jNodeDisps = GetNodalDisplacements(*elm.Nodes[1], disps);
+    auto kNodeDisps = GetNodalDisplacements(*elm.Nodes[2], disps);
+    auto lNodeDisps = GetNodalDisplacements(*elm.Nodes[3], disps);
+    Matrix<double> dispVector(8, 1);
+    dispVector(0, 0) = iNodeDisps(0, 0);
+    dispVector(1, 0) = iNodeDisps(1, 0);
+    dispVector(2, 0) = jNodeDisps(0, 0);
+    dispVector(3, 0) = jNodeDisps(1, 0);
+    dispVector(4, 0) = kNodeDisps(0, 0);
+    dispVector(5, 0) = kNodeDisps(1, 0);
+    dispVector(6, 0) = lNodeDisps(0, 0);
+    dispVector(7, 0) = lNodeDisps(1, 0);
+
+    // Elasticity matrix
+    auto e = elm.ShellMaterial->E;
+    auto v = elm.ShellMaterial->PoissonsRatio;
+    auto eMult = e / (1 - (v * v));
+    Matrix<double> eMat(3, 3);
+    eMat(0, 0) = eMult * 1; eMat(0, 1) = eMult * v;
+    eMat(1, 0) = eMult * v; eMat(1, 1) = eMult * 2;
+    eMat(2, 2) = eMult * (1 - v) / 2;
+
+    // Thickness
+    auto thickness = elm.Thickness;
+
+    // Map coordinates of flat plane to 2-D surface
+    auto d1 = elm.Nodes[0]->Coordinate.DistanceTo(elm.Nodes[1]->Coordinate);
+    auto d2 = elm.Nodes[1]->Coordinate.DistanceTo(elm.Nodes[2]->Coordinate);
+    auto d3 = elm.Nodes[2]->Coordinate.DistanceTo(elm.Nodes[3]->Coordinate);
+
+    Vector p1V(elm.Nodes[0]->Coordinate);
+    Vector p2V(elm.Nodes[1]->Coordinate);
+    Vector p3V(elm.Nodes[2]->Coordinate);
+    Vector p4V(elm.Nodes[3]->Coordinate);
+
+    // Angle between first line and second line
+    auto firstVector1 = p1V - p2V;
+    auto secondVector1 = p3V - p2V;
+    auto alpha1 = firstVector1.AngleTo(secondVector1);
+
+    // Angle between second line and third line
+    auto firstVector2 = p2V - p3V;
+    auto secondVector2 = p4V - p3V;
+    auto alpha2 = firstVector2.AngleTo(secondVector2);
+
+    // Map 3D coordinates to 2D plane using angles and length found above to be able to
+    // use natural coordinates
+    auto x1 = 0.0; auto y1 = 0.0;
+    auto x2 = d1; auto y2 = 0.0;
+    auto x3 = x2 - (d2 * cos(alpha1)); auto y3 = d2 * sin(alpha1);
+    auto x4 = x3 - (d3 * sin(alpha2)); auto y4 = y3 + (d3 * cos(alpha2));
+
+    Matrix<double> mappedCoords(4, 2);
+    mappedCoords(0, 0) = x1; mappedCoords(0, 1) = y1;
+    mappedCoords(1, 0) = x2; mappedCoords(1, 1) = y2;
+    mappedCoords(2, 0) = x3; mappedCoords(2, 1) = y3;
+    mappedCoords(3, 0) = x4; mappedCoords(3, 1) = y4;
+
+    Matrix<double> bMatrix(3, 8);
+
+    auto rowCounter = 0;
+    // Get Gauss point
+    auto ksi = 0;
+    auto eta = 0;
+
+    if (nodeIndex == 1)
+    {
+        ksi = -1;
+        eta = -1;
+    }
+    else if (nodeIndex == 2)
+    {
+        ksi = 1;
+        eta = -1;
+    }
+    else if (nodeIndex == 3)
+    {
+        ksi = 1;
+        eta = 1;
+    }
+    else if (nodeIndex == 4)
+    {
+        ksi = -1;
+        eta = 1;
+    }
+
+    // Calculate jacobi
+    Matrix<double> j1(2, 4);
+    j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
+    j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
+    auto j2 = j1 * mappedCoords;
+    auto jacobi = j2 * 0.25;
+
+    Matrix<double> inversejacobi(2, 2);
+    auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+    inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+    inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+    // Calculate strain-displacement matrix (B)
+    Matrix<double> mat1(3, 4);
+    mat1(0, 0) = 1; mat1(1, 3) = 1; mat1(2, 1) = 1; mat1(2, 2) = 1;
+
+    Matrix<double> mat2(4, 4);
+    mat2(0, 0) = inversejacobi(0, 0); mat2(0, 1) = inversejacobi(0, 1); mat2(1, 0) = inversejacobi(1, 0); mat2(1, 1) = inversejacobi(1, 1);
+    mat2(2, 2) = inversejacobi(0, 0); mat2(2, 3) = inversejacobi(0, 1); mat2(3, 2) = inversejacobi(1, 0); mat2(3, 3) = inversejacobi(1, 1);
+
+    Matrix<double> mat3(4, 8);
+    mat3(0, 0) = eta - 1; mat3(0, 2) = 1 - eta; mat3(0, 4) = eta + 1; mat3(0, 6) = -eta - 1;
+    mat3(1, 0) = ksi - 1; mat3(1, 2) = -ksi - 1; mat3(1, 4) = ksi + 1; mat3(1, 6) = 1 - ksi;
+    mat3(2, 1) = eta - 1; mat3(2, 3) = 1 - eta; mat3(2, 5) = eta + 1; mat3(2, 7) = -eta - 1;
+    mat3(3, 1) = ksi - 1; mat3(3, 3) = -ksi - 1; mat3(3, 5) = ksi + 1; mat3(3, 7) = 1 - ksi;
+    mat3 *= 0.25;
+
+    auto b = mat1 * mat2 * mat3;
+
+
+    auto stresses = eMat * b * dispVector;
+
+    return stresses;
+}
+
 double StructureSolver::CondenseStiffnessMatrixForSpecificDOF(const Structure& str, unsigned int dofIndex, SolverChoice solverChoice)
 {
     dofIndex--;
@@ -316,7 +444,7 @@ double StructureSolver::CondenseForceVectorForSpecificDOF(const Structure& str, 
         sendItemToBoundVector(dofIndex, false);
 
     auto rearrangedStiffnessMatrix = (*str.StiffnessMatrix).getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, str.nUnrestrainedDOF - 1).
-    sendToCornerForSquareMatrix(dofIndex, dofIndex, false);
+        sendToCornerForSquareMatrix(dofIndex, dofIndex, false);
     auto kRR = rearrangedStiffnessMatrix.getSubmatrix(0, 0, 0, 0);
     auto kRC = rearrangedStiffnessMatrix.getSubmatrix(0, 0, 1, rearrangedStiffnessMatrix.ColCount - 1);
     auto kCR = kRC.transpose();

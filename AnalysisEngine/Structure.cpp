@@ -32,7 +32,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 
     for (auto& nodePair : *this->Nodes)
     {
-        auto node = nodePair.second;
+        auto& node = nodePair.second;
 
         bool isTransXRest = false;
         bool isTransYRest = false;
@@ -43,7 +43,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 
         for (auto& restPair : *this->Restraints)
         {
-            auto rest = restPair.second;
+            auto& rest = restPair.second;
             if (rest->RestrainedNode->NodeIndex != nodePair.first)
                 continue; // Look for other restraint
 
