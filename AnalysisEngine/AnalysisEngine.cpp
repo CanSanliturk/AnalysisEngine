@@ -37,7 +37,8 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment5();
+        //CE583Assignment5();
+        CE583Assignment6_2();
     }
     catch (const std::runtime_error& e)
     {
@@ -630,7 +631,152 @@ void CE583Assignment5()
 
 void CE583Assignment6_2()
 {
+    // Input Card (Units are in N & m)
+    int nElmX = 1;
+    int nElmY = 1;
+    double lX = 4;
+    double lY = 0.6;
+    double thickness = 0.4;
+    double e = 25e9;
+    double v = 0;
+    XYZPoint restraintStart(0.0, 0.0, 0.0);
+    XYZPoint restraintEnd(0.0, 0.6, 0.0);
 
+    // Solve
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Populate nodes
+    auto hX = lX / nElmX;
+    auto hY = lY / nElmY;
+    auto nNodeX = nElmX + 1;
+    auto nNodeY = nElmY + 1;
+
+    // Create a vector representing support face
+    Vector supportVector(restraintStart, restraintEnd);
+    auto supportUnitVector = supportVector.getUnitVector();
+
+    std::vector<bool> isRest = { true, true, true, true, true, true };
+    std::vector<bool> universal = { false, false, true, true, true, true };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    auto addRestaint = [&](std::shared_ptr<Node> nR)
+    {
+        // Create a vector starting from the start of restraint to 
+        // node. If unit vectors of new vector and support vector matches
+        // and if length of new unit vector is smaller than support unit vector,
+        // then the node is restrained. If not, assign universal restraint. Also, 
+        // is given node is at the same location with start of restraint, it should
+        // be restrained as well.
+
+        Vector supportToNodeVector(restraintStart, nR->Coordinate);
+        if ((supportUnitVector == supportToNodeVector.getUnitVector())
+            && (supportToNodeVector.Length < (supportVector.Length + sqrt((hX * hX) + (hY * hY))))
+            || (Utils::AreEqual(nR->Coordinate.X, restraintStart.X) && Utils::AreEqual(nR->Coordinate.Y, restraintStart.Y)))
+        {
+            auto restraint = std::make_shared<Restraint>(nR, isRest, rest);
+            restraints[nR->NodeIndex] = restraint;
+        }
+        else
+        {
+            auto restraint = std::make_shared<Restraint>(nR, universal, rest);
+            restraints[nR->NodeIndex] = restraint;
+        }
+    };
+
+    int maxNodeIdx = 0;
+    // Create nodes
+    for (size_t i = 0; i < nNodeY; i++)
+    {
+        for (size_t j = 0; j < nNodeX; j++)
+        {
+            auto idx = (i * nNodeX) + j + 1;
+            XYZPoint pt(j * hX, i * hY, 0);
+            auto n = std::make_shared<Node>(idx, pt);
+            nodes[n->NodeIndex] = n;
+            addRestaint(n);
+            maxNodeIdx = idx;
+        }
+    }
+
+    // Create elements
+    auto mt = std::make_shared<Material>(e, v, 0);
+    auto isMembrane = true;
+    std::vector<ShellMember> membersAtSupport;
+    for (size_t i = 0; i < nElmY; i++)
+    {
+        for (size_t j = 0; j < nElmX; j++)
+        {
+            auto idx = (i * nElmX) + j + 1;
+            auto& iNode = nodes[(i * nNodeX) + j + 1];
+            auto& jNode = nodes[iNode->NodeIndex + 1];
+            auto& kNode = nodes[jNode->NodeIndex + nNodeX];
+            auto& lNode = nodes[kNode->NodeIndex - 1];
+            auto sm = std::make_shared<ShellMember>(idx, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Incompatible, PlateType::NONE); elements[sm->ElementIndex] = sm;
+            if (j == 0)
+                membersAtSupport.push_back(*sm);
+        }
+    }
+
+    // Nodal loads
+    // Tip load is -20000 kN. Divide to tip nodes
+    double nodalForce = static_cast<double>(-20000) / nNodeY;
+    double nodalLoad[6] = { 0, nodalForce, 0, 0, 0, 0 };
+    for (int i = nNodeX; i <= (nNodeX * nNodeY); i += nNodeX)
+    {
+        auto nl1 = std::make_shared<NodalLoad>(nodes[i], nodalLoad);
+        nodalLoads[i] = nl1;
+    }
+
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+
+    //for (auto& mem : membersAtSupport)
+    //{
+    //    for (size_t i = 0; i < 4; i += 3)
+    //    {
+    //        auto stresses = StructureSolver::CalculateMembraneNodalStresses(mem, disps, i + 1);
+    //        //LOG(" Node Index:" << mem.Nodes[i]->NodeIndex << "\n");
+    //        //LOG(" Node Index:" << mem.Nodes[i]->NodeIndex << "\n");
+    //        //LOG(" Node Coordinate: " << mem.Nodes[i]->Coordinate.X << ", " << mem.Nodes[i]->Coordinate.Y);
+    //        //LOG(" SigmaXX: " << stresses(0, 0));
+    //        //LOG(" SigmaYY: " << stresses(1, 0));
+    //        //LOG(" SigmaXY: " << stresses(2, 0));
+    //        //LOG("");
+    //        LOG(mem.Nodes[i]->Coordinate.Y << " " << stresses(2, 0) / 1000);
+    //    }
+    //}
+
+    //for (auto& n : nodes)
+    //{
+    //    // Get top surface element
+    //    if (Utils::AreEqual(n.second->Coordinate.Y, 0.6))
+    //    {
+    //        auto nodalDisp = StructureSolver::GetNodalDisplacements(*n.second, disps);
+    //        LOG(n.second->Coordinate.X << " " << nodalDisp(1, 0));
+    //    }
+    //}
+
+    auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodes.size()], disps);
+    LOG(" Node Index: " << nodes[nodes.size()]->NodeIndex);
+    LOG(" Node Location: " << nodes[nodes.size()]->Coordinate.X << " m, " << nodes[nodes.size()]->Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << nodalDisp(1, 0) << " m");
+
+    // auto& node = nodes[nNodeX * nNodeY];
+    // LOG("");
+    // LOG(" Node Index: ");
+    // std::cout << " " << node->NodeIndex << "\n";
+    // 
+    // auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
+    // 
+    // for (size_t i = 0; i < 6; i++)
+    //     std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
 }
 
 void TrussExample()

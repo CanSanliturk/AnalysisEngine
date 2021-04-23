@@ -20,7 +20,7 @@ ShellMember::ShellMember(unsigned int elmIndex,
 
     Thickness = thickness;
 
-    Type = (ElmType::ElementType::Shell);
+    Type = ElmType::ElementType::Shell;
 
     this->isLumpedMassMatrix = isLumpedMassMatrix;
     membraneType = memType;
@@ -177,9 +177,9 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
     // action resists bending effects. 
     Matrix<double> elmK(24, 24);
 
+    Matrix<double> kMembrane(8, 8);
     if (membraneType == MembraneType::Bilinear)
     {
-        Matrix<double> kMembrane(8, 8);
 
         auto gp = 1 / sqrt(3);
         double gaussPoints[4][2] = { {-gp, -gp}, {gp, -gp}, {gp, gp}, {-gp, gp} };
@@ -233,17 +233,109 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
                 rowCounter++;
             }
         }
-
-        elmK(0, 0) = kMembrane(0, 0); elmK(0, 1) = kMembrane(0, 1); elmK(0, 6) = kMembrane(0, 2); elmK(0, 7) = kMembrane(0, 3); elmK(0, 12) = kMembrane(0, 4); elmK(0, 13) = kMembrane(0, 5); elmK(0, 18) = kMembrane(0, 6); elmK(0, 19) = kMembrane(0, 7);
-        elmK(1, 0) = kMembrane(1, 0); elmK(1, 1) = kMembrane(1, 1); elmK(1, 6) = kMembrane(1, 2); elmK(1, 7) = kMembrane(1, 3); elmK(1, 12) = kMembrane(1, 4); elmK(1, 13) = kMembrane(1, 5); elmK(1, 18) = kMembrane(1, 6); elmK(1, 19) = kMembrane(1, 7);
-        elmK(6, 0) = kMembrane(2, 0); elmK(6, 1) = kMembrane(2, 1); elmK(6, 6) = kMembrane(2, 2); elmK(6, 7) = kMembrane(2, 3); elmK(6, 12) = kMembrane(2, 4); elmK(6, 13) = kMembrane(2, 5); elmK(6, 18) = kMembrane(2, 6); elmK(6, 19) = kMembrane(2, 7);
-        elmK(7, 0) = kMembrane(3, 0); elmK(7, 1) = kMembrane(3, 1); elmK(7, 6) = kMembrane(3, 2); elmK(7, 7) = kMembrane(3, 3); elmK(7, 12) = kMembrane(3, 4); elmK(7, 13) = kMembrane(3, 5); elmK(7, 18) = kMembrane(3, 6); elmK(7, 19) = kMembrane(3, 7);
-
-        elmK(12, 0) = kMembrane(4, 0); elmK(12, 1) = kMembrane(4, 1); elmK(12, 6) = kMembrane(4, 2); elmK(12, 7) = kMembrane(4, 3); elmK(12, 12) = kMembrane(4, 4); elmK(12, 13) = kMembrane(4, 5); elmK(12, 18) = kMembrane(4, 6); elmK(12, 19) = kMembrane(4, 7);
-        elmK(13, 0) = kMembrane(5, 0); elmK(13, 1) = kMembrane(5, 1); elmK(13, 6) = kMembrane(5, 2); elmK(13, 7) = kMembrane(5, 3); elmK(13, 12) = kMembrane(5, 4); elmK(13, 13) = kMembrane(5, 5); elmK(13, 18) = kMembrane(5, 6); elmK(13, 19) = kMembrane(5, 7);
-        elmK(18, 0) = kMembrane(6, 0); elmK(18, 1) = kMembrane(6, 1); elmK(18, 6) = kMembrane(6, 2); elmK(18, 7) = kMembrane(6, 3); elmK(18, 12) = kMembrane(6, 4); elmK(18, 13) = kMembrane(6, 5); elmK(18, 18) = kMembrane(6, 6); elmK(18, 19) = kMembrane(6, 7);
-        elmK(19, 0) = kMembrane(7, 0); elmK(19, 1) = kMembrane(7, 1); elmK(19, 6) = kMembrane(7, 2); elmK(19, 7) = kMembrane(7, 3); elmK(19, 12) = kMembrane(7, 4); elmK(19, 13) = kMembrane(7, 5); elmK(19, 18) = kMembrane(7, 6); elmK(19, 19) = kMembrane(7, 7);
     }
+    else if (membraneType == MembraneType::Incompatible)
+    {
+        // Populate 12 x 12 stiffness matrix including effects of generalized displacements. Then, condense out 
+        // last 4 x 4 part of the stiffness matrix and equate it to kMembrane.
+
+        auto gp = 1 / sqrt(3);
+        double gaussPoints[4][2] = { {-gp, -gp}, {gp, -gp}, {gp, gp}, {-gp, gp} };
+        auto rowCounter = 0;
+        Matrix<double> k1212(12, 12);
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (int j = 0; j < 2; j++)
+            {
+                // Get Gauss point
+                auto ksi = gaussPoints[rowCounter][0]; auto eta = gaussPoints[rowCounter][1];
+
+                // Calculate jacobi
+                Matrix<double> j1(2, 4);
+                j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
+                j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
+                auto j2 = j1 * mappedCoords;
+                auto jacobi = j2 * 0.25;
+
+                Matrix<double> inversejacobi(2, 2);
+                auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+                inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+                inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+                // Calculate strain-displacement matrix (B)
+                
+                // Calculate Bu
+                Matrix<double> mat1(3, 4);
+                mat1(0, 0) = 1; mat1(1, 3) = 1; mat1(2, 1) = 1; mat1(2, 2) = 1;
+
+                Matrix<double> mat2(4, 4);
+                mat2(0, 0) = inversejacobi(0, 0); mat2(0, 1) = inversejacobi(0, 1); mat2(1, 0) = inversejacobi(1, 0); mat2(1, 1) = inversejacobi(1, 1);
+                mat2(2, 2) = inversejacobi(0, 0); mat2(2, 3) = inversejacobi(0, 1); mat2(3, 2) = inversejacobi(1, 0); mat2(3, 3) = inversejacobi(1, 1);
+
+                Matrix<double> mat3(4, 8);
+                mat3(0, 0) = eta - 1; mat3(0, 2) = 1 - eta; mat3(0, 4) = eta + 1; mat3(0, 6) = -eta - 1;
+                mat3(1, 0) = ksi - 1; mat3(1, 2) = -ksi - 1; mat3(1, 4) = ksi + 1; mat3(1, 6) = 1 - ksi;
+                mat3(2, 1) = eta - 1; mat3(2, 3) = 1 - eta; mat3(2, 5) = eta + 1; mat3(2, 7) = -eta - 1;
+                mat3(3, 1) = ksi - 1; mat3(3, 3) = -ksi - 1; mat3(3, 5) = ksi + 1; mat3(3, 7) = 1 - ksi;
+                mat3 *= 0.25;
+
+                auto bu = mat1 * mat2 * mat3;
+
+                // Insert effect of generalized displacement to strain-displacement matrix along with strain-displacement matrix of nodal displacements
+                Matrix<double> b(3, 12);
+                
+                for (size_t bRowCounter = 0; bRowCounter < 3; bRowCounter++)
+                    for (size_t bColCounter = 0; bColCounter < 8; bColCounter++)
+                        b(bRowCounter, bColCounter) = bu(bRowCounter, bColCounter);
+
+                auto invJ11 = inversejacobi(0, 0); auto invJ12 = inversejacobi(0, 1);
+                auto invJ21 = inversejacobi(1, 0); auto invJ22 = inversejacobi(1, 1);
+
+                b(0, 8) = invJ11 * -2 * ksi; b(0, 9) = invJ12 * -2 * eta;
+                b(1, 10) = invJ21 * -2 * ksi; b(1, 11) = invJ22 * -2 * eta;
+                b(2, 8) = invJ21 * -2 * ksi; b(2, 9) = invJ22 * -2 * eta; b(2, 10) = invJ11 * -2 * ksi; b(2, 11) = invJ12 * -2 * eta;
+
+                b.printElements();
+
+                auto bT = b.transpose();
+
+                // Stiffness calculated at given Gauss point
+                auto kPt = bT * eMat * b * thickness * detjacobi;
+
+                // Update stifness
+                for (size_t row = 0; row < 12; row++)
+                    for (size_t col = 0; col < 12; col++)
+                        k1212(row, col) += kPt(row, col);
+
+                rowCounter++;
+            }
+        }
+
+        // After calculation 12 x 12 stiffness matrix, condense out last 4 x 4 part
+        auto kRR = k1212.getSubmatrix(0, 7, 0, 7);
+        auto kRC = k1212.getSubmatrix(0, 7, 8, 11);
+        auto kCR = kRC.transpose();
+        auto kCC = k1212.getSubmatrix(8, 11, 8, 11);
+        auto invKCC = this->InvertMatrix4(kCC);
+
+        auto midStep = (kRC * invKCC * kCR);
+        kMembrane = kRR - midStep;
+    }
+    else if (membraneType == MembraneType::Drilling)
+    {
+        
+    }
+
+    elmK(0, 0) = kMembrane(0, 0); elmK(0, 1) = kMembrane(0, 1); elmK(0, 6) = kMembrane(0, 2); elmK(0, 7) = kMembrane(0, 3); elmK(0, 12) = kMembrane(0, 4); elmK(0, 13) = kMembrane(0, 5); elmK(0, 18) = kMembrane(0, 6); elmK(0, 19) = kMembrane(0, 7);
+    elmK(1, 0) = kMembrane(1, 0); elmK(1, 1) = kMembrane(1, 1); elmK(1, 6) = kMembrane(1, 2); elmK(1, 7) = kMembrane(1, 3); elmK(1, 12) = kMembrane(1, 4); elmK(1, 13) = kMembrane(1, 5); elmK(1, 18) = kMembrane(1, 6); elmK(1, 19) = kMembrane(1, 7);
+    elmK(6, 0) = kMembrane(2, 0); elmK(6, 1) = kMembrane(2, 1); elmK(6, 6) = kMembrane(2, 2); elmK(6, 7) = kMembrane(2, 3); elmK(6, 12) = kMembrane(2, 4); elmK(6, 13) = kMembrane(2, 5); elmK(6, 18) = kMembrane(2, 6); elmK(6, 19) = kMembrane(2, 7);
+    elmK(7, 0) = kMembrane(3, 0); elmK(7, 1) = kMembrane(3, 1); elmK(7, 6) = kMembrane(3, 2); elmK(7, 7) = kMembrane(3, 3); elmK(7, 12) = kMembrane(3, 4); elmK(7, 13) = kMembrane(3, 5); elmK(7, 18) = kMembrane(3, 6); elmK(7, 19) = kMembrane(3, 7);
+
+    elmK(12, 0) = kMembrane(4, 0); elmK(12, 1) = kMembrane(4, 1); elmK(12, 6) = kMembrane(4, 2); elmK(12, 7) = kMembrane(4, 3); elmK(12, 12) = kMembrane(4, 4); elmK(12, 13) = kMembrane(4, 5); elmK(12, 18) = kMembrane(4, 6); elmK(12, 19) = kMembrane(4, 7);
+    elmK(13, 0) = kMembrane(5, 0); elmK(13, 1) = kMembrane(5, 1); elmK(13, 6) = kMembrane(5, 2); elmK(13, 7) = kMembrane(5, 3); elmK(13, 12) = kMembrane(5, 4); elmK(13, 13) = kMembrane(5, 5); elmK(13, 18) = kMembrane(5, 6); elmK(13, 19) = kMembrane(5, 7);
+    elmK(18, 0) = kMembrane(6, 0); elmK(18, 1) = kMembrane(6, 1); elmK(18, 6) = kMembrane(6, 2); elmK(18, 7) = kMembrane(6, 3); elmK(18, 12) = kMembrane(6, 4); elmK(18, 13) = kMembrane(6, 5); elmK(18, 18) = kMembrane(6, 6); elmK(18, 19) = kMembrane(6, 7);
+    elmK(19, 0) = kMembrane(7, 0); elmK(19, 1) = kMembrane(7, 1); elmK(19, 6) = kMembrane(7, 2); elmK(19, 7) = kMembrane(7, 3); elmK(19, 12) = kMembrane(7, 4); elmK(19, 13) = kMembrane(7, 5); elmK(19, 18) = kMembrane(7, 6); elmK(19, 19) = kMembrane(7, 7);
 
     // Plate action is not implemented yet
 
@@ -274,7 +366,7 @@ void ShellMember::AssembleElementRotationMatrix()
     auto normalVector = xVector * secondPlaneVector;
     Vector globalZ(0.0, 0.0, 1.0);
     double skewAngle = globalZ.AngleTo(normalVector);
-    
+
     auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(xVector, skewAngle);
 
     for (unsigned int i = 0; i < 3; i++)
@@ -308,7 +400,7 @@ void ShellMember::AssembleElementRotationMatrix()
     for (unsigned int i = 21; i < 24; i++)
         for (unsigned int j = 21; j < 24; j++)
             (*this->RotationMatrix)(i, j) = minorRotMat(i - 21, j - 21);
- 
+
     for (size_t i = 0; i < 24; i++)
         for (size_t j = 0; j < 24; j++)
             if (i == j)
@@ -335,4 +427,53 @@ void ShellMember::AssembleElementGlobalDampingMatrix(double mult1, double mult2)
     auto mat2 = *GlobalCoordinateStiffnessMatrix * mult2;
     this->GlobalCoordinateDampingMatrix =
         std::make_shared<Matrix<double>>(mat1 + mat2);
+}
+
+Matrix<double> ShellMember::InvertMatrix4(Matrix<double> m)
+{
+    double A2323 = m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2);
+    double A1323 = m(2, 1) * m(3, 3) - m(2, 3) * m(3, 1);
+    double A1223 = m(2, 1) * m(3, 2) - m(2, 2) * m(3, 1);
+    double A0323 = m(2, 0) * m(3, 3) - m(2, 3) * m(3, 0);
+    double A0223 = m(2, 0) * m(3, 2) - m(2, 2) * m(3, 0);
+    double A0123 = m(2, 0) * m(3, 1) - m(2, 1) * m(3, 0);
+    double A2313 = m(1, 2) * m(3, 3) - m(1, 3) * m(3, 2);
+    double A1313 = m(1, 1) * m(3, 3) - m(1, 3) * m(3, 1);
+    double A1213 = m(1, 1) * m(3, 2) - m(1, 2) * m(3, 1);
+    double A2312 = m(1, 2) * m(2, 3) - m(1, 3) * m(2, 2);
+    double A1312 = m(1, 1) * m(2, 3) - m(1, 3) * m(2, 1);
+    double A1212 = m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1);
+    double A0313 = m(1, 0) * m(3, 3) - m(1, 3) * m(3, 0);
+    double A0213 = m(1, 0) * m(3, 2) - m(1, 2) * m(3, 0);
+    double A0312 = m(1, 0) * m(2, 3) - m(1, 3) * m(2, 0);
+    double A0212 = m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0);
+    double A0113 = m(1, 0) * m(3, 1) - m(1, 1) * m(3, 0);
+    double A0112 = m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0);
+
+    auto det = m(0, 0) * (m(1, 1) * A2323 - m(1, 2) * A1323 + m(1, 3) * A1223)
+        - m(0, 1) * (m(1, 0) * A2323 - m(1, 2) * A0323 + m(1, 3) * A0223)
+        + m(0, 2) * (m(1, 0) * A1323 - m(1, 1) * A0323 + m(1, 3) * A0123)
+        - m(0, 3) * (m(1, 0) * A1223 - m(1, 1) * A0223 + m(1, 2) * A0123);
+    det = 1 / det;
+
+    Matrix<double> im(4, 4);
+
+    im(0, 0) = det * (m(1, 1) * A2323 - m(1, 2) * A1323 + m(1, 3) * A1223);
+    im(0, 1) = det * -(m(0, 1) * A2323 - m(0, 2) * A1323 + m(0, 3) * A1223);
+    im(0, 2) = det * (m(0, 1) * A2313 - m(0, 2) * A1313 + m(0, 3) * A1213);
+    im(0, 3) = det * -(m(0, 1) * A2312 - m(0, 2) * A1312 + m(0, 3) * A1212);
+    im(1, 0) = det * -(m(1, 0) * A2323 - m(1, 2) * A0323 + m(1, 3) * A0223);
+    im(1, 1) = det * (m(0, 0) * A2323 - m(0, 2) * A0323 + m(0, 3) * A0223);
+    im(1, 2) = det * -(m(0, 0) * A2313 - m(0, 2) * A0313 + m(0, 3) * A0213);
+    im(1, 3) = det * (m(0, 0) * A2312 - m(0, 2) * A0312 + m(0, 3) * A0212);
+    im(2, 0) = det * (m(1, 0) * A1323 - m(1, 1) * A0323 + m(1, 3) * A0123);
+    im(2, 1) = det * -(m(0, 0) * A1323 - m(0, 1) * A0323 + m(0, 3) * A0123);
+    im(2, 2) = det * (m(0, 0) * A1313 - m(0, 1) * A0313 + m(0, 3) * A0113);
+    im(2, 3) = det * -(m(0, 0) * A1312 - m(0, 1) * A0312 + m(0, 3) * A0112);
+    im(3, 0) = det * -(m(1, 0) * A1223 - m(1, 1) * A0223 + m(1, 2) * A0123);
+    im(3, 1) = det * (m(0, 0) * A1223 - m(0, 1) * A0223 + m(0, 2) * A0123);
+    im(3, 2) = det * -(m(0, 0) * A1213 - m(0, 1) * A0213 + m(0, 2) * A0113);
+    im(3, 3) = det * (m(0, 0) * A1212 - m(0, 1) * A0212 + m(0, 2) * A0112);
+
+    return im;
 }

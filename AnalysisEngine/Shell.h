@@ -65,5 +65,6 @@ private:
     void AssembleElementGlobalMassMatrix();
     void AssembleElementGlobalStiffnessMatrix();
     void AssembleElementGlobalDampingMatrix(double mult1, double mult2);
+    Matrix<double> InvertMatrix4(Matrix<double> m);
 };
 
