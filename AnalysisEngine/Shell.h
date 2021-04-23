@@ -2,6 +2,21 @@
 #include "Material.h"
 #include "Element.h"
 
+enum class MembraneType
+{
+    NONE = 0,
+    Bilinear = 1,
+    Incompatible = 2,
+    Drilling = 3
+};
+
+enum class PlateType
+{
+    NONE = 0,
+    Thin = 1,
+    Thick = 2
+};
+
 class ShellMember : public Element
 {
 public:
@@ -11,8 +26,8 @@ public:
     double Thickness = 0;
     ElmType::ElementType Type;
     bool isLumpedMassMatrix = true;
-    bool isMembraneAction = true;
-    bool isPlateAction = true;
+    MembraneType membraneType = MembraneType::NONE;
+    PlateType plateType = PlateType::NONE;
 
     std::shared_ptr<Matrix<double>> LocalCoordinateMassMatrix;
     std::shared_ptr<Matrix<double>> LocalCoordinateStiffnessMatrix;
@@ -24,7 +39,7 @@ public:
 
     ShellMember(unsigned int elmIndex, 
         std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, std::shared_ptr<Node> kNode, std::shared_ptr<Node> lNode,
-        std::shared_ptr<Material> material, double thickness, bool isMembrane, bool isPlate, bool isLumpedMassMatrix = true, 
+        std::shared_ptr<Material> material, double thickness, MembraneType memType, PlateType pltType, bool isLumpedMassMatrix = true, 
         double rayleighDampingMassMultiplier = 0, double rayleighDampingStiffnessMultiplier = 0);
     ShellMember();
     ~ShellMember();

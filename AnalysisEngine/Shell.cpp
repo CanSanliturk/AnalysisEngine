@@ -2,9 +2,10 @@
 #include "Vector.h"
 #include "GeometryHelper.h"
 
+
 ShellMember::ShellMember(unsigned int elmIndex,
     std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, std::shared_ptr<Node> kNode, std::shared_ptr<Node> lNode,
-    std::shared_ptr<Material> material, double thickness, bool isMembrane, bool isPlate,
+    std::shared_ptr<Material> material, double thickness, MembraneType memType, PlateType pltType,
     bool isLumpedMassMatrix, double rayleighDampingMassMultiplier, double rayleighDampingStiffnessMultiplier)
 {
     ElementIndex = elmIndex;
@@ -22,8 +23,8 @@ ShellMember::ShellMember(unsigned int elmIndex,
     Type = (ElmType::ElementType::Shell);
 
     this->isLumpedMassMatrix = isLumpedMassMatrix;
-    isMembraneAction = isMembrane;
-    isPlateAction = isPlate;
+    membraneType = memType;
+    plateType = pltType;
 
     LocalCoordinateMassMatrix = std::make_shared<Matrix<double>>(24);
     LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(24);
@@ -176,7 +177,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
     // action resists bending effects. 
     Matrix<double> elmK(24, 24);
 
-    if (isMembraneAction)
+    if (membraneType == MembraneType::Bilinear)
     {
         Matrix<double> kMembrane(8, 8);
 
@@ -245,12 +246,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
     }
 
     // Plate action is not implemented yet
-    if (isPlateAction)
-    {
-        // Place holder
-    }
 
-    
     this->LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(elmK);
 }
 

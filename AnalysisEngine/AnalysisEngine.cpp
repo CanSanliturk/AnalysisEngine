@@ -16,7 +16,8 @@ void CantileverDisplacements2D();
 void TableDisplacements();
 void CE583Sample();
 void CE583Assignment1_3();
-void CE583Assignment1_4();
+void CE583Assignment5();
+void CE583Assignment6_2();
 void TrussExample();
 
 int main()
@@ -36,7 +37,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment1_4();
+        CE583Assignment5();
     }
     catch (const std::runtime_error& e)
     {
@@ -478,7 +479,7 @@ void CE583Assignment1_3()
     LOG("Displacement calculated using equivalent value: " << dispFromEquivalentVals);
 }
 
-void CE583Assignment1_4()
+void CE583Assignment5()
 {
     // Input Card (Units are in N & m)
     int nElmX = 8;
@@ -563,7 +564,7 @@ void CE583Assignment1_4()
             auto& jNode = nodes[iNode->NodeIndex + 1];
             auto& kNode = nodes[jNode->NodeIndex + nNodeX];
             auto& lNode = nodes[kNode->NodeIndex - 1];
-            auto sm = std::make_shared<ShellMember>(idx, iNode, jNode, kNode, lNode, mt, thickness, isMembrane, !isMembrane); elements[sm->ElementIndex] = sm;
+            auto sm = std::make_shared<ShellMember>(idx, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Bilinear, PlateType::NONE); elements[sm->ElementIndex] = sm;
             if (j == 0)
                 membersAtSupport.push_back(*sm);
         }
@@ -585,21 +586,21 @@ void CE583Assignment1_4()
     // Solve displacement
     auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
 
-    for (auto& mem : membersAtSupport)
-    {
-        for (size_t i = 0; i < 4; i += 3)
-        {
-            auto stresses = StructureSolver::CalculateMembraneNodalStresses(mem, disps, i + 1);
-            //LOG(" Node Index:" << mem.Nodes[i]->NodeIndex << "\n");
-            //LOG(" Node Index:" << mem.Nodes[i]->NodeIndex << "\n");
-            //LOG(" Node Coordinate: " << mem.Nodes[i]->Coordinate.X << ", " << mem.Nodes[i]->Coordinate.Y);
-            //LOG(" SigmaXX: " << stresses(0, 0));
-            //LOG(" SigmaYY: " << stresses(1, 0));
-            //LOG(" SigmaXY: " << stresses(2, 0));
-            //LOG("");
-            LOG(mem.Nodes[i]->Coordinate.Y << " " << stresses(2, 0) / 1000);
-        }
-    }
+    //for (auto& mem : membersAtSupport)
+    //{
+    //    for (size_t i = 0; i < 4; i += 3)
+    //    {
+    //        auto stresses = StructureSolver::CalculateMembraneNodalStresses(mem, disps, i + 1);
+    //        //LOG(" Node Index:" << mem.Nodes[i]->NodeIndex << "\n");
+    //        //LOG(" Node Index:" << mem.Nodes[i]->NodeIndex << "\n");
+    //        //LOG(" Node Coordinate: " << mem.Nodes[i]->Coordinate.X << ", " << mem.Nodes[i]->Coordinate.Y);
+    //        //LOG(" SigmaXX: " << stresses(0, 0));
+    //        //LOG(" SigmaYY: " << stresses(1, 0));
+    //        //LOG(" SigmaXY: " << stresses(2, 0));
+    //        //LOG("");
+    //        LOG(mem.Nodes[i]->Coordinate.Y << " " << stresses(2, 0) / 1000);
+    //    }
+    //}
 
     //for (auto& n : nodes)
     //{
@@ -611,10 +612,10 @@ void CE583Assignment1_4()
     //    }
     //}
 
-    /*auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodes.size()], disps);
+    auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodes.size()], disps);
     LOG(" Node Index: " << nodes[nodes.size()]->NodeIndex);
     LOG(" Node Location: " << nodes[nodes.size()]->Coordinate.X << " m, " << nodes[nodes.size()]->Coordinate.Y << " m");
-    LOG(" Vertical Displacement: " << nodalDisp(1, 0) << " m");*/
+    LOG(" Vertical Displacement: " << nodalDisp(1, 0) << " m");
 
     // auto& node = nodes[nNodeX * nNodeY];
     // LOG("");
@@ -625,6 +626,11 @@ void CE583Assignment1_4()
     // 
     // for (size_t i = 0; i < 6; i++)
     //     std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
+}
+
+void CE583Assignment6_2()
+{
+
 }
 
 void TrussExample()
