@@ -36,6 +36,7 @@ public:
     std::shared_ptr<Matrix<double>> GlobalCoordinateMassMatrix;
     std::shared_ptr<Matrix<double>> GlobalCoordinateStiffnessMatrix;
     std::shared_ptr<Matrix<double>> GlobalCoordinateDampingMatrix;
+    std::shared_ptr<Matrix<double>> K1212;
 
     ShellMember(unsigned int elmIndex, 
         std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, std::shared_ptr<Node> kNode, std::shared_ptr<Node> lNode,
@@ -56,6 +57,7 @@ public:
     std::shared_ptr<Matrix<double>> GetRotationMatrix();
     std::shared_ptr<Matrix<double>> GetElementLoads();
     std::vector<std::shared_ptr<Node>> GelElementNodes();
+    Matrix<double> InvertMatrix4(Matrix<double> m);
 
 private:
     void AssembleElementLocalMassMatrix();
@@ -65,6 +67,5 @@ private:
     void AssembleElementGlobalMassMatrix();
     void AssembleElementGlobalStiffnessMatrix();
     void AssembleElementGlobalDampingMatrix(double mult1, double mult2);
-    Matrix<double> InvertMatrix4(Matrix<double> m);
 };
 

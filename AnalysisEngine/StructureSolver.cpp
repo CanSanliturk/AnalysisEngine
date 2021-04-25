@@ -295,6 +295,9 @@ Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember
     // For now, it is assumed that membrane is at XY-plane. If displacement vector is transformed into plane
     // where shell element lies, it will work for any case.
 
+    // Return value
+    Matrix<double> stresses(3, 1);
+
     // Get nodal displacements
     auto iNodeDisps = GetNodalDisplacements(*elm.Nodes[0], disps);
     auto jNodeDisps = GetNodalDisplacements(*elm.Nodes[1], disps);
@@ -316,7 +319,7 @@ Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember
     auto eMult = e / (1 - (v * v));
     Matrix<double> eMat(3, 3);
     eMat(0, 0) = eMult * 1; eMat(0, 1) = eMult * v;
-    eMat(1, 0) = eMult * v; eMat(1, 1) = eMult * 2;
+    eMat(1, 0) = eMult * v; eMat(1, 1) = eMult * 1;
     eMat(2, 2) = eMult * (1 - v) / 2;
 
     // Thickness
@@ -359,61 +362,183 @@ Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember
 
     auto rowCounter = 0;
     // Get Gauss point
-    auto ksi = 0;
-    auto eta = 0;
+    double ksi = 0;
+    double eta = 0;
 
-    if (nodeIndex == 1)
+    // Select mid-point for bilinear element to avoid shear locking
+    if (elm.membraneType != MembraneType::Bilinear)
     {
-        ksi = -1;
-        eta = -1;
+        if (nodeIndex == 1)
+        {
+            ksi = -1;
+            eta = -1;
+        }
+        else if (nodeIndex == 2)
+        {
+            ksi = 1;
+            eta = -1;
+        }
+        else if (nodeIndex == 3)
+        {
+            ksi = 1;
+            eta = 1;
+        }
+        else if (nodeIndex == 4)
+        {
+            ksi = -1;
+            eta = 1;
+        }
     }
-    else if (nodeIndex == 2)
+
+    if (elm.membraneType == MembraneType::Bilinear)
     {
-        ksi = 1;
-        eta = -1;
+        // Calculate jacobi
+        Matrix<double> j1(2, 4);
+        j1(0, 0) = eta - 1.0; j1(0, 1) = 1.0 - eta; j1(0, 2) = eta + 1.0; j1(0, 3) = -eta - 1.0;
+        j1(1, 0) = ksi - 1.0; j1(1, 1) = -ksi - 1.0; j1(1, 2) = ksi + 1.0; j1(1, 3) = 1.0 - ksi;
+        auto j2 = j1 * mappedCoords;
+        auto jacobi = j2 * 0.25;
+
+        Matrix<double> inversejacobi(2, 2);
+        auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+        inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+        inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+        // Calculate strain-displacement matrix (B)
+        Matrix<double> mat1(3, 4);
+        mat1(0, 0) = 1; mat1(1, 3) = 1; mat1(2, 1) = 1; mat1(2, 2) = 1;
+
+        Matrix<double> mat2(4, 4);
+        mat2(0, 0) = inversejacobi(0, 0); mat2(0, 1) = inversejacobi(0, 1); mat2(1, 0) = inversejacobi(1, 0); mat2(1, 1) = inversejacobi(1, 1);
+        mat2(2, 2) = inversejacobi(0, 0); mat2(2, 3) = inversejacobi(0, 1); mat2(3, 2) = inversejacobi(1, 0); mat2(3, 3) = inversejacobi(1, 1);
+
+        Matrix<double> mat3(4, 8);
+        mat3(0, 0) = eta - 1.0; mat3(0, 2) = 1.0 - eta; mat3(0, 4) = eta + 1.0; mat3(0, 6) = -eta - 1.0;
+        mat3(1, 0) = ksi - 1.0; mat3(1, 2) = -ksi - 1.0; mat3(1, 4) = ksi + 1.0; mat3(1, 6) = 1.0 - ksi;
+        mat3(2, 1) = eta - 1.0; mat3(2, 3) = 1.0 - eta; mat3(2, 5) = eta + 1.0; mat3(2, 7) = -eta - 1.0;
+        mat3(3, 1) = ksi - 1.0; mat3(3, 3) = -ksi - 1.0; mat3(3, 5) = ksi + 1.0; mat3(3, 7) = 1.0 - ksi;
+        mat3 *= 0.25;
+
+        auto b = mat1 * mat2 * mat3;
+        stresses = eMat * b * dispVector;
     }
-    else if (nodeIndex == 3)
+    else if (elm.membraneType == MembraneType::Incompatible)
     {
-        ksi = 1;
-        eta = 1;
+        // Calculate jacobi
+        Matrix<double> j1(2, 4);
+        j1(0, 0) = eta - 1.0; j1(0, 1) = 1.0 - eta; j1(0, 2) = eta + 1.0; j1(0, 3) = -eta - 1.0;
+        j1(1, 0) = ksi - 1.0; j1(1, 1) = -ksi - 1.0; j1(1, 2) = ksi + 1.0; j1(1, 3) = 1.0 - ksi;
+        auto j2 = j1 * mappedCoords;
+        auto jacobi = j2 * 0.25;
+
+        Matrix<double> inversejacobi(2, 2);
+        auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+        inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+        inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+        // Calculate strain-displacement matrix (B)
+
+        // Calculate Bu
+        Matrix<double> mat1(3, 4);
+        mat1(0, 0) = 1; mat1(1, 3) = 1; mat1(2, 1) = 1; mat1(2, 2) = 1;
+
+        Matrix<double> mat2(4, 4);
+        mat2(0, 0) = inversejacobi(0, 0); mat2(0, 1) = inversejacobi(0, 1); mat2(1, 0) = inversejacobi(1, 0); mat2(1, 1) = inversejacobi(1, 1);
+        mat2(2, 2) = inversejacobi(0, 0); mat2(2, 3) = inversejacobi(0, 1); mat2(3, 2) = inversejacobi(1, 0); mat2(3, 3) = inversejacobi(1, 1);
+
+        Matrix<double> mat3(4, 8);
+        mat3(0, 0) = eta - 1.0; mat3(0, 2) = 1.0 - eta; mat3(0, 4) = eta + 1.0; mat3(0, 6) = -eta - 1.0;
+        mat3(1, 0) = ksi - 1.0; mat3(1, 2) = -ksi - 1.0; mat3(1, 4) = ksi + 1.0; mat3(1, 6) = 1.0 - ksi;
+        mat3(2, 1) = eta - 1.0; mat3(2, 3) = 1.0 - eta; mat3(2, 5) = eta + 1.0; mat3(2, 7) = -eta - 1.0;
+        mat3(3, 1) = ksi - 1.0; mat3(3, 3) = -ksi - 1.0; mat3(3, 5) = ksi + 1.0; mat3(3, 7) = 1.0 - ksi;
+        mat3 *= 0.25;
+
+        auto bu = mat1 * mat2 * mat3;
+
+        // Insert effect of generalized displacement to strain-displacement matrix along with strain-displacement matrix of nodal displacements
+        Matrix<double> b(3, 12);
+
+        for (size_t bRowCounter = 0; bRowCounter < 3; bRowCounter++)
+            for (size_t bColCounter = 0; bColCounter < 8; bColCounter++)
+                b(bRowCounter, bColCounter) = bu(bRowCounter, bColCounter);
+
+        auto invJ11 = inversejacobi(0, 0); auto invJ12 = inversejacobi(0, 1);
+        auto invJ21 = inversejacobi(1, 0); auto invJ22 = inversejacobi(1, 1);
+
+        b(0, 8) = invJ11 * -2 * ksi; b(0, 9) = invJ12 * -2 * eta;
+        b(1, 10) = invJ21 * -2 * ksi; b(1, 11) = invJ22 * -2 * eta;
+        b(2, 8) = invJ21 * -2 * ksi; b(2, 9) = invJ22 * -2 * eta; b(2, 10) = invJ11 * -2 * ksi; b(2, 11) = invJ12 * -2 * eta;
+        
+        auto invert = [](Matrix<double> m)
+        {
+            double A2323 = m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2);
+            double A1323 = m(2, 1) * m(3, 3) - m(2, 3) * m(3, 1);
+            double A1223 = m(2, 1) * m(3, 2) - m(2, 2) * m(3, 1);
+            double A0323 = m(2, 0) * m(3, 3) - m(2, 3) * m(3, 0);
+            double A0223 = m(2, 0) * m(3, 2) - m(2, 2) * m(3, 0);
+            double A0123 = m(2, 0) * m(3, 1) - m(2, 1) * m(3, 0);
+            double A2313 = m(1, 2) * m(3, 3) - m(1, 3) * m(3, 2);
+            double A1313 = m(1, 1) * m(3, 3) - m(1, 3) * m(3, 1);
+            double A1213 = m(1, 1) * m(3, 2) - m(1, 2) * m(3, 1);
+            double A2312 = m(1, 2) * m(2, 3) - m(1, 3) * m(2, 2);
+            double A1312 = m(1, 1) * m(2, 3) - m(1, 3) * m(2, 1);
+            double A1212 = m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1);
+            double A0313 = m(1, 0) * m(3, 3) - m(1, 3) * m(3, 0);
+            double A0213 = m(1, 0) * m(3, 2) - m(1, 2) * m(3, 0);
+            double A0312 = m(1, 0) * m(2, 3) - m(1, 3) * m(2, 0);
+            double A0212 = m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0);
+            double A0113 = m(1, 0) * m(3, 1) - m(1, 1) * m(3, 0);
+            double A0112 = m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0);
+
+            auto det = m(0, 0) * (m(1, 1) * A2323 - m(1, 2) * A1323 + m(1, 3) * A1223)
+                - m(0, 1) * (m(1, 0) * A2323 - m(1, 2) * A0323 + m(1, 3) * A0223)
+                + m(0, 2) * (m(1, 0) * A1323 - m(1, 1) * A0323 + m(1, 3) * A0123)
+                - m(0, 3) * (m(1, 0) * A1223 - m(1, 1) * A0223 + m(1, 2) * A0123);
+            det = 1 / det;
+
+            Matrix<double> im(4, 4);
+
+            im(0, 0) = det * (m(1, 1) * A2323 - m(1, 2) * A1323 + m(1, 3) * A1223);
+            im(0, 1) = det * -(m(0, 1) * A2323 - m(0, 2) * A1323 + m(0, 3) * A1223);
+            im(0, 2) = det * (m(0, 1) * A2313 - m(0, 2) * A1313 + m(0, 3) * A1213);
+            im(0, 3) = det * -(m(0, 1) * A2312 - m(0, 2) * A1312 + m(0, 3) * A1212);
+            im(1, 0) = det * -(m(1, 0) * A2323 - m(1, 2) * A0323 + m(1, 3) * A0223);
+            im(1, 1) = det * (m(0, 0) * A2323 - m(0, 2) * A0323 + m(0, 3) * A0223);
+            im(1, 2) = det * -(m(0, 0) * A2313 - m(0, 2) * A0313 + m(0, 3) * A0213);
+            im(1, 3) = det * (m(0, 0) * A2312 - m(0, 2) * A0312 + m(0, 3) * A0212);
+            im(2, 0) = det * (m(1, 0) * A1323 - m(1, 1) * A0323 + m(1, 3) * A0123);
+            im(2, 1) = det * -(m(0, 0) * A1323 - m(0, 1) * A0323 + m(0, 3) * A0123);
+            im(2, 2) = det * (m(0, 0) * A1313 - m(0, 1) * A0313 + m(0, 3) * A0113);
+            im(2, 3) = det * -(m(0, 0) * A1312 - m(0, 1) * A0312 + m(0, 3) * A0112);
+            im(3, 0) = det * -(m(1, 0) * A1223 - m(1, 1) * A0223 + m(1, 2) * A0123);
+            im(3, 1) = det * (m(0, 0) * A1223 - m(0, 1) * A0223 + m(0, 2) * A0123);
+            im(3, 2) = det * -(m(0, 0) * A1213 - m(0, 1) * A0213 + m(0, 2) * A0113);
+            im(3, 3) = det * (m(0, 0) * A1212 - m(0, 1) * A0212 + m(0, 2) * A0112);
+
+            return im;
+        };
+
+        // Calculate generalized displacements
+        auto& elmK = elm.K1212;;
+        auto kRR = elmK->getSubmatrix(0, 7, 0, 7);
+        auto kRC = elmK->getSubmatrix(0, 7, 8, 11);
+        auto kCR = kRC.transpose();
+        auto kCC = elmK->getSubmatrix(8, 11, 8, 11);
+        auto invKCC = invert(kCC);
+        auto minusInvKCC = invKCC * -1;
+        
+        auto dc = minusInvKCC * kCR * dispVector;
+        Matrix<double> updateDispVector(12, 1);
+        
+        for (size_t i = 0; i < 8; i++)
+            updateDispVector(i, 0) = dispVector(i, 0);
+        for (size_t i = 8; i < 12; i++)
+            updateDispVector(i, 0) = dc(i - 8, 0);
+
+        stresses = eMat * b * updateDispVector;
     }
-    else if (nodeIndex == 4)
-    {
-        ksi = -1;
-        eta = 1;
-    }
-
-    // Calculate jacobi
-    Matrix<double> j1(2, 4);
-    j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
-    j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
-    auto j2 = j1 * mappedCoords;
-    auto jacobi = j2 * 0.25;
-
-    Matrix<double> inversejacobi(2, 2);
-    auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
-    inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
-    inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
-
-    // Calculate strain-displacement matrix (B)
-    Matrix<double> mat1(3, 4);
-    mat1(0, 0) = 1; mat1(1, 3) = 1; mat1(2, 1) = 1; mat1(2, 2) = 1;
-
-    Matrix<double> mat2(4, 4);
-    mat2(0, 0) = inversejacobi(0, 0); mat2(0, 1) = inversejacobi(0, 1); mat2(1, 0) = inversejacobi(1, 0); mat2(1, 1) = inversejacobi(1, 1);
-    mat2(2, 2) = inversejacobi(0, 0); mat2(2, 3) = inversejacobi(0, 1); mat2(3, 2) = inversejacobi(1, 0); mat2(3, 3) = inversejacobi(1, 1);
-
-    Matrix<double> mat3(4, 8);
-    mat3(0, 0) = eta - 1; mat3(0, 2) = 1 - eta; mat3(0, 4) = eta + 1; mat3(0, 6) = -eta - 1;
-    mat3(1, 0) = ksi - 1; mat3(1, 2) = -ksi - 1; mat3(1, 4) = ksi + 1; mat3(1, 6) = 1 - ksi;
-    mat3(2, 1) = eta - 1; mat3(2, 3) = 1 - eta; mat3(2, 5) = eta + 1; mat3(2, 7) = -eta - 1;
-    mat3(3, 1) = ksi - 1; mat3(3, 3) = -ksi - 1; mat3(3, 5) = ksi + 1; mat3(3, 7) = 1 - ksi;
-    mat3 *= 0.25;
-
-    auto b = mat1 * mat2 * mat3;
 
 
-    auto stresses = eMat * b * dispVector;
 
     return stresses;
 }
