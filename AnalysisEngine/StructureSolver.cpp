@@ -468,7 +468,7 @@ Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember
         b(0, 8) = invJ11 * -2 * ksi; b(0, 9) = invJ12 * -2 * eta;
         b(1, 10) = invJ21 * -2 * ksi; b(1, 11) = invJ22 * -2 * eta;
         b(2, 8) = invJ21 * -2 * ksi; b(2, 9) = invJ22 * -2 * eta; b(2, 10) = invJ11 * -2 * ksi; b(2, 11) = invJ12 * -2 * eta;
-        
+
         auto invert = [](Matrix<double> m)
         {
             double A2323 = m(2, 2) * m(3, 3) - m(2, 3) * m(3, 2);
@@ -526,10 +526,10 @@ Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember
         auto kCC = elmK->getSubmatrix(8, 11, 8, 11);
         auto invKCC = invert(kCC);
         auto minusInvKCC = invKCC * -1;
-        
+
         auto dc = minusInvKCC * kCR * dispVector;
         Matrix<double> updateDispVector(12, 1);
-        
+
         for (size_t i = 0; i < 8; i++)
             updateDispVector(i, 0) = dispVector(i, 0);
         for (size_t i = 8; i < 12; i++)
@@ -541,6 +541,257 @@ Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember
 
 
     return stresses;
+}
+
+Matrix<double> StructureSolver::CalculatePlateForces(const ShellMember& elm, Matrix<double>& disps)
+{
+    // Thickness
+    auto thickness = elm.Thickness;
+
+    // Map coordinates of flat plane to 2-D surface
+    auto d1 = elm.Nodes[0]->Coordinate.DistanceTo(elm.Nodes[1]->Coordinate);
+    auto d2 = elm.Nodes[1]->Coordinate.DistanceTo(elm.Nodes[2]->Coordinate);
+    auto d3 = elm.Nodes[2]->Coordinate.DistanceTo(elm.Nodes[3]->Coordinate);
+    auto d4 = elm.Nodes[3]->Coordinate.DistanceTo(elm.Nodes[0]->Coordinate);
+
+    Vector p1V(elm.Nodes[0]->Coordinate);
+    Vector p2V(elm.Nodes[1]->Coordinate);
+    Vector p3V(elm.Nodes[2]->Coordinate);
+    Vector p4V(elm.Nodes[3]->Coordinate);
+
+    // Angle between first line and fourth line
+    auto firstVector0 = p2V - p1V;
+    auto secondVector0 = p4V - p1V;
+    auto alpha0 = firstVector0.AngleTo(secondVector0);
+
+    // Angle between first line and second line
+    auto firstVector1 = p1V - p2V;
+    auto secondVector1 = p3V - p2V;
+    auto alpha1 = firstVector1.AngleTo(secondVector1);
+
+    // Angle between second line and third line
+    auto firstVector2 = p2V - p3V;
+    auto secondVector2 = p4V - p3V;
+    auto alpha2 = firstVector2.AngleTo(secondVector2);
+
+    // Map 3D coordinates to 2D plane using angles and length found above to be able to
+    // use natural coordinates
+    auto x1 = 0.0; auto y1 = 0.0;
+    auto x2 = d1; auto y2 = 0.0;
+    auto x3 = x2 - (d2 * cos(alpha1)); auto y3 = d2 * sin(alpha1);
+    auto x4 = d4 * cos(alpha0); auto y4 = d4 * sin(alpha0);
+
+    Matrix<double> mappedCoords(4, 2);
+    mappedCoords(0, 0) = x1; mappedCoords(0, 1) = y1;
+    mappedCoords(1, 0) = x2; mappedCoords(1, 1) = y2;
+    mappedCoords(2, 0) = x3; mappedCoords(2, 1) = y3;
+    mappedCoords(3, 0) = x4; mappedCoords(3, 1) = y4;
+
+
+    // Get displacement vector for element (assume element is at XY-plane)
+    auto iNodeDisps = GetNodalDisplacements(*elm.Nodes[0], disps);
+    auto jNodeDisps = GetNodalDisplacements(*elm.Nodes[1], disps);
+    auto kNodeDisps = GetNodalDisplacements(*elm.Nodes[2], disps);
+    auto lNodeDisps = GetNodalDisplacements(*elm.Nodes[3], disps);
+    
+    Matrix<double> dispVector(12, 1);
+    dispVector(0, 0) = iNodeDisps(2, 0);
+    dispVector(1, 0) = iNodeDisps(3, 0);
+    dispVector(2, 0) = iNodeDisps(4, 0);
+    dispVector(3, 0) = jNodeDisps(2, 0);
+    dispVector(4, 0) = jNodeDisps(3, 0);
+    dispVector(5, 0) = jNodeDisps(4, 0);
+    dispVector(6, 0) = kNodeDisps(2, 0);
+    dispVector(7, 0) = kNodeDisps(3, 0);
+    dispVector(8, 0) = kNodeDisps(4, 0);
+    dispVector(9, 0) = lNodeDisps(2, 0);
+    dispVector(10, 0) = lNodeDisps(3, 0);
+    dispVector(11, 0) = lNodeDisps(4, 0);
+
+    // Bending forces
+    auto gpCoeff2 = 1 / sqrt(3);
+    double gaussPoints2[4][2] = { {-gpCoeff2, -gpCoeff2}, {gpCoeff2, -gpCoeff2}, {gpCoeff2, gpCoeff2}, {-gpCoeff2, gpCoeff2} };
+    
+    Matrix<double> flexuralRigidity(3, 3);
+    auto elas = elm.ShellMaterial->E;
+    auto pois = elm.ShellMaterial->PoissonsRatio;
+    auto thick = elm.Thickness;
+    auto fRMult = elas * (thick * thick * thick) / (12 * (1 - (pois * pois)));
+    flexuralRigidity(0, 0) = fRMult * 1; flexuralRigidity(0, 1) = fRMult * pois;
+    flexuralRigidity(1, 0) = fRMult * pois; flexuralRigidity(1, 1) = fRMult * 1;
+    flexuralRigidity(2, 2) = fRMult * (1 - pois) / 2;
+    Matrix<double> bendingMoments(3, 4);
+    
+    for (int colCounter = 0; colCounter < 4; colCounter++)
+    {
+        auto ksi = gaussPoints2[colCounter][0]; auto eta = gaussPoints2[colCounter][1];
+
+        // Calculate jacobi
+        Matrix<double> j1(2, 4);
+        j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
+        j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
+        auto j2 = j1 * mappedCoords;
+        auto jacobi = j2 * 0.25;
+
+        Matrix<double> inversejacobi(2, 2);
+        auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+        inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+        inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+        // Bilinear shape functions
+        auto n1 = 0.25 * (1 - ksi) * (1 - eta);
+        auto n2 = 0.25 * (1 + ksi) * (1 - eta);
+        auto n3 = 0.25 * (1 + ksi) * (1 + eta);
+        auto n4 = 0.25 * (1 - ksi) * (1 + eta);
+
+        // Derivative of shape functions with respect to ksi
+        auto dN1Ksi = -0.25 * (1 - eta);
+        auto dN2Ksi = 0.25 * (1 - eta);
+        auto dN3Ksi = 0.25 * (1 + eta);
+        auto dN4Ksi = -0.25 * (1 + eta);
+
+        // Derivative of shape functions with respect to eta
+        auto dN1Eta = -0.25 * (1 - ksi);
+        auto dN2Eta = -0.25 * (1 + ksi);
+        auto dN3Eta = 0.25 * (1 + ksi);
+        auto dN4Eta = 0.25 * (1 - ksi);
+
+        // Derivative of shape functions with respect to x
+        auto dN1X = (inversejacobi(0, 0) * dN1Ksi) + (inversejacobi(0, 1) * dN1Eta);
+        auto dN2X = (inversejacobi(0, 0) * dN2Ksi) + (inversejacobi(0, 1) * dN2Eta);
+        auto dN3X = (inversejacobi(0, 0) * dN3Ksi) + (inversejacobi(0, 1) * dN3Eta);
+        auto dN4X = (inversejacobi(0, 0) * dN4Ksi) + (inversejacobi(0, 1) * dN4Eta);
+
+        // Derivative of shape functions with respect to y
+        auto dN1Y = (inversejacobi(1, 0) * dN1Ksi) + (inversejacobi(1, 1) * dN1Eta);
+        auto dN2Y = (inversejacobi(1, 0) * dN2Ksi) + (inversejacobi(1, 1) * dN2Eta);
+        auto dN3Y = (inversejacobi(1, 0) * dN3Ksi) + (inversejacobi(1, 1) * dN3Eta);
+        auto dN4Y = (inversejacobi(1, 0) * dN4Ksi) + (inversejacobi(1, 1) * dN4Eta);
+
+        Matrix<double> bB(3, 12);
+        bB(0, 2) = dN1X; bB(0, 5) = dN2X; bB(0, 8) = dN3X; bB(0, 11) = dN4X;
+        bB(1, 1) = -dN1Y; bB(1, 4) = -dN2Y; bB(1, 7) = -dN3Y; bB(1, 10) = -dN4Y;
+        bB(2, 1) = -dN1X; bB(2, 4) = -dN2X; bB(2, 7) = -dN3X; bB(2, 10) = -dN4X;
+        bB(2, 2) = dN1Y; bB(2, 5) = dN2Y; bB(2, 8) = dN3Y; bB(2, 11) = dN4Y;
+        bB *= -1;
+
+        auto momsForPt = flexuralRigidity * bB * dispVector;
+        bendingMoments(0, colCounter) = momsForPt(0, 0);
+        bendingMoments(1, colCounter) = momsForPt(1, 0);
+        bendingMoments(2, colCounter) = momsForPt(2, 0);
+    }
+
+    // Extrapolate bending moments
+    auto be4Coeff = sqrt(3);
+    double be4[4][2] = { {-be4Coeff, -be4Coeff}, {be4Coeff, -be4Coeff}, {be4Coeff, be4Coeff}, {-be4Coeff, be4Coeff} };
+
+    Matrix<double> modifiedBendingMoments(3, 4);
+    for (size_t i = 0; i < 4; i++)
+    {
+        auto ksi = be4[i][0]; auto eta = be4[i][1];
+        
+        // Bilinear shape functions
+        Matrix<double> N(4, 1); 
+        N(0, 0) = 0.25 * (1 - ksi) * (1 - eta);
+        N(1, 0) = 0.25 * (1 + ksi) * (1 - eta);
+        N(2, 0) = 0.25 * (1 + ksi) * (1 + eta);
+        N(3, 0) = 0.25 * (1 - ksi) * (1 + eta);
+
+        for (size_t i2 = 0; i2 < 3; i2++)
+        {
+            auto s = 0.0;
+
+            for (size_t i3 = 0; i3 < 4; i3++)
+                s += bendingMoments(i2, i3) * N(i3, 0);
+
+            modifiedBendingMoments(i2, i) = s;
+        }
+
+    }
+
+    bendingMoments = modifiedBendingMoments;
+
+    Matrix<double> shearRigidity(2, 2);
+    double sR = (5.0 / 12.0) * elm.ShellMaterial->G * elm.Thickness;
+    shearRigidity(0, 0) = sR; 
+    shearRigidity(1, 1) = sR;
+    Matrix<double> shearReactions(2, 1);
+    for (size_t j = 0; j < 1; j++)
+    {
+        auto ksi = 0.0; auto eta = 0.0;
+
+        // Calculate jacobi
+        Matrix<double> j1(2, 4);
+        j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
+        j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
+        auto j2 = j1 * mappedCoords;
+        auto jacobi = j2 * 0.25;
+
+        Matrix<double> inversejacobi(2, 2);
+        auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+        inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+        inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+        // Bilinear shape functions
+        auto n1 = 0.25 * (1 - ksi) * (1 - eta);
+        auto n2 = 0.25 * (1 + ksi) * (1 - eta);
+        auto n3 = 0.25 * (1 + ksi) * (1 + eta);
+        auto n4 = 0.25 * (1 - ksi) * (1 + eta);
+
+        // Derivative of shape functions with respect to ksi
+        auto dN1Ksi = -0.25 * (1 - eta);
+        auto dN2Ksi = 0.25 * (1 - eta);
+        auto dN3Ksi = 0.25 * (1 + eta);
+        auto dN4Ksi = -0.25 * (1 + eta);
+
+        // Derivative of shape functions with respect to eta
+        auto dN1Eta = -0.25 * (1 - ksi);
+        auto dN2Eta = -0.25 * (1 + ksi);
+        auto dN3Eta = 0.25 * (1 + ksi);
+        auto dN4Eta = 0.25 * (1 - ksi);
+
+        // Derivative of shape functions with respect to x
+        auto dN1X = (inversejacobi(0, 0) * dN1Ksi) + (inversejacobi(0, 1) * dN1Eta);
+        auto dN2X = (inversejacobi(0, 0) * dN2Ksi) + (inversejacobi(0, 1) * dN2Eta);
+        auto dN3X = (inversejacobi(0, 0) * dN3Ksi) + (inversejacobi(0, 1) * dN3Eta);
+        auto dN4X = (inversejacobi(0, 0) * dN4Ksi) + (inversejacobi(0, 1) * dN4Eta);
+
+        // Derivative of shape functions with respect to y
+        auto dN1Y = (inversejacobi(1, 0) * dN1Ksi) + (inversejacobi(1, 1) * dN1Eta);
+        auto dN2Y = (inversejacobi(1, 0) * dN2Ksi) + (inversejacobi(1, 1) * dN2Eta);
+        auto dN3Y = (inversejacobi(1, 0) * dN3Ksi) + (inversejacobi(1, 1) * dN3Eta);
+        auto dN4Y = (inversejacobi(1, 0) * dN4Ksi) + (inversejacobi(1, 1) * dN4Eta);
+
+        Matrix<double> bS(2, 12);
+        bS(0, 0) = dN1X; bS(0, 2) = n1;
+        bS(0, 3) = dN2X; bS(0, 5) = n2;
+        bS(0, 6) = dN3X; bS(0, 8) = n3;
+        bS(0, 9) = dN4X; bS(0, 11) = n4;
+
+        bS(1, 0) = -dN1Y; bS(1, 1) = n1;
+        bS(1, 3) = -dN2Y; bS(1, 4) = n2;
+        bS(1, 6) = -dN3Y; bS(1, 7) = n3;
+        bS(1, 9) = -dN4Y; bS(1, 10) = n4;
+
+        shearReactions = shearRigidity * bS * dispVector;
+    }
+
+    Matrix<double> reactions(5, 4);
+
+    for (size_t i = 0; i < 3; i++)
+        for (size_t j = 0; j < 4; j++)
+            reactions(i, j) = bendingMoments(i, j);
+
+    reactions(3, 0) = shearReactions(0, 0);
+    reactions(4, 0) = shearReactions(1, 0);
+    reactions(3, 1) = shearReactions(0, 0);
+    reactions(4, 1) = shearReactions(1, 0);
+    reactions(3, 2) = shearReactions(0, 0);
+    reactions(4, 3) = shearReactions(1, 0);
+    reactions(3, 3) = shearReactions(0, 0);
+    reactions(4, 3) = shearReactions(1, 0);
+
+    return reactions;
 }
 
 double StructureSolver::CondenseStiffnessMatrixForSpecificDOF(const Structure& str, unsigned int dofIndex, SolverChoice solverChoice)

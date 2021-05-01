@@ -78,6 +78,9 @@
     <ClCompile Include="Shell.cpp">
       <Filter>src\Elements</Filter>
     </ClCompile>
+    <ClCompile Include="SerendipityShell.cpp">
+      <Filter>src\Elements</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Node.h">
@@ -138,6 +141,9 @@
       <Filter>src\Elements</Filter>
     </ClInclude>
     <ClInclude Include="Shell.h">
+      <Filter>src\Elements</Filter>
+    </ClInclude>
+    <ClInclude Include="SerendipityShell.h">
       <Filter>src\Elements</Filter>
     </ClInclude>
   </ItemGroup>

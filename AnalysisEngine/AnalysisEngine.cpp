@@ -19,6 +19,7 @@ void CE583Assignment1_3();
 void CE583Assignment5();
 void CE583Assignment6_2();
 void CE583Assignment6_3();
+void CE583Assignment7_1();
 void TrussExample();
 
 int main()
@@ -38,7 +39,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment6_3();
+        CE583Assignment7_1();
     }
     catch (const std::runtime_error& e)
     {
@@ -632,15 +633,15 @@ void CE583Assignment5()
 void CE583Assignment6_2()
 {
     // Input Card (Units are in N & m)
-    int nElmX = 20;
-    int nElmY = 5;
+    int nElmX = 1;
+    int nElmY = 1;
     bool isAxial = false;
     double stressLoc = 0;
     double lX = 4;
     double lY = 0.6;
     double thickness = 0.4;
     double e = 25e9;
-    double v = 0;
+    double v = 0.2;
     XYZPoint restraintStart(0.0, 0.0, 0.0);
     XYZPoint restraintEnd(0.0, 0.6, 0.0);
 
@@ -661,8 +662,8 @@ void CE583Assignment6_2()
     Vector supportVector(restraintStart, restraintEnd);
     auto supportUnitVector = supportVector.getUnitVector();
 
-    std::vector<bool> isRest = { true, true, true, true, true, true };
-    std::vector<bool> universal = { false, false, true, true, true, true };
+    std::vector<bool> isRest = { true, true, true, true, true, false };
+    std::vector<bool> universal = { false, false, true, true, true, false };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
     auto addRestaint = [&](std::shared_ptr<Node> nR)
     {
@@ -716,7 +717,7 @@ void CE583Assignment6_2()
             auto& jNode = nodes[iNode->NodeIndex + 1];
             auto& kNode = nodes[jNode->NodeIndex + nNodeX];
             auto& lNode = nodes[kNode->NodeIndex - 1];
-            auto sm = std::make_shared<ShellMember>(idx, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Incompatible, PlateType::NONE); elements[sm->ElementIndex] = sm;
+            auto sm = std::make_shared<ShellMember>(idx, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Drilling, PlateType::NONE); elements[sm->ElementIndex] = sm;
             if (Utils::AreEqual(jNode->Coordinate.X, stressLoc) || Utils::AreEqual(iNode->Coordinate.X, stressLoc))
                 membersAtSupport.push_back(*sm);
         }
@@ -754,12 +755,11 @@ void CE583Assignment6_2()
     //        LOG(n.second->Coordinate.X << " " << nodalDisp(1, 0));
     //    }
     //}
-
     auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodes.size()], disps);
     LOG(" Node Index: " << nodes[nodes.size()]->NodeIndex);
     LOG(" Node Location: " << nodes[nodes.size()]->Coordinate.X << " m, " << nodes[nodes.size()]->Coordinate.Y << " m");
     LOG(" Vertical Displacement: " << nodalDisp(1, 0) << " m");
-
+    str->StiffnessMatrix->printElements();
     // auto& node = nodes[nNodeX * nNodeY];
     // LOG("");
     // LOG(" Node Index: ");
@@ -773,8 +773,6 @@ void CE583Assignment6_2()
 
 void CE583Assignment6_3()
 {
-    bool isAxial = true;
-
     // Units are in N & m
     // Solve
     std::map<unsigned int, std::shared_ptr<Node>> nodes;
@@ -970,6 +968,142 @@ void CE583Assignment6_3()
 
 
 
+}
+
+void CE583Assignment7_1() 
+{
+    // Units are in N & m
+    int nElmX = 1;
+    int nElmY = 5;
+    double lX = 0.4;
+    double lY = 4.0;
+    double e = 25e9;
+    double v = 0.2;
+    double t = 0.6;
+
+    // Solve
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;    
+    
+    // Material
+    auto mat = std::make_shared<Material>(e, v, 0);
+
+    // Helper functions
+    // Coordinates, nodes, restraints and loads
+    std::vector<bool> isRest = { true, true, true, true, true, true };
+    std::vector<bool> universal = { true, true, false, false, false, true };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    auto f = -20000.0 / (nElmX + 1);
+    double nodalLoad[6] = { 0, 0, f, 0, 0, 0 };
+    int loadIdx = 1;
+    std::vector<int> tipNodeIndices;
+    auto addNode = [&](int nodeIndex, double x, double y, double z) {
+        XYZPoint pt(x, y, z);
+        nodes[nodeIndex] = std::make_shared<Node>(nodeIndex, pt);
+
+        // Restraint
+        if (Utils::AreEqual(y, 0))
+            restraints[nodeIndex] = std::make_shared<Restraint>(nodes[nodeIndex], isRest, rest);
+        else
+            restraints[nodeIndex] = std::make_shared<Restraint>(nodes[nodeIndex], universal, rest);
+
+        // Loads
+        if (Utils::AreEqual(y, 4))
+        {
+            nodalLoads[loadIdx++] = std::make_shared<NodalLoad>(nodes[nodeIndex], nodalLoad);
+            tipNodeIndices.push_back(nodeIndex);
+        }
+    };
+
+    // Elements
+    std::vector<std::shared_ptr<ShellMember>> membersAtSupport;
+    auto addElem = [&](int elmIndex, int iNodeIndex, int jNodeIndex, int kNodeIndex, int lNodeIndex) {
+        auto elm = std::make_shared<ShellMember>(elmIndex, nodes[iNodeIndex], nodes[jNodeIndex], nodes[kNodeIndex], nodes[lNodeIndex], mat, t, MembraneType::NONE, PlateType::MindlinFourNode);
+        elements[elmIndex] = elm;
+
+        if (elm->Nodes[0]->Coordinate.Y == 0)
+            membersAtSupport.push_back(elm);
+    };
+
+    // Add nodes
+    auto hX = lX / nElmX;
+    auto hY = lY / nElmY;
+    auto nNodeX = nElmX + 1;
+    auto nNodeY = nElmY + 1;
+
+    for (size_t i = 0; i < nNodeY; i++)
+    {
+        for (size_t j = 0; j < nNodeX; j++)
+        {
+            auto idx = (i * nNodeX) + j + 1;
+            addNode(idx, j * hX, i * hY, 0);
+        }
+    }
+
+    // Add elements. Nodes should be in CCW-orientation
+    for (size_t i = 0; i < nElmY; i++)
+    {
+        for (size_t j = 0; j < nElmX; j++)
+        {
+            auto idx = (i * nElmX) + j + 1;
+            auto iNodeIdx = (i * nNodeX) + j + 1;
+            auto jNodeIdx = iNodeIdx + 1;
+            auto kNodeIdx = jNodeIdx + nNodeX;
+            auto lNodeIdx = kNodeIdx -1;
+            addElem(idx, iNodeIdx, jNodeIdx, kNodeIdx, lNodeIdx);
+            idx++;
+        }
+    }
+
+    /*for (auto& n : nodes)
+        LOG(" Node Index: " << n.first << ", X,Y = " << n.second->Coordinate.X << ", " << n.second->Coordinate.Y);
+    LOG("");
+    for (auto& n : nodes)
+        LOG(" Node Index: " << n.first << ", DOF Indices = " << n.second->Coordinate.X << ", " << n.second->Coordinate.Y);
+    LOG("");
+    for (auto& eP : elements)
+        LOG(" Element Index: " << eP.first << ", I-Node:" << eP.second->GelElementNodes()[0]->NodeIndex << ", J-Node:" << eP.second->GelElementNodes()[1]->NodeIndex
+            << ", K-Node:" << eP.second->GelElementNodes()[2]->NodeIndex << ", L-Node:" << eP.second->GelElementNodes()[3]->NodeIndex);
+    LOG("");
+    for (auto& r : restraints)
+        LOG(" Restrained Node ID: " << r.second->RestrainedNode->NodeIndex);
+
+    LOG("");
+    for (auto& nl : nodalLoads)
+        LOG(" Loaded Node ID: " << nl.second->ActingNode->NodeIndex);*/
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+
+    // Print tip displacement
+    auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[tipNodeIndices[0]], disps);
+    
+    LOG(" Tip Displacement");
+    LOG(" Node Index: " << nodes[tipNodeIndices[0]]->NodeIndex);
+    LOG(" Node Location: " << nodes[tipNodeIndices[0]]->Coordinate.X << " m, " << nodes[tipNodeIndices[0]]->Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << nodalDisp(2, 0) << " m");
+    LOG("");
+
+    auto format = [](double d) { return abs(d) < 1 ? 0 : d / 1000; };
+
+    auto reactions = StructureSolver::CalculatePlateForces(*membersAtSupport[0], disps);
+    LOG(" Reactions");
+    LOG("   Moments");
+    LOG("     "<< format(reactions(1, 0)) << " kN-m/m");
+    LOG("     " << format(reactions(1, 1)) << " kN-m/m");
+    LOG("     " << format(reactions(1, 2)) << " kN-m/m");
+    LOG("     " << format(reactions(1, 3)) << " kN-m/m");
+    LOG("   Shear");
+    LOG("     " << format(reactions(4, 0)) << " kN/m");
+
+    LOG("");
 }
 
 void TrussExample()

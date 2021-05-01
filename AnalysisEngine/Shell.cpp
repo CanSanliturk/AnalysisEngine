@@ -2,7 +2,6 @@
 #include "Vector.h"
 #include "GeometryHelper.h"
 
-
 ShellMember::ShellMember(unsigned int elmIndex,
     std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, std::shared_ptr<Node> kNode, std::shared_ptr<Node> lNode,
     std::shared_ptr<Material> material, double thickness, MembraneType memType, PlateType pltType,
@@ -186,7 +185,6 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
     Matrix<double> kMembrane(8, 8);
     if (membraneType == MembraneType::Bilinear)
     {
-
         auto gp = 1 / sqrt(3);
         double gaussPoints[4][2] = { {-gp, -gp}, {gp, -gp}, {gp, gp}, {-gp, gp} };
 
@@ -450,10 +448,10 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         // Stabilization matrix for Drilling DOF
         Matrix<double> kD(12, 12);
         auto kDia = (1 / 150000) * this->ShellMaterial->E * vValue;
-        
+
         for (size_t i = 0; i < 4; i++)
             kD(3 * i, 3 * i) = 1.75;
-        
+
         kD(2, 5) = -0.75; kD(2, 8) = -0.25; kD(2, 11) = -0.75;
         kD(5, 8) = -0.75; kD(5, 11) = -0.25;
         kD(8, 11) = -0.75;
@@ -463,23 +461,23 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         kD(8, 5) = kD(5, 8);
         kD(11, 5) = kD(5, 11);
         kD(11, 8) = kD(8, 11);
-        
+
         kD *= kDia;
-        
+
         auto membK = initialKStorage + kD;
 
-        elmK(0, 0) = membK(0, 0); elmK(0, 1) = membK(0, 1); elmK(0, 3) = membK(0, 2); elmK(0, 6) = membK(0, 3); elmK(0, 7) = membK(0, 4); elmK(0, 9) = membK(0, 5); elmK(0, 12) = membK(0, 6); elmK(0, 13) = membK(0, 7); elmK(0, 15) = membK(0, 8); elmK(0, 18) = membK(0, 9); elmK(0, 19) = membK(0, 10); elmK(0, 21) = membK(0, 11);
-        elmK(1, 0) = membK(1, 0); elmK(1, 1) = membK(1, 1); elmK(1, 3) = membK(1, 2); elmK(1, 6) = membK(1, 3); elmK(1, 7) = membK(1, 4); elmK(1, 9) = membK(1, 5); elmK(1, 12) = membK(1, 6); elmK(1, 13) = membK(1, 7); elmK(1, 15) = membK(1, 8); elmK(1, 18) = membK(1, 9); elmK(1, 19) = membK(1, 10); elmK(1, 21) = membK(1, 11);
-        elmK(3, 0) = membK(2, 0); elmK(3, 1) = membK(2, 1); elmK(3, 3) = membK(2, 2); elmK(3, 6) = membK(2, 3); elmK(3, 7) = membK(2, 4); elmK(3, 9) = membK(2, 5); elmK(3, 12) = membK(2, 6); elmK(3, 13) = membK(2, 7); elmK(3, 15) = membK(2, 8); elmK(3, 18) = membK(2, 9); elmK(3, 19) = membK(2, 10); elmK(3, 21) = membK(2, 11);
-        elmK(6, 0) = membK(3, 0); elmK(6, 1) = membK(3, 1); elmK(6, 3) = membK(3, 2); elmK(6, 6) = membK(3, 3); elmK(6, 7) = membK(3, 4); elmK(6, 9) = membK(3, 5); elmK(6, 12) = membK(3, 6); elmK(6, 13) = membK(3, 7); elmK(6, 15) = membK(3, 8); elmK(6, 18) = membK(3, 9); elmK(6, 19) = membK(3, 10); elmK(6, 21) = membK(3, 11);
-        elmK(7, 0) = membK(4, 0); elmK(7, 1) = membK(4, 1); elmK(7, 3) = membK(4, 2); elmK(7, 6) = membK(4, 3); elmK(7, 7) = membK(4, 4); elmK(7, 9) = membK(4, 5); elmK(7, 12) = membK(4, 6); elmK(7, 13) = membK(4, 7); elmK(7, 15) = membK(4, 8); elmK(7, 18) = membK(4, 9); elmK(7, 19) = membK(4, 10); elmK(7, 21) = membK(4, 11);
-        elmK(9, 0) = membK(5, 0); elmK(9, 1) = membK(5, 1); elmK(9, 3) = membK(5, 2); elmK(9, 6) = membK(5, 3); elmK(9, 7) = membK(5, 4); elmK(9, 9) = membK(5, 5); elmK(9, 12) = membK(5, 6); elmK(9, 13) = membK(5, 7); elmK(9, 15) = membK(5, 8); elmK(9, 18) = membK(5, 9); elmK(9, 19) = membK(5, 10); elmK(9, 21) = membK(5, 11);
-        elmK(12, 0) = membK(6, 0); elmK(12, 1) = membK(6, 1); elmK(12, 3) = membK(6, 2); elmK(12, 6) = membK(6, 3); elmK(12, 7) = membK(6, 4); elmK(12, 9) = membK(6, 5); elmK(12, 12) = membK(6, 6); elmK(12, 13) = membK(6, 7); elmK(12, 15) = membK(6, 8); elmK(12, 18) = membK(6, 9); elmK(12, 19) = membK(6, 10); elmK(12, 21) = membK(6, 11);
-        elmK(13, 0) = membK(7, 0); elmK(13, 1) = membK(7, 1); elmK(13, 3) = membK(7, 2); elmK(13, 6) = membK(7, 3); elmK(13, 7) = membK(7, 4); elmK(13, 9) = membK(7, 5); elmK(13, 12) = membK(7, 6); elmK(13, 13) = membK(7, 7); elmK(13, 15) = membK(7, 8); elmK(13, 18) = membK(7, 9); elmK(13, 19) = membK(7, 10); elmK(13, 21) = membK(7, 11);
-        elmK(15, 0) = membK(8, 0); elmK(15, 1) = membK(8, 1); elmK(15, 3) = membK(8, 2); elmK(15, 6) = membK(8, 3); elmK(15, 7) = membK(8, 4); elmK(15, 9) = membK(8, 5); elmK(15, 12) = membK(8, 6); elmK(15, 13) = membK(8, 7); elmK(15, 15) = membK(8, 8); elmK(15, 18) = membK(8, 9); elmK(15, 19) = membK(8, 10); elmK(15, 21) = membK(8, 11);
-        elmK(18, 0) = membK(9, 0); elmK(18, 1) = membK(9, 1); elmK(18, 3) = membK(9, 2); elmK(18, 6) = membK(9, 3); elmK(18, 7) = membK(9, 4); elmK(18, 9) = membK(9, 5); elmK(18, 12) = membK(9, 6); elmK(18, 13) = membK(9, 7); elmK(18, 15) = membK(9, 8); elmK(18, 18) = membK(9, 9); elmK(18, 19) = membK(9, 10); elmK(18, 21) = membK(9, 11);
-        elmK(19, 0) = membK(10, 0); elmK(19, 1) = membK(10, 1); elmK(19, 3) = membK(10, 2); elmK(19, 6) = membK(10, 3); elmK(19, 7) = membK(10, 4); elmK(19, 9) = membK(10, 5); elmK(19, 12) = membK(10, 6); elmK(19, 13) = membK(10, 7); elmK(19, 15) = membK(10, 8); elmK(19, 18) = membK(10, 9); elmK(19, 19) = membK(10, 10); elmK(19, 21) = membK(10, 11);
-        elmK(21, 0) = membK(11, 0); elmK(21, 1) = membK(11, 1); elmK(21, 3) = membK(11, 2); elmK(21, 6) = membK(11, 3); elmK(21, 7) = membK(11, 4); elmK(21, 9) = membK(11, 5); elmK(21, 12) = membK(11, 6); elmK(21, 13) = membK(11, 7); elmK(21, 15) = membK(11, 8); elmK(21, 18) = membK(11, 9); elmK(21, 19) = membK(11, 10); elmK(21, 21) = membK(11, 11);
+        elmK(0, 0) = membK(0, 0); elmK(0, 1) = membK(0, 1); elmK(0, 5) = membK(0, 2); elmK(0, 6) = membK(0, 3); elmK(0, 7) = membK(0, 4); elmK(0, 11) = membK(0, 5); elmK(0, 12) = membK(0, 6); elmK(0, 13) = membK(0, 7); elmK(0, 17) = membK(0, 8); elmK(0, 18) = membK(0, 9); elmK(0, 19) = membK(0, 10); elmK(0, 23) = membK(0, 11);
+        elmK(1, 0) = membK(1, 0); elmK(1, 1) = membK(1, 1); elmK(1, 5) = membK(1, 2); elmK(1, 6) = membK(1, 3); elmK(1, 7) = membK(1, 4); elmK(1, 11) = membK(1, 5); elmK(1, 12) = membK(1, 6); elmK(1, 13) = membK(1, 7); elmK(1, 17) = membK(1, 8); elmK(1, 18) = membK(1, 9); elmK(1, 19) = membK(1, 10); elmK(1, 23) = membK(1, 11);
+        elmK(5, 0) = membK(2, 0); elmK(5, 1) = membK(2, 1); elmK(5, 5) = membK(2, 2); elmK(5, 6) = membK(2, 3); elmK(5, 7) = membK(2, 4); elmK(5, 11) = membK(2, 5); elmK(5, 12) = membK(2, 6); elmK(5, 13) = membK(2, 7); elmK(5, 17) = membK(2, 8); elmK(5, 18) = membK(2, 9); elmK(5, 19) = membK(2, 10); elmK(5, 23) = membK(2, 11);
+        elmK(6, 0) = membK(3, 0); elmK(6, 1) = membK(3, 1); elmK(6, 5) = membK(3, 2); elmK(6, 6) = membK(3, 3); elmK(6, 7) = membK(3, 4); elmK(6, 11) = membK(3, 5); elmK(6, 12) = membK(3, 6); elmK(6, 13) = membK(3, 7); elmK(6, 17) = membK(3, 8); elmK(6, 18) = membK(3, 9); elmK(6, 19) = membK(3, 10); elmK(6, 23) = membK(3, 11);
+        elmK(7, 0) = membK(4, 0); elmK(7, 1) = membK(4, 1); elmK(7, 5) = membK(4, 2); elmK(7, 6) = membK(4, 3); elmK(7, 7) = membK(4, 4); elmK(7, 11) = membK(4, 5); elmK(7, 12) = membK(4, 6); elmK(7, 13) = membK(4, 7); elmK(7, 17) = membK(4, 8); elmK(7, 18) = membK(4, 9); elmK(7, 19) = membK(4, 10); elmK(7, 23) = membK(4, 11);
+        elmK(11, 0) = membK(5, 0); elmK(11, 1) = membK(5, 1); elmK(11, 5) = membK(5, 2); elmK(11, 6) = membK(5, 3); elmK(11, 7) = membK(5, 4); elmK(11, 11) = membK(5, 5); elmK(11, 12) = membK(5, 6); elmK(11, 13) = membK(5, 7); elmK(11, 17) = membK(5, 8); elmK(11, 18) = membK(5, 9); elmK(11, 19) = membK(5, 10); elmK(11, 23) = membK(5, 11);
+        elmK(12, 0) = membK(6, 0); elmK(12, 1) = membK(6, 1); elmK(12, 5) = membK(6, 2); elmK(12, 6) = membK(6, 3); elmK(12, 7) = membK(6, 4); elmK(12, 11) = membK(6, 5); elmK(12, 12) = membK(6, 6); elmK(12, 13) = membK(6, 7); elmK(12, 17) = membK(6, 8); elmK(12, 18) = membK(6, 9); elmK(12, 19) = membK(6, 10); elmK(12, 23) = membK(6, 11);
+        elmK(13, 0) = membK(7, 0); elmK(13, 1) = membK(7, 1); elmK(13, 5) = membK(7, 2); elmK(13, 6) = membK(7, 3); elmK(13, 7) = membK(7, 4); elmK(13, 11) = membK(7, 5); elmK(13, 12) = membK(7, 6); elmK(13, 13) = membK(7, 7); elmK(13, 17) = membK(7, 8); elmK(13, 18) = membK(7, 9); elmK(13, 19) = membK(7, 10); elmK(13, 23) = membK(7, 11);
+        elmK(17, 0) = membK(8, 0); elmK(17, 1) = membK(8, 1); elmK(17, 5) = membK(8, 2); elmK(17, 6) = membK(8, 3); elmK(17, 7) = membK(8, 4); elmK(17, 11) = membK(8, 5); elmK(17, 12) = membK(8, 6); elmK(17, 13) = membK(8, 7); elmK(17, 17) = membK(8, 8); elmK(17, 18) = membK(8, 9); elmK(17, 19) = membK(8, 10); elmK(17, 23) = membK(8, 11);
+        elmK(18, 0) = membK(9, 0); elmK(18, 1) = membK(9, 1); elmK(18, 5) = membK(9, 2); elmK(18, 6) = membK(9, 3); elmK(18, 7) = membK(9, 4); elmK(18, 11) = membK(9, 5); elmK(18, 12) = membK(9, 6); elmK(18, 13) = membK(9, 7); elmK(18, 17) = membK(9, 8); elmK(18, 18) = membK(9, 9); elmK(18, 19) = membK(9, 10); elmK(18, 23) = membK(9, 11);
+        elmK(19, 0) = membK(10, 0); elmK(19, 1) = membK(10, 1); elmK(19, 5) = membK(10, 2); elmK(19, 6) = membK(10, 3); elmK(19, 7) = membK(10, 4); elmK(19, 11) = membK(10, 5); elmK(19, 12) = membK(10, 6); elmK(19, 13) = membK(10, 7); elmK(19, 17) = membK(10, 8); elmK(19, 18) = membK(10, 9); elmK(19, 19) = membK(10, 10); elmK(19, 23) = membK(10, 11);
+        elmK(23, 0) = membK(11, 0); elmK(23, 1) = membK(11, 1); elmK(23, 5) = membK(11, 2); elmK(23, 6) = membK(11, 3); elmK(23, 7) = membK(11, 4); elmK(23, 11) = membK(11, 5); elmK(23, 12) = membK(11, 6); elmK(23, 13) = membK(11, 7); elmK(23, 17) = membK(11, 8); elmK(23, 18) = membK(11, 9); elmK(23, 19) = membK(11, 10); elmK(23, 23) = membK(11, 11);
     }
 
     if ((this->membraneType != MembraneType::Drilling) && (this->membraneType != MembraneType::NONE))
@@ -494,8 +492,174 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         elmK(18, 0) = kMembrane(6, 0); elmK(18, 1) = kMembrane(6, 1); elmK(18, 6) = kMembrane(6, 2); elmK(18, 7) = kMembrane(6, 3); elmK(18, 12) = kMembrane(6, 4); elmK(18, 13) = kMembrane(6, 5); elmK(18, 18) = kMembrane(6, 6); elmK(18, 19) = kMembrane(6, 7);
         elmK(19, 0) = kMembrane(7, 0); elmK(19, 1) = kMembrane(7, 1); elmK(19, 6) = kMembrane(7, 2); elmK(19, 7) = kMembrane(7, 3); elmK(19, 12) = kMembrane(7, 4); elmK(19, 13) = kMembrane(7, 5); elmK(19, 18) = kMembrane(7, 6); elmK(19, 19) = kMembrane(7, 7);
     }
+    // For an element on XY-Plane, plate action resists translation-Z, rotation-X and rotation-Y. For bending stiffness, use 2x2 gauss integration (weight is 1 for each point) 
+    // and for shear part, use 1x1 gauss integration (weight is 2 for midpoint integration).
+    if (this->plateType == PlateType::MindlinFourNode)
+    {
+        // Use bilinear shape functions for bending part
+        Matrix<double> kBending(12, 12);
+        auto gpCoeff2 = 1 / sqrt(3);
+        double gaussPoints2[4][2] = { {-gpCoeff2, -gpCoeff2}, {gpCoeff2, -gpCoeff2}, {gpCoeff2, gpCoeff2}, {-gpCoeff2, gpCoeff2} };
+        auto rowCounter = 0;
 
-    // Plate action is not implemented yet
+        Matrix<double> flexuralRigidity(3, 3);
+        auto elas = this->ShellMaterial->E;
+        auto pois = this->ShellMaterial->PoissonsRatio;
+        auto thick = this->Thickness;
+        auto fRMult = elas * (thick * thick * thick) / (12 * (1 - (pois * pois)));
+        flexuralRigidity(0, 0) = fRMult * 1; flexuralRigidity(0, 1) = fRMult * pois;
+        flexuralRigidity(1, 0) = fRMult * pois; flexuralRigidity(1, 1) = fRMult * 1;
+        flexuralRigidity(2, 2) = fRMult * (1 - pois) / 2;
+
+        for (size_t i = 0; i < 2; i++)
+        {
+            for (size_t j = 0; j < 2; j++)
+            {
+                auto ksi = gaussPoints2[rowCounter][0]; auto eta = gaussPoints2[rowCounter][1];
+
+                // Calculate jacobi
+                Matrix<double> j1(2, 4);
+                j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
+                j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
+                auto j2 = j1 * mappedCoords;
+                auto jacobi = j2 * 0.25;
+
+                Matrix<double> inversejacobi(2, 2);
+                auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+                inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+                inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+                // Bilinear shape functions
+                auto n1 = 0.25 * (1 - ksi) * (1 - eta);
+                auto n2 = 0.25 * (1 + ksi) * (1 - eta);
+                auto n3 = 0.25 * (1 + ksi) * (1 + eta);
+                auto n4 = 0.25 * (1 - ksi) * (1 + eta);
+
+                // Derivative of shape functions with respect to ksi
+                auto dN1Ksi = -0.25 * (1 - eta);
+                auto dN2Ksi = 0.25 * (1 - eta);
+                auto dN3Ksi = 0.25 * (1 + eta);
+                auto dN4Ksi = -0.25 * (1 + eta);
+
+                // Derivative of shape functions with respect to eta
+                auto dN1Eta = -0.25 * (1 - ksi);
+                auto dN2Eta = -0.25 * (1 + ksi);
+                auto dN3Eta = 0.25 * (1 + ksi);
+                auto dN4Eta = 0.25 * (1 - ksi);
+
+                // Derivative of shape functions with respect to x
+                auto dN1X = (inversejacobi(0, 0) * dN1Ksi) + (inversejacobi(0, 1) * dN1Eta);
+                auto dN2X = (inversejacobi(0, 0) * dN2Ksi) + (inversejacobi(0, 1) * dN2Eta);
+                auto dN3X = (inversejacobi(0, 0) * dN3Ksi) + (inversejacobi(0, 1) * dN3Eta);
+                auto dN4X = (inversejacobi(0, 0) * dN4Ksi) + (inversejacobi(0, 1) * dN4Eta);
+
+                // Derivative of shape functions with respect to y
+                auto dN1Y = (inversejacobi(1, 0) * dN1Ksi) + (inversejacobi(1, 1) * dN1Eta);
+                auto dN2Y = (inversejacobi(1, 0) * dN2Ksi) + (inversejacobi(1, 1) * dN2Eta);
+                auto dN3Y = (inversejacobi(1, 0) * dN3Ksi) + (inversejacobi(1, 1) * dN3Eta);
+                auto dN4Y = (inversejacobi(1, 0) * dN4Ksi) + (inversejacobi(1, 1) * dN4Eta);
+
+                Matrix<double> bB(3, 12);
+                bB(0, 2) = dN1X; bB(0, 5) = dN2X; bB(0, 8) = dN3X; bB(0, 11) = dN4X;
+                bB(1, 1) = -dN1Y; bB(1, 4) = -dN2Y; bB(1, 7) = -dN3Y; bB(1, 10) = -dN4Y;
+                bB(2, 1) = -dN1X; bB(2, 4) = -dN2X; bB(2, 7) = -dN3X; bB(2, 10) = -dN4X;
+                bB(2, 2) = dN1Y; bB(2, 5) = dN2Y; bB(2, 8) = dN3Y; bB(2, 11) = dN4Y;
+                bB *= -1;
+
+                auto pointBendingStiffness = bB.transpose() * flexuralRigidity * bB * detjacobi;
+                kBending += pointBendingStiffness;
+
+                rowCounter++;
+            }
+        }
+
+        // Again, use bilinear shape functions for shear stiffness part but use midpoint integration
+        // (Multiply stiffness value calculated for ksi = 0 and eta = 0 by 2)
+        // Use bilinear shape functions for bending part
+        Matrix<double> kShear(12, 12);
+        Matrix<double> shearRigidity(2, 2);
+        double sR = (5.0 / 6.0) * this->ShellMaterial->G * this->Thickness;
+        // Shear rigidity is multiplied by two since shear stifness is calculated at only midpoint
+        // and weight of midpoint is 2 for gauss-quadrature
+        shearRigidity(0, 0) = 2.0 * sR; shearRigidity(1, 1) = 2.0 * sR;
+        
+        for (size_t j = 0; j < 1; j++)
+        {
+            auto ksi = 0.0; auto eta = 0.0;
+
+            // Calculate jacobi
+            Matrix<double> j1(2, 4);
+            j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
+            j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
+            auto j2 = j1 * mappedCoords;
+            auto jacobi = j2 * 0.25;
+
+            Matrix<double> inversejacobi(2, 2);
+            auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
+            inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
+            inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
+
+            // Bilinear shape functions
+            auto n1 = 0.25 * (1 - ksi) * (1 - eta);
+            auto n2 = 0.25 * (1 + ksi) * (1 - eta);
+            auto n3 = 0.25 * (1 + ksi) * (1 + eta);
+            auto n4 = 0.25 * (1 - ksi) * (1 + eta);
+
+            // Derivative of shape functions with respect to ksi
+            auto dN1Ksi = -0.25 * (1 - eta);
+            auto dN2Ksi = 0.25 * (1 - eta);
+            auto dN3Ksi = 0.25 * (1 + eta);
+            auto dN4Ksi = -0.25 * (1 + eta);
+
+            // Derivative of shape functions with respect to eta
+            auto dN1Eta = -0.25 * (1 - ksi);
+            auto dN2Eta = -0.25 * (1 + ksi);
+            auto dN3Eta = 0.25 * (1 + ksi);
+            auto dN4Eta = 0.25 * (1 - ksi);
+
+            // Derivative of shape functions with respect to x
+            auto dN1X = (inversejacobi(0, 0) * dN1Ksi) + (inversejacobi(0, 1) * dN1Eta);
+            auto dN2X = (inversejacobi(0, 0) * dN2Ksi) + (inversejacobi(0, 1) * dN2Eta);
+            auto dN3X = (inversejacobi(0, 0) * dN3Ksi) + (inversejacobi(0, 1) * dN3Eta);
+            auto dN4X = (inversejacobi(0, 0) * dN4Ksi) + (inversejacobi(0, 1) * dN4Eta);
+
+            // Derivative of shape functions with respect to y
+            auto dN1Y = (inversejacobi(1, 0) * dN1Ksi) + (inversejacobi(1, 1) * dN1Eta);
+            auto dN2Y = (inversejacobi(1, 0) * dN2Ksi) + (inversejacobi(1, 1) * dN2Eta);
+            auto dN3Y = (inversejacobi(1, 0) * dN3Ksi) + (inversejacobi(1, 1) * dN3Eta);
+            auto dN4Y = (inversejacobi(1, 0) * dN4Ksi) + (inversejacobi(1, 1) * dN4Eta);
+
+            Matrix<double> bS(2, 12);
+            bS(0, 0) = dN1X; bS(0, 2) = n1;
+            bS(0, 3) = dN2X; bS(0, 5) = n2;
+            bS(0, 6) = dN3X; bS(0, 8) = n3;
+            bS(0, 9) = dN4X; bS(0, 11) = n4;
+
+            bS(1, 0) = -dN1Y; bS(1, 1) = n1;
+            bS(1, 3) = -dN2Y; bS(1, 4) = n2;
+            bS(1, 6) = -dN3Y; bS(1, 7) = n3;
+            bS(1, 9) = -dN4Y; bS(1, 10) = n4;
+            
+            auto pointShearStiffness = bS.transpose() * shearRigidity * bS * detjacobi;
+            kShear += pointShearStiffness;
+        }
+
+        auto kPlate = kBending + kShear;
+
+        // Map plate stiffness to element stiffness
+        elmK(2, 2) = kPlate(0, 0); elmK(2, 3) = kPlate(0, 1); elmK(2, 4) = kPlate(0, 2); elmK(2, 8) = kPlate(0, 3); elmK(2, 9) = kPlate(0, 4); elmK(2, 10) = kPlate(0, 5); elmK(2, 14) = kPlate(0, 6); elmK(2, 15) = kPlate(0, 7); elmK(2, 16) = kPlate(0, 8); elmK(2, 20) = kPlate(0, 9); elmK(2, 21) = kPlate(0, 10); elmK(2, 22) = kPlate(0, 11);
+        elmK(3, 2) = kPlate(1, 0); elmK(3, 3) = kPlate(1, 1); elmK(3, 4) = kPlate(1, 2); elmK(3, 8) = kPlate(1, 3); elmK(3, 9) = kPlate(1, 4); elmK(3, 10) = kPlate(1, 5); elmK(3, 14) = kPlate(1, 6); elmK(3, 15) = kPlate(1, 7); elmK(3, 16) = kPlate(1, 8); elmK(3, 20) = kPlate(1, 9); elmK(3, 21) = kPlate(1, 10); elmK(3, 22) = kPlate(1, 11);
+        elmK(4, 2) = kPlate(2, 0); elmK(4, 3) = kPlate(2, 1); elmK(4, 4) = kPlate(2, 2); elmK(4, 8) = kPlate(2, 3); elmK(4, 9) = kPlate(2, 4); elmK(4, 10) = kPlate(2, 5); elmK(4, 14) = kPlate(2, 6); elmK(4, 15) = kPlate(2, 7); elmK(4, 16) = kPlate(2, 8); elmK(4, 20) = kPlate(2, 9); elmK(4, 21) = kPlate(2, 10); elmK(4, 22) = kPlate(2, 11);
+        elmK(8, 2) = kPlate(3, 0); elmK(8, 3) = kPlate(3, 1); elmK(8, 4) = kPlate(3, 2); elmK(8, 8) = kPlate(3, 3); elmK(8, 9) = kPlate(3, 4); elmK(8, 10) = kPlate(3, 5); elmK(8, 14) = kPlate(3, 6); elmK(8, 15) = kPlate(3, 7); elmK(8, 16) = kPlate(3, 8); elmK(8, 20) = kPlate(3, 9); elmK(8, 21) = kPlate(3, 10); elmK(8, 22) = kPlate(3, 11);
+        elmK(9, 2) = kPlate(4, 0); elmK(9, 3) = kPlate(4, 1); elmK(9, 4) = kPlate(4, 2); elmK(9, 8) = kPlate(4, 3); elmK(9, 9) = kPlate(4, 4); elmK(9, 10) = kPlate(4, 5); elmK(9, 14) = kPlate(4, 6); elmK(9, 15) = kPlate(4, 7); elmK(9, 16) = kPlate(4, 8); elmK(9, 20) = kPlate(4, 9); elmK(9, 21) = kPlate(4, 10); elmK(9, 22) = kPlate(4, 11);
+        elmK(10, 2) = kPlate(5, 0); elmK(10, 3) = kPlate(5, 1); elmK(10, 4) = kPlate(5, 2); elmK(10, 8) = kPlate(5, 3); elmK(10, 9) = kPlate(5, 4); elmK(10, 10) = kPlate(5, 5); elmK(10, 14) = kPlate(5, 6); elmK(10, 15) = kPlate(5, 7); elmK(10, 16) = kPlate(5, 8); elmK(10, 20) = kPlate(5, 9); elmK(10, 21) = kPlate(5, 10); elmK(10, 22) = kPlate(5, 11);
+        elmK(14, 2) = kPlate(6, 0); elmK(14, 3) = kPlate(6, 1); elmK(14, 4) = kPlate(6, 2); elmK(14, 8) = kPlate(6, 3); elmK(14, 9) = kPlate(6, 4); elmK(14, 10) = kPlate(6, 5); elmK(14, 14) = kPlate(6, 6); elmK(14, 15) = kPlate(6, 7); elmK(14, 16) = kPlate(6, 8); elmK(14, 20) = kPlate(6, 9); elmK(14, 21) = kPlate(6, 10); elmK(14, 22) = kPlate(6, 11);
+        elmK(15, 2) = kPlate(7, 0); elmK(15, 3) = kPlate(7, 1); elmK(15, 4) = kPlate(7, 2); elmK(15, 8) = kPlate(7, 3); elmK(15, 9) = kPlate(7, 4); elmK(15, 10) = kPlate(7, 5); elmK(15, 14) = kPlate(7, 6); elmK(15, 15) = kPlate(7, 7); elmK(15, 16) = kPlate(7, 8); elmK(15, 20) = kPlate(7, 9); elmK(15, 21) = kPlate(7, 10); elmK(15, 22) = kPlate(7, 11);
+        elmK(16, 2) = kPlate(8, 0); elmK(16, 3) = kPlate(8, 1); elmK(16, 4) = kPlate(8, 2); elmK(16, 8) = kPlate(8, 3); elmK(16, 9) = kPlate(8, 4); elmK(16, 10) = kPlate(8, 5); elmK(16, 14) = kPlate(8, 6); elmK(16, 15) = kPlate(8, 7); elmK(16, 16) = kPlate(8, 8); elmK(16, 20) = kPlate(8, 9); elmK(16, 21) = kPlate(8, 10); elmK(16, 22) = kPlate(8, 11);
+        elmK(20, 2) = kPlate(9, 0); elmK(20, 3) = kPlate(9, 1); elmK(20, 4) = kPlate(9, 2); elmK(20, 8) = kPlate(9, 3); elmK(20, 9) = kPlate(9, 4); elmK(20, 10) = kPlate(9, 5); elmK(20, 14) = kPlate(9, 6); elmK(20, 15) = kPlate(9, 7); elmK(20, 16) = kPlate(9, 8); elmK(20, 20) = kPlate(9, 9); elmK(20, 21) = kPlate(9, 10); elmK(20, 22) = kPlate(9, 11);
+        elmK(21, 2) = kPlate(10, 0); elmK(21, 3) = kPlate(10, 1); elmK(21, 4) = kPlate(10, 2); elmK(21, 8) = kPlate(10, 3); elmK(21, 9) = kPlate(10, 4); elmK(21, 10) = kPlate(10, 5); elmK(21, 14) = kPlate(10, 6); elmK(21, 15) = kPlate(10, 7); elmK(21, 16) = kPlate(10, 8); elmK(21, 20) = kPlate(10, 9); elmK(21, 21) = kPlate(10, 10); elmK(21, 22) = kPlate(10, 11);
+        elmK(22, 2) = kPlate(11, 0); elmK(22, 3) = kPlate(11, 1); elmK(22, 4) = kPlate(11, 2); elmK(22, 8) = kPlate(11, 3); elmK(22, 9) = kPlate(11, 4); elmK(22, 10) = kPlate(11, 5); elmK(22, 14) = kPlate(11, 6); elmK(22, 15) = kPlate(11, 7); elmK(22, 16) = kPlate(11, 8); elmK(22, 20) = kPlate(11, 9); elmK(22, 21) = kPlate(11, 10); elmK(22, 22) = kPlate(11, 11);
+    }
 
     this->LocalCoordinateStiffnessMatrix = std::make_shared<Matrix<double>>(elmK);
 }
@@ -526,7 +690,6 @@ void ShellMember::AssembleElementRotationMatrix()
     double skewAngle = globalZ.AngleTo(normalVector);
 
     auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(xVector, skewAngle);
-
     for (unsigned int i = 0; i < 3; i++)
         for (unsigned int j = 0; j < 3; j++)
             (*this->RotationMatrix)(i, j) = minorRotMat(i, j);

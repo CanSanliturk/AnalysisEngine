@@ -157,6 +157,7 @@
     <ClCompile Include="Node.cpp" />
     <ClCompile Include="Piece.cpp" />
     <ClCompile Include="Section.cpp" />
+    <ClCompile Include="SerendipityShell.cpp" />
     <ClCompile Include="Shell.cpp" />
     <ClCompile Include="Structure.cpp" />
     <ClCompile Include="StructureSolver.cpp" />
@@ -177,6 +178,7 @@
     <ClInclude Include="Hinge.h" />
     <ClInclude Include="Restraint.h" />
     <ClInclude Include="Section.h" />
+    <ClInclude Include="SerendipityShell.h" />
     <ClInclude Include="Shell.h" />
     <ClInclude Include="Structure.h" />
     <ClInclude Include="StructureSolver.h" />

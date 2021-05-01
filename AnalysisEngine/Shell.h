@@ -13,8 +13,7 @@ enum class MembraneType
 enum class PlateType
 {
     NONE = 0,
-    Thin = 1,
-    Thick = 2
+    MindlinFourNode = 1
 };
 
 class ShellMember : public Element

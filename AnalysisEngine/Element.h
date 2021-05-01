@@ -11,7 +11,8 @@ namespace ElmType {
         None = 0,
         Frame = 1,
         Truss = 2,
-        Shell = 3
+        Shell = 3,
+        SerendipityShell = 4
     };
 }
 
