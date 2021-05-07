@@ -20,6 +20,7 @@ namespace StructureSolver
     Matrix<double> GetModalPeriods(const Structure& str, SolverChoice solverChoice);
     Matrix<double> CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex);
     Matrix<double> CalculatePlateForces(const ShellMember& elm, Matrix<double>& disps);
+    Matrix<double> CalculateSerendipityPlateForces(const SerendipityShell& elm, Matrix<double>& disps);
     double CondenseStiffnessMatrixForSpecificDOF(const Structure& str, unsigned int dofIndex, SolverChoice solverChoice);
     double CondenseForceVectorForSpecificDOF(const Structure& str, unsigned int dofIndex, SolverChoice solverChoice);
     Matrix<double> LinearEquationSolver(Matrix<double>& A, Matrix<double>& b, SolverChoice solverChoice);

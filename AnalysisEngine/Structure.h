@@ -3,6 +3,7 @@
 #include <memory>
 #include <Map>
 #include "Node.h"
+#include "SerendipityShell.h"
 #include "DistributedLoad.h"
 #include "FrameMember.h"
 #include "TrussMember.h"

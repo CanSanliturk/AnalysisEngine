@@ -581,7 +581,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         double sR = (5.0 / 6.0) * this->ShellMaterial->G * this->Thickness;
         // Shear rigidity is multiplied by two since shear stifness is calculated at only midpoint
         // and weight of midpoint is 2 for gauss-quadrature
-        shearRigidity(0, 0) = 2.0 * sR; shearRigidity(1, 1) = 2.0 * sR;
+        shearRigidity(0, 0) = 4.0 * sR; shearRigidity(1, 1) = 4.0 * sR;
         
         for (size_t j = 0; j < 1; j++)
         {
@@ -639,7 +639,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
             bS(1, 3) = -dN2Y; bS(1, 4) = n2;
             bS(1, 6) = -dN3Y; bS(1, 7) = n3;
             bS(1, 9) = -dN4Y; bS(1, 10) = n4;
-            
+
             auto pointShearStiffness = bS.transpose() * shearRigidity * bS * detjacobi;
             kShear += pointShearStiffness;
         }
@@ -690,6 +690,7 @@ void ShellMember::AssembleElementRotationMatrix()
     double skewAngle = globalZ.AngleTo(normalVector);
 
     auto minorRotMat = GeometryHelper::GetTranslationalRotationMatrix(xVector, skewAngle);
+
     for (unsigned int i = 0; i < 3; i++)
         for (unsigned int j = 0; j < 3; j++)
             (*this->RotationMatrix)(i, j) = minorRotMat(i, j);
@@ -721,11 +722,6 @@ void ShellMember::AssembleElementRotationMatrix()
     for (unsigned int i = 21; i < 24; i++)
         for (unsigned int j = 21; j < 24; j++)
             (*this->RotationMatrix)(i, j) = minorRotMat(i - 21, j - 21);
-
-    for (size_t i = 0; i < 24; i++)
-        for (size_t j = 0; j < 24; j++)
-            if (i == j)
-                (*this->RotationMatrix)(i, j) = 1;
 }
 
 void ShellMember::AssembleElementGlobalMassMatrix()
