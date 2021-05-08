@@ -67,7 +67,7 @@ public:
     T& operator()(unsigned int i, unsigned j)
     {
         if ((this->m_rowCount <= i) || (this->m_colCount <= j))
-            throw std::runtime_error("Matrix IndexError: Subscript out of range");
+            throw std::runtime_error("Matrix Index Error: Subscript out of range");
 
         return this->firstElementAdress[(i * m_colCount) + j];
     }

@@ -328,159 +328,204 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
     }
     else if (membraneType == MembraneType::Drilling)
     {
-        auto gp = 1 / sqrt(3);
-        double gaussPoints[4][2] = { {-gp, -gp}, {gp, -gp}, {gp, gp}, {-gp, gp} };
-        Matrix<double> k1212(12, 12);
-        int MS[4][2] = { {7, 4}, {4, 5}, {5, 6}, {6, 7} };
-        int ML[4] = { 3, 0, 1, 2 };
-        int JK[4][2] = { {0, 1}, {1, 2}, {2, 3}, {3, 0} };
-        double vValue = 0.0;
-        Matrix<double> initialKStorage(12, 12);
-        // Find delta-Y's and minus delta-X's for edges
-        Matrix<double> nL(4, 2);
-        for (size_t edgeCounter = 0; edgeCounter < 4; edgeCounter++)
+        Matrix<double> kDrilling(12, 12);
+        double V = 0.0;
+        auto gpCoeff = 1 / sqrt(3);
+        double gauss2x2PointsWeights[4][3] = { {-gpCoeff, -gpCoeff, 1}, {gpCoeff, -gpCoeff, 1}, {gpCoeff, gpCoeff, 1}, {-gpCoeff, gpCoeff, 1} };
+        int jk[4][2] = { {0, 1} , {1, 2} , {2, 3} , {3, 0} };
+        int ms[4][2] = { {7, 4} , {4, 5} , {5, 6} , {6, 7} };
+        int ml[4] = { 3, 0, 1, 2 };
+        int nL[4][2];
+
+        for (size_t i = 0; i < 4; i++)
         {
-            auto edgeStartNodeCoordX = this->Nodes[JK[edgeCounter][0]]->Coordinate.X;
-            auto edgeStartNodeCoordY = this->Nodes[JK[edgeCounter][0]]->Coordinate.Y;
-            auto edgeEndNodeCoordX = this->Nodes[JK[edgeCounter][1]]->Coordinate.X;
-            auto edgeEndNodeCoordY = this->Nodes[JK[edgeCounter][1]]->Coordinate.Y;
-            nL(edgeCounter, 0) = edgeEndNodeCoordY - edgeStartNodeCoordY;
-            nL(edgeCounter, 1) = edgeStartNodeCoordX - edgeEndNodeCoordX;
+            auto edgeStartNodeCoordX = mappedCoords(jk[i][0], 0);
+            auto edgeStartNodeCoordY = mappedCoords(jk[i][0], 1);
+            auto edgeEndNodeCoordX = mappedCoords(jk[i][1], 0);
+            auto edgeEndNodeCoordY = mappedCoords(jk[i][1], 1);
+
+            nL[i][0] = edgeEndNodeCoordY - edgeStartNodeCoordY;
+            nL[i][1] = edgeStartNodeCoordX - edgeEndNodeCoordX;
         }
 
-        for (int rowCounter = 0; rowCounter < 4; rowCounter++)
+        for (size_t gaussCounter = 0; gaussCounter < 4; gaussCounter++)
         {
-            // Get Gauss point
-            auto ksi = gaussPoints[rowCounter][0]; auto eta = gaussPoints[rowCounter][1];
+            auto ksi = gauss2x2PointsWeights[gaussCounter][0];
+            auto eta = gauss2x2PointsWeights[gaussCounter][1];
+            auto weight = gauss2x2PointsWeights[gaussCounter][2];
+
+            // Bilinear shape functions
+            double N4[4] = {
+                0.25 * (1 - ksi) * (1 - eta),
+                0.25 * (1 + ksi) * (1 - eta),
+                0.25 * (1 + ksi) * (1 + eta),
+                0.25 * (1 - ksi) * (1 + eta)
+            };
+
+            // Derivative of bilinear shape functions with respect to ksi
+            double dN4Ksi[4];
+            dN4Ksi[0] = -0.25 * (1 - eta);
+            dN4Ksi[1] = 0.25 * (1 - eta);
+            dN4Ksi[2] = 0.25 * (1 + eta);
+            dN4Ksi[3] = -0.25 * (1 + eta);
+
+            // Derivative of bilinear shape functions with respect to eta
+            double dN4Eta[4];
+            dN4Eta[0] = -0.25 * (1 - ksi);
+            dN4Eta[1] = -0.25 * (1 + ksi);
+            dN4Eta[2] = 0.25 * (1 + ksi);
+            dN4Eta[3] = 0.25 * (1 - ksi);
 
             // Calculate jacobi
             Matrix<double> j1(2, 4);
-            j1(0, 0) = eta - 1; j1(0, 1) = 1 - eta; j1(0, 2) = eta + 1; j1(0, 3) = -eta - 1;
-            j1(1, 0) = ksi - 1; j1(1, 1) = -ksi - 1; j1(1, 2) = ksi + 1; j1(1, 3) = 1 - ksi;
-            auto j2 = j1 * mappedCoords;
-            auto jacobi = j2 * 0.25;
+            j1(0, 0) = dN4Ksi[0]; j1(0, 1) = dN4Ksi[1]; j1(0, 2) = dN4Ksi[2]; j1(0, 3) = dN4Ksi[3];
+            j1(1, 0) = dN4Eta[0]; j1(1, 1) = dN4Eta[1]; j1(1, 2) = dN4Eta[2]; j1(1, 3) = dN4Eta[3];
+            auto jacobi = j1 * mappedCoords;
 
             Matrix<double> inversejacobi(2, 2);
             auto detjacobi = (jacobi(0, 0) * jacobi(1, 1)) - (jacobi(0, 1) * jacobi(1, 0));
             inversejacobi(0, 0) = jacobi(1, 1) / detjacobi; inversejacobi(0, 1) = -1 * jacobi(0, 1) / detjacobi;
             inversejacobi(1, 0) = -1 * jacobi(1, 0) / detjacobi; inversejacobi(1, 1) = jacobi(0, 0) / detjacobi;
 
-            // Calculate strain-displacement matrix
-            // Initially, calculate it like bilinear strain-displacement matrix. Then, insert columns for rotational dofs.
-            Matrix<double> mat1(3, 4);
-            mat1(0, 0) = 1; mat1(1, 3) = 1; mat1(2, 1) = 1; mat1(2, 2) = 1;
+            // Derivative of bilinear shape functions with respect to x
+            double dN4X[4];
+            dN4X[0] = (inversejacobi(0, 0) * dN4Ksi[0]) + (inversejacobi(0, 1) * dN4Eta[0]);
+            dN4X[1] = (inversejacobi(0, 0) * dN4Ksi[1]) + (inversejacobi(0, 1) * dN4Eta[1]);
+            dN4X[2] = (inversejacobi(0, 0) * dN4Ksi[2]) + (inversejacobi(0, 1) * dN4Eta[2]);
+            dN4X[3] = (inversejacobi(0, 0) * dN4Ksi[3]) + (inversejacobi(0, 1) * dN4Eta[3]);
 
-            Matrix<double> mat2(4, 4);
-            mat2(0, 0) = inversejacobi(0, 0); mat2(0, 1) = inversejacobi(0, 1); mat2(1, 0) = inversejacobi(1, 0); mat2(1, 1) = inversejacobi(1, 1);
-            mat2(2, 2) = inversejacobi(0, 0); mat2(2, 3) = inversejacobi(0, 1); mat2(3, 2) = inversejacobi(1, 0); mat2(3, 3) = inversejacobi(1, 1);
+            // Derivative of bilinear shape functions with respect to y
+            double dN4Y[4];
+            dN4Y[0] = (inversejacobi(1, 0) * dN4Ksi[0]) + (inversejacobi(1, 1) * dN4Eta[0]);
+            dN4Y[1] = (inversejacobi(1, 0) * dN4Ksi[1]) + (inversejacobi(1, 1) * dN4Eta[1]);
+            dN4Y[2] = (inversejacobi(1, 0) * dN4Ksi[2]) + (inversejacobi(1, 1) * dN4Eta[2]);
+            dN4Y[3] = (inversejacobi(1, 0) * dN4Ksi[3]) + (inversejacobi(1, 1) * dN4Eta[3]);
 
-            Matrix<double> mat3(4, 8);
-            mat3(0, 0) = eta - 1; mat3(0, 2) = 1 - eta; mat3(0, 4) = eta + 1; mat3(0, 6) = -eta - 1;
-            mat3(1, 0) = ksi - 1; mat3(1, 2) = -ksi - 1; mat3(1, 4) = ksi + 1; mat3(1, 6) = 1 - ksi;
-            mat3(2, 1) = eta - 1; mat3(2, 3) = 1 - eta; mat3(2, 5) = eta + 1; mat3(2, 7) = -eta - 1;
-            mat3(3, 1) = ksi - 1; mat3(3, 3) = -ksi - 1; mat3(3, 5) = ksi + 1; mat3(3, 7) = 1 - ksi;
-            mat3 *= 0.25;
+            // Quadratic shape functions
+            double dN8[8] = {
+                -0.25 * (-1 + ksi) * (-1 + eta) * (ksi + eta + 1),
+                0.25 * (1 + ksi) * (-1 + eta) * (-ksi + eta + 1),
+                0.25 * (1 + ksi) * (1 + eta) * (ksi + eta - 1),
+                -0.25 * (-1 + ksi) * (1 + eta) * (-ksi + eta - 1),
+                0.50 * (-1 + (ksi * ksi)) * (-1 + eta),
+                -0.50 * (1 + ksi) * (-1 + (eta * eta)),
+                -0.50 * (-1 + (ksi * ksi)) * (1 + eta),
+                0.50 * (-1 + ksi) * (-1 + (eta * eta))
+            };
 
-            auto littleBMatrix = mat1 * mat2 * mat3;
+            // Derivatives of quadratic shape functions with respect to natural coordinates
+            double dN8Ksi[8] = {
+                0.25 * ((2 * ksi) - (2 * eta * ksi) - (eta * eta) + (eta)),
+                0.25 * ((2 * ksi) - (2 * eta * ksi) + (eta * eta) - (eta)),
+                0.25 * ((2 * ksi) + (2 * eta * ksi) + (eta * eta) + (eta)),
+                0.25 * ((2 * ksi) + (2 * eta * ksi) - (eta * eta) - (eta)),
+                0.25 * (4 * (ksi) * (-1 + eta)),
+                0.25 * (2 - (2 * eta * eta)),
+                0.25 * (-4 * (ksi) * (1 + eta)),
+                0.25 * (-2 + (2 * eta * eta))
+            };
 
-            // Create a new B-Matrix and insert elements of little B matrix
-            Matrix<double> bMatrix(3, 12);
-            int mapper[12] = { 0, 1, -1, 2, 3, -1, 4, 5, -1, 6, 7, -1 };
-            for (size_t colIdx = 0; colIdx < 12; colIdx++)
-                if (mapper[colIdx] != -1)
-                    for (size_t rowIdx = 0; rowIdx < 3; rowIdx++)
-                        bMatrix(rowIdx, colIdx) = littleBMatrix(rowIdx, mapper[colIdx]);
+            double dN8Eta[8] = {
+                0.25 * ((2 * eta) - (ksi * ksi) - (2 * eta * ksi) + (ksi)),
+                0.25 * ((2 * eta) - (ksi * ksi) + (2 * eta * ksi) - (ksi)),
+                0.25 * ((2 * eta) + (ksi * ksi) + (2 * eta * ksi) + (ksi)),
+                0.25 * ((2 * eta) + (ksi * ksi) - (2 * eta * ksi) - (ksi)),
+                0.25 * (-2 + (2 * ksi * ksi)),
+                0.25 * (-4 * (1 + ksi) * (eta)),
+                0.25 * (2 - (2 * ksi * ksi)),
+                0.25 * (4 * (-1 + ksi) * eta)
+            };
 
-            // Strain-displacement relation is established for translational dofs. Now, elements about strain-displacement relation for rotational dofs
-            // should be inserted
+            // Derivatives of quadratic shape functions with respect to cartesian coordinates
+            double dN8X[8] = {
+                ((inversejacobi(0, 0) * dN8Ksi[0]) + (inversejacobi(0, 1) * dN8Eta[0])),
+                ((inversejacobi(0, 0) * dN8Ksi[1]) + (inversejacobi(0, 1) * dN8Eta[1])),
+                ((inversejacobi(0, 0) * dN8Ksi[2]) + (inversejacobi(0, 1) * dN8Eta[2])),
+                ((inversejacobi(0, 0) * dN8Ksi[3]) + (inversejacobi(0, 1) * dN8Eta[3])),
+                ((inversejacobi(0, 0) * dN8Ksi[4]) + (inversejacobi(0, 1) * dN8Eta[4])),
+                ((inversejacobi(0, 0) * dN8Ksi[6]) + (inversejacobi(0, 1) * dN8Eta[6])),
+                ((inversejacobi(0, 0) * dN8Ksi[6]) + (inversejacobi(0, 1) * dN8Eta[6])),
+                ((inversejacobi(0, 0) * dN8Ksi[7]) + (inversejacobi(0, 1) * dN8Eta[7]))
+            };
 
-            // Derivatives of quadratic shape functions in natural coordinate system
-            Matrix<double> dN8Ksi(8, 1);
-            dN8Ksi(4, 0) = 0.25 * 4 * ksi * (eta - 1);
-            dN8Ksi(5, 0) = 0.25 * (2 - (2 * eta * eta));
-            dN8Ksi(6, 0) = 0.25 * -4 * ksi * (eta + 1);
-            dN8Ksi(7, 0) = 0.25 * (-2 + (2 * eta * eta));
+            double dN8Y[8] = {
+                ((inversejacobi(1, 0) * dN8Ksi[0]) + (inversejacobi(1, 1) * dN8Eta[0])),
+                ((inversejacobi(1, 0) * dN8Ksi[1]) + (inversejacobi(1, 1) * dN8Eta[1])),
+                ((inversejacobi(1, 0) * dN8Ksi[2]) + (inversejacobi(1, 1) * dN8Eta[2])),
+                ((inversejacobi(1, 0) * dN8Ksi[3]) + (inversejacobi(1, 1) * dN8Eta[3])),
+                ((inversejacobi(1, 0) * dN8Ksi[4]) + (inversejacobi(1, 1) * dN8Eta[4])),
+                ((inversejacobi(1, 0) * dN8Ksi[6]) + (inversejacobi(1, 1) * dN8Eta[6])),
+                ((inversejacobi(1, 0) * dN8Ksi[6]) + (inversejacobi(1, 1) * dN8Eta[6])),
+                ((inversejacobi(1, 0) * dN8Ksi[7]) + (inversejacobi(1, 1) * dN8Eta[7]))
+            };
 
-            Matrix<double> dN8Eta(8, 1);
-            dN8Eta(4, 0) = 0.25 * (-2 + (2 * ksi * ksi));
-            dN8Eta(5, 0) = 0.25 * (-4 * (1 + ksi) * eta);
-            dN8Eta(6, 0) = 0.25 * (2 - (2 * ksi * ksi));
-            dN8Eta(7, 0) = 0.25 * 4 * (ksi - 1) * eta;
-
-            // Derivatives of quadratic shape functions in cartesian coordinate system
-            auto JI11 = inversejacobi(0, 0); auto JI12 = inversejacobi(0, 1);
-            auto JI21 = inversejacobi(1, 0); auto JI22 = inversejacobi(1, 1);
-
-            Matrix<double> dNS_dx(8, 1);
-            dNS_dx(4, 0) = (JI11 * dN8Ksi(4, 0)) + (JI12 * dN8Eta(4, 0));
-            dNS_dx(5, 0) = (JI11 * dN8Ksi(5, 0)) + (JI12 * dN8Eta(5, 0));
-            dNS_dx(6, 0) = (JI11 * dN8Ksi(6, 0)) + (JI12 * dN8Eta(6, 0));
-            dNS_dx(7, 0) = (JI11 * dN8Ksi(7, 0)) + (JI12 * dN8Eta(7, 0));
-
-            Matrix<double> dNS_dy(8, 1);
-            dNS_dx(4, 0) = (JI21 * dN8Ksi(4, 0)) + (JI22 * dN8Eta(4, 0));
-            dNS_dx(5, 0) = (JI21 * dN8Ksi(5, 0)) + (JI22 * dN8Eta(5, 0));
-            dNS_dx(6, 0) = (JI21 * dN8Ksi(6, 0)) + (JI22 * dN8Eta(6, 0));
-            dNS_dx(7, 0) = (JI21 * dN8Ksi(7, 0)) + (JI22 * dN8Eta(7, 0));
-
+            // Create strain-displacement relationship
+            Matrix<double> B(3, 12);
 
             for (size_t i = 0; i < 4; i++)
             {
-                auto m = (3 * i) + 2;
+                int j = (i * 3);
+                int k = j + 1;
+                int m = j + 2;
 
-                auto MSi1 = MS[i][0];
-                auto MSi2 = MS[i][1];
-                auto MLi = ML[i];
+                B(0, j) = dN4X[i];
+                B(1, k) = dN4Y[i];
+                B(2, j) = dN4Y[i];
+                B(2, k) = dN4X[i];
 
-                bMatrix(0, m) = ((dNS_dx(MSi1, 0) * nL(MLi, 0)) - (dNS_dx(MSi2, 0) * nL(i, 0))) / 8;
-                bMatrix(1, m) = ((dNS_dy(MSi1, 0) * nL(MLi, 1)) - (dNS_dy(MSi2, 0) * nL(i, 1))) / 8;
-                bMatrix(2, m) = (((dNS_dy(MSi1, 0) * nL(MLi, 0)) - (dNS_dy(MSi2, 0) * nL(i, 0))) +
-                    ((dNS_dx(MSi1, 0) * nL(MLi, 1)) - (dNS_dx(MSi2, 0) * nL(i, 1)))) / 8;
+                B(0, m) = ((dN8X[ms[i][0]] * nL[ml[i]][0]) - (dN8X[ms[i][1]] * nL[i][0])) / 8;
+                B(1, m) = ((dN8Y[ms[i][0]] * nL[ml[i]][1]) - (dN8Y[ms[i][1]] * nL[i][1])) / 8;
+                B(2, m) = ((dN8Y[ms[i][0]] * nL[ml[i]][0]) - (dN8Y[ms[i][1]] * nL[i][0])) / 8;
+                B(2, m) += ((dN8X[ms[i][0]] * nL[ml[i]][1]) - (dN8X[ms[i][1]] * nL[i][1])) / 8;
             }
 
-            double viValue = thickness * detjacobi;
-            vValue += viValue;
-
-            auto littleK = bMatrix.transpose() * eMat * bMatrix * viValue;
-            initialKStorage += littleK;
+            auto vi = thickness * detjacobi * weight;
+            auto littleK = B.transpose() * eMat * B * vi;
+            kDrilling += littleK;
+            V += vi;
         }
 
-        // Stabilization matrix for Drilling DOF
+        // Create stabilizator for zero-energy modes
         Matrix<double> kD(12, 12);
-        auto kDia = (1 / 150000) * this->ShellMaterial->E * vValue;
+        auto em = this->ShellMaterial->E;
+        auto alpha = (1.0 / 150000.0);
+        auto kDia = alpha * em * V;
 
-        for (size_t i = 0; i < 4; i++)
-            kD(3 * i, 3 * i) = 1.75;
+        for (size_t i = 1; i < 5; i++)
+            kD((3 * i) - 1, (3 * i) - 1) = 1.75 * kDia;
 
-        kD(2, 5) = -0.75; kD(2, 8) = -0.25; kD(2, 11) = -0.75;
-        kD(5, 8) = -0.75; kD(5, 11) = -0.25;
-        kD(8, 11) = -0.75;
-        kD(5, 2) = kD(2, 5);
-        kD(8, 2) = kD(2, 8);
-        kD(11, 2) = kD(2, 11);
-        kD(8, 5) = kD(5, 8);
-        kD(11, 5) = kD(5, 11);
-        kD(11, 8) = kD(8, 11);
+        kD(2, 5) = -0.75 * kDia;
+        kD(2, 8) = -0.25 * kDia;
+        kD(2, 11) = -0.25 * kDia;
+        kD(5, 8) = -0.75 * kDia;
+        kD(5, 11) = -0.25 * kDia;
+        kD(8, 11) = -0.75 * kDia;
+        kD(5, 2) = -0.75 * kDia;
+        kD(8, 2) = -0.25 * kDia;
+        kD(11, 2) = -0.75 * kDia;
+        kD(8, 5) = -0.75 * kDia;
+        kD(11, 5) = -0.25 * kDia;
+        kD(11, 8) = -0.75 * kDia;
 
-        kD *= kDia;
+        kDrilling += kD;
 
-        auto membK = initialKStorage + kD;
-
-        elmK(0, 0) = membK(0, 0); elmK(0, 1) = membK(0, 1); elmK(0, 5) = membK(0, 2); elmK(0, 6) = membK(0, 3); elmK(0, 7) = membK(0, 4); elmK(0, 11) = membK(0, 5); elmK(0, 12) = membK(0, 6); elmK(0, 13) = membK(0, 7); elmK(0, 17) = membK(0, 8); elmK(0, 18) = membK(0, 9); elmK(0, 19) = membK(0, 10); elmK(0, 23) = membK(0, 11);
-        elmK(1, 0) = membK(1, 0); elmK(1, 1) = membK(1, 1); elmK(1, 5) = membK(1, 2); elmK(1, 6) = membK(1, 3); elmK(1, 7) = membK(1, 4); elmK(1, 11) = membK(1, 5); elmK(1, 12) = membK(1, 6); elmK(1, 13) = membK(1, 7); elmK(1, 17) = membK(1, 8); elmK(1, 18) = membK(1, 9); elmK(1, 19) = membK(1, 10); elmK(1, 23) = membK(1, 11);
-        elmK(5, 0) = membK(2, 0); elmK(5, 1) = membK(2, 1); elmK(5, 5) = membK(2, 2); elmK(5, 6) = membK(2, 3); elmK(5, 7) = membK(2, 4); elmK(5, 11) = membK(2, 5); elmK(5, 12) = membK(2, 6); elmK(5, 13) = membK(2, 7); elmK(5, 17) = membK(2, 8); elmK(5, 18) = membK(2, 9); elmK(5, 19) = membK(2, 10); elmK(5, 23) = membK(2, 11);
-        elmK(6, 0) = membK(3, 0); elmK(6, 1) = membK(3, 1); elmK(6, 5) = membK(3, 2); elmK(6, 6) = membK(3, 3); elmK(6, 7) = membK(3, 4); elmK(6, 11) = membK(3, 5); elmK(6, 12) = membK(3, 6); elmK(6, 13) = membK(3, 7); elmK(6, 17) = membK(3, 8); elmK(6, 18) = membK(3, 9); elmK(6, 19) = membK(3, 10); elmK(6, 23) = membK(3, 11);
-        elmK(7, 0) = membK(4, 0); elmK(7, 1) = membK(4, 1); elmK(7, 5) = membK(4, 2); elmK(7, 6) = membK(4, 3); elmK(7, 7) = membK(4, 4); elmK(7, 11) = membK(4, 5); elmK(7, 12) = membK(4, 6); elmK(7, 13) = membK(4, 7); elmK(7, 17) = membK(4, 8); elmK(7, 18) = membK(4, 9); elmK(7, 19) = membK(4, 10); elmK(7, 23) = membK(4, 11);
-        elmK(11, 0) = membK(5, 0); elmK(11, 1) = membK(5, 1); elmK(11, 5) = membK(5, 2); elmK(11, 6) = membK(5, 3); elmK(11, 7) = membK(5, 4); elmK(11, 11) = membK(5, 5); elmK(11, 12) = membK(5, 6); elmK(11, 13) = membK(5, 7); elmK(11, 17) = membK(5, 8); elmK(11, 18) = membK(5, 9); elmK(11, 19) = membK(5, 10); elmK(11, 23) = membK(5, 11);
-        elmK(12, 0) = membK(6, 0); elmK(12, 1) = membK(6, 1); elmK(12, 5) = membK(6, 2); elmK(12, 6) = membK(6, 3); elmK(12, 7) = membK(6, 4); elmK(12, 11) = membK(6, 5); elmK(12, 12) = membK(6, 6); elmK(12, 13) = membK(6, 7); elmK(12, 17) = membK(6, 8); elmK(12, 18) = membK(6, 9); elmK(12, 19) = membK(6, 10); elmK(12, 23) = membK(6, 11);
-        elmK(13, 0) = membK(7, 0); elmK(13, 1) = membK(7, 1); elmK(13, 5) = membK(7, 2); elmK(13, 6) = membK(7, 3); elmK(13, 7) = membK(7, 4); elmK(13, 11) = membK(7, 5); elmK(13, 12) = membK(7, 6); elmK(13, 13) = membK(7, 7); elmK(13, 17) = membK(7, 8); elmK(13, 18) = membK(7, 9); elmK(13, 19) = membK(7, 10); elmK(13, 23) = membK(7, 11);
-        elmK(17, 0) = membK(8, 0); elmK(17, 1) = membK(8, 1); elmK(17, 5) = membK(8, 2); elmK(17, 6) = membK(8, 3); elmK(17, 7) = membK(8, 4); elmK(17, 11) = membK(8, 5); elmK(17, 12) = membK(8, 6); elmK(17, 13) = membK(8, 7); elmK(17, 17) = membK(8, 8); elmK(17, 18) = membK(8, 9); elmK(17, 19) = membK(8, 10); elmK(17, 23) = membK(8, 11);
-        elmK(18, 0) = membK(9, 0); elmK(18, 1) = membK(9, 1); elmK(18, 5) = membK(9, 2); elmK(18, 6) = membK(9, 3); elmK(18, 7) = membK(9, 4); elmK(18, 11) = membK(9, 5); elmK(18, 12) = membK(9, 6); elmK(18, 13) = membK(9, 7); elmK(18, 17) = membK(9, 8); elmK(18, 18) = membK(9, 9); elmK(18, 19) = membK(9, 10); elmK(18, 23) = membK(9, 11);
-        elmK(19, 0) = membK(10, 0); elmK(19, 1) = membK(10, 1); elmK(19, 5) = membK(10, 2); elmK(19, 6) = membK(10, 3); elmK(19, 7) = membK(10, 4); elmK(19, 11) = membK(10, 5); elmK(19, 12) = membK(10, 6); elmK(19, 13) = membK(10, 7); elmK(19, 17) = membK(10, 8); elmK(19, 18) = membK(10, 9); elmK(19, 19) = membK(10, 10); elmK(19, 23) = membK(10, 11);
-        elmK(23, 0) = membK(11, 0); elmK(23, 1) = membK(11, 1); elmK(23, 5) = membK(11, 2); elmK(23, 6) = membK(11, 3); elmK(23, 7) = membK(11, 4); elmK(23, 11) = membK(11, 5); elmK(23, 12) = membK(11, 6); elmK(23, 13) = membK(11, 7); elmK(23, 17) = membK(11, 8); elmK(23, 18) = membK(11, 9); elmK(23, 19) = membK(11, 10); elmK(23, 23) = membK(11, 11);
+        // Map membrane stifness to element stiffness (For a plate at XY-plane, it resists translation-X, translation-Y and rotation-Z)
+        int mapper1 = 0; // Row updader
+        for (size_t i = 0; i < 12; i++)
+        {
+            int mapper2 = 0; // Column updater
+            for (size_t j = 0; j < 12; j++)
+            {
+                elmK(i + mapper1, j + mapper2) = kDrilling(i, j);
+                if (((j + 2) % 3) == 0)
+                    mapper2 += 3;
+            }
+            if (((i + 2) % 3) == 0)
+                mapper1 += 3;
+        }
     }
 
-    if ((this->membraneType != MembraneType::Drilling) && (this->membraneType != MembraneType::NONE))
+    if ((this->membraneType == MembraneType::Bilinear) || (this->membraneType == MembraneType::Incompatible))
     {
         elmK(0, 0) = kMembrane(0, 0); elmK(0, 1) = kMembrane(0, 1); elmK(0, 6) = kMembrane(0, 2); elmK(0, 7) = kMembrane(0, 3); elmK(0, 12) = kMembrane(0, 4); elmK(0, 13) = kMembrane(0, 5); elmK(0, 18) = kMembrane(0, 6); elmK(0, 19) = kMembrane(0, 7);
         elmK(1, 0) = kMembrane(1, 0); elmK(1, 1) = kMembrane(1, 1); elmK(1, 6) = kMembrane(1, 2); elmK(1, 7) = kMembrane(1, 3); elmK(1, 12) = kMembrane(1, 4); elmK(1, 13) = kMembrane(1, 5); elmK(1, 18) = kMembrane(1, 6); elmK(1, 19) = kMembrane(1, 7);
@@ -582,7 +627,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         // Shear rigidity is multiplied by two since shear stifness is calculated at only midpoint
         // and weight of midpoint is 2 for gauss-quadrature
         shearRigidity(0, 0) = 4.0 * sR; shearRigidity(1, 1) = 4.0 * sR;
-        
+
         for (size_t j = 0; j < 1; j++)
         {
             auto ksi = 0.0; auto eta = 0.0;

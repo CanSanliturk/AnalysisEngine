@@ -38,7 +38,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        TableModalAnalysis();
+        CE583Assignment5();
     }
     catch (const std::runtime_error& e)
     {
@@ -550,7 +550,7 @@ void CE583Assignment1_3()
 void CE583Assignment5()
 {
     // Input Card (Units are in N & m)
-    int nElmX = 8;
+    int nElmX = 1;
     int nElmY = 1;
     auto membraneType = MembraneType::Drilling;
     auto plateType = PlateType::NONE;
@@ -558,7 +558,7 @@ void CE583Assignment5()
     double lY = 0.6;
     double thickness = 0.4;
     double e = 25e9;
-    double v = 0;
+    double v = 0.2;
     XYZPoint restraintStart(0.0, 0.0, 0.0);
     XYZPoint restraintEnd(0.0, 0.6, 0.0);
 
@@ -579,8 +579,8 @@ void CE583Assignment5()
     Vector supportVector(restraintStart, restraintEnd);
     auto supportUnitVector = supportVector.getUnitVector();
 
-    std::vector<bool> isRest = { true, true, true, true, true, true };
-    std::vector<bool> universal = { false, false, true, true, true, false };
+    std::vector<bool> isRest = { true, true, true, true, true, false };
+    std::vector<bool> universal = { false, false, true, true, true, true };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
     auto addRestaint = [&](std::shared_ptr<Node> nR)
     {
