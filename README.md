@@ -5,7 +5,9 @@ A finite element tool to solve structural models.
 
 Current Capabilities
 ---------------------
-* Tool can be used to create structural model including beam and truss elements, restraints and element releases.
+* Tool can be used to create structural model including frame elements, truss elements, various shell elements, restraints and element releases.
+
+* Bilinear membrane, incompatible membrane and drilling membrane are available for shell elements membrane action. For plate action, Mindlin's 4-Node Thick Plate formulation and 8-Node Thick Plate Formulation (Serendipity plate) are implemented. 
 
 * Static analysis can be executed on created structural model.
 
@@ -16,8 +18,6 @@ Future Development
 * Newmark-Beta algorithm will be implemented for dynamic analysis.
 
 * Material and geometrical nonlinearities will be considered.
-
-* More element types will be added like Timoshenko Beam, shell element etc.
 
 Solver
 ------------------
