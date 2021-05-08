@@ -16,10 +16,12 @@ void TrussExample();
 void CE583Sample();
 void CE583Assignment1_3();
 void CE583Assignment5();
+void RotatedMembrane();
 void CE583Assignment6_2();
 void CE583Assignment6_3();
 void CE583Assignment7_2();
 void CE583Assignment7_3();
+void CE583Assignment8_3();
 
 int main()
 {
@@ -38,7 +40,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment5();
+        CE583Assignment8_3();
     }
     catch (const std::runtime_error& e)
     {
@@ -698,6 +700,63 @@ void CE583Assignment5()
     //     std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
 }
 
+void RotatedMembrane()
+{
+    // Input Card (Units are in N & m)
+    auto membraneType = MembraneType::Drilling;
+    auto plateType = PlateType::NONE;
+    double thickness = 0.4;
+    double e = 25e9;
+    double v = 0.2;
+
+    // Solve
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    XYZPoint pt1(0.0, 0.0, 0.0);
+    XYZPoint pt2(0.0, 0.0, 4.0);
+    XYZPoint pt3(0.6, 0.0, 4.0);
+    XYZPoint pt4(0.6, 0.0, 0.0);
+
+    nodes[1] = std::make_shared<Node>(1, pt1);
+    nodes[2] = std::make_shared<Node>(2, pt2);
+    nodes[3] = std::make_shared<Node>(3, pt3);
+    nodes[4] = std::make_shared<Node>(4, pt4);
+
+    std::vector<bool> fixed = { true, true, true, true, true, false };
+    std::vector<bool> universal = { false, true, false, true, false, true };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    restraints[1] = std::make_shared<Restraint>(nodes[1], fixed, rest);
+    restraints[2] = std::make_shared<Restraint>(nodes[4], fixed, rest);
+    restraints[3] = std::make_shared<Restraint>(nodes[2], universal, rest);
+    restraints[4] = std::make_shared<Restraint>(nodes[3], universal, rest);
+
+    elements[1] = std::make_shared<ShellMember>(1, nodes[1], nodes[2], nodes[3], nodes[4],
+        std::make_shared<Material>(e, v, 0), 0.4, MembraneType::Drilling, PlateType::NONE);
+
+    // Nodal loads
+    // Tip load is -20000 kN. Divide to tip nodes
+    double nodalForce = 10000;
+    double nodalLoad[6] = { nodalForce, 0, 0, 0, 0, 0 };
+    nodalLoads[1] = std::make_shared<NodalLoad>(nodes[2], nodalLoad);
+    nodalLoads[2] = std::make_shared<NodalLoad>(nodes[3], nodalLoad);
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Eigen);
+
+    auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[2], disps);
+    LOG(" Node Index: " << nodes[2]->NodeIndex);
+    LOG(" Node Location: " << nodes[2]->Coordinate.X << " m, " << nodes[2]->Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << nodalDisp(0, 0) << " m");
+}
+
 void CE583Assignment6_2()
 {
     // Input Card (Units are in N & m)
@@ -1257,4 +1316,174 @@ void CE583Assignment7_3()
     LOG("     " << format(reactions(4, 0)) << " kN/m");
 
     LOG("");
+}
+
+void CE583Assignment8_3()
+{
+    // Maps
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Nodes
+    XYZPoint pt1(0, 0.195, 0.2);
+    XYZPoint pt2(0, 0.195, 0);
+    XYZPoint pt3(0, 0.195, -0.2);
+    XYZPoint pt4(0.4, 0.195, 0.2);
+    XYZPoint pt5(0.4, 0.195, 0);
+    XYZPoint pt6(0.4, 0.195, -0.2);
+    XYZPoint pt7(0.8, 0.195, 0.2);
+    XYZPoint pt8(0.8, 0.195, 0);
+    XYZPoint pt9(0.8, 0.195, -0.2);
+    XYZPoint pt10(1.2, 0.195, 0.2);
+    XYZPoint pt11(1.2, 0.195, 0);
+    XYZPoint pt12(1.2, 0.195, -0.2);
+    XYZPoint pt13(1.6, 0.195, 0.2);
+    XYZPoint pt14(1.6, 0.195, 0);
+    XYZPoint pt15(1.6, 0.195, -0.2);
+    XYZPoint pt16(2, 0.195, 0.2);
+    XYZPoint pt17(2, 0.195, 0);
+    XYZPoint pt18(2, 0.195, -0.2);
+    XYZPoint pt19(0, -0.195, 0.2);
+    XYZPoint pt20(0, -0.195, 0);
+    XYZPoint pt21(0, -0.195, -0.2);
+    XYZPoint pt22(0.4, -0.195, 0.2);
+    XYZPoint pt23(0.4, -0.195, 0);
+    XYZPoint pt24(0.4, -0.195, -0.2);
+    XYZPoint pt25(0.8, -0.195, 0.2);
+    XYZPoint pt26(0.8, -0.195, 0);
+    XYZPoint pt27(0.8, -0.195, -0.2);
+    XYZPoint pt28(1.2, -0.195, 0.2);
+    XYZPoint pt29(1.2, -0.195, 0);
+    XYZPoint pt30(1.2, -0.195, -0.2);
+    XYZPoint pt31(1.6, -0.195, 0.2);
+    XYZPoint pt32(1.6, -0.195, 0);
+    XYZPoint pt33(1.6, -0.195, -0.2);
+    XYZPoint pt34(2, -0.195, 0.2);
+    XYZPoint pt35(2, -0.195, 0);
+    XYZPoint pt36(2, -0.195, -0.2);
+    XYZPoint pt37(0, 0, 0);
+    XYZPoint pt38(0.4, 0, 0);
+    XYZPoint pt39(0.8, 0, 0);
+    XYZPoint pt40(1.2, 0, 0);
+    XYZPoint pt41(1.6, 0, 0);
+    XYZPoint pt42(2, 0, 0);
+
+    nodes[1] = std::make_shared<Node>(1, pt1);
+    nodes[2] = std::make_shared<Node>(2, pt2);
+    nodes[3] = std::make_shared<Node>(3, pt3);
+    nodes[4] = std::make_shared<Node>(4, pt4);
+    nodes[5] = std::make_shared<Node>(5, pt5);
+    nodes[6] = std::make_shared<Node>(6, pt6);
+    nodes[7] = std::make_shared<Node>(7, pt7);
+    nodes[8] = std::make_shared<Node>(8, pt8);
+    nodes[9] = std::make_shared<Node>(9, pt9);
+    nodes[10] = std::make_shared<Node>(10, pt10);
+    nodes[11] = std::make_shared<Node>(11, pt11);
+    nodes[12] = std::make_shared<Node>(12, pt12);
+    nodes[13] = std::make_shared<Node>(13, pt13);
+    nodes[14] = std::make_shared<Node>(14, pt14);
+    nodes[15] = std::make_shared<Node>(15, pt15);
+    nodes[16] = std::make_shared<Node>(16, pt16);
+    nodes[17] = std::make_shared<Node>(17, pt17);
+    nodes[18] = std::make_shared<Node>(18, pt18);
+    nodes[19] = std::make_shared<Node>(19, pt19);
+    nodes[20] = std::make_shared<Node>(20, pt20);
+    nodes[21] = std::make_shared<Node>(21, pt21);
+    nodes[22] = std::make_shared<Node>(22, pt22);
+    nodes[23] = std::make_shared<Node>(23, pt23);
+    nodes[24] = std::make_shared<Node>(24, pt24);
+    nodes[25] = std::make_shared<Node>(25, pt25);
+    nodes[26] = std::make_shared<Node>(26, pt26);
+    nodes[27] = std::make_shared<Node>(27, pt27);
+    nodes[28] = std::make_shared<Node>(28, pt28);
+    nodes[29] = std::make_shared<Node>(29, pt29);
+    nodes[30] = std::make_shared<Node>(30, pt30);
+    nodes[31] = std::make_shared<Node>(31, pt31);
+    nodes[32] = std::make_shared<Node>(32, pt32);
+    nodes[33] = std::make_shared<Node>(33, pt33);
+    nodes[34] = std::make_shared<Node>(34, pt34);
+    nodes[35] = std::make_shared<Node>(35, pt35);
+    nodes[36] = std::make_shared<Node>(36, pt36);
+    nodes[37] = std::make_shared<Node>(37, pt37);
+    nodes[38] = std::make_shared<Node>(38, pt38);
+    nodes[39] = std::make_shared<Node>(39, pt39);
+    nodes[40] = std::make_shared<Node>(40, pt40);
+    nodes[41] = std::make_shared<Node>(41, pt41);
+    nodes[42] = std::make_shared<Node>(42, pt42);
+
+    // Elements
+    auto mat = std::make_shared<Material>(70e9, 0.0, 0.0);
+    elements[1] = std::make_shared<ShellMember>(1, nodes[1], nodes[4], nodes[5], nodes[2], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[2] = std::make_shared<ShellMember>(2, nodes[2], nodes[5], nodes[6], nodes[3], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[3] = std::make_shared<ShellMember>(3, nodes[4], nodes[7], nodes[8], nodes[5], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[4] = std::make_shared<ShellMember>(4, nodes[5], nodes[8], nodes[9], nodes[6], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[5] = std::make_shared<ShellMember>(5, nodes[7], nodes[10], nodes[11], nodes[8], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[6] = std::make_shared<ShellMember>(6, nodes[8], nodes[11], nodes[12], nodes[9], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[7] = std::make_shared<ShellMember>(7, nodes[10], nodes[13], nodes[14], nodes[11], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[8] = std::make_shared<ShellMember>(8, nodes[11], nodes[14], nodes[15], nodes[12], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[9] = std::make_shared<ShellMember>(9, nodes[13], nodes[16], nodes[17], nodes[14], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[10] = std::make_shared<ShellMember>(10, nodes[14], nodes[17], nodes[18], nodes[15], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[11] = std::make_shared<ShellMember>(11, nodes[19], nodes[22], nodes[23], nodes[20], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[12] = std::make_shared<ShellMember>(12, nodes[20], nodes[23], nodes[24], nodes[21], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[13] = std::make_shared<ShellMember>(13, nodes[22], nodes[25], nodes[26], nodes[23], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[14] = std::make_shared<ShellMember>(14, nodes[23], nodes[26], nodes[27], nodes[24], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[15] = std::make_shared<ShellMember>(15, nodes[25], nodes[28], nodes[29], nodes[26], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[16] = std::make_shared<ShellMember>(16, nodes[26], nodes[29], nodes[30], nodes[27], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[17] = std::make_shared<ShellMember>(17, nodes[28], nodes[31], nodes[32], nodes[29], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[18] = std::make_shared<ShellMember>(18, nodes[29], nodes[32], nodes[33], nodes[30], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[19] = std::make_shared<ShellMember>(19, nodes[31], nodes[34], nodes[35], nodes[32], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[20] = std::make_shared<ShellMember>(20, nodes[32], nodes[35], nodes[36], nodes[33], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[21] = std::make_shared<ShellMember>(21, nodes[20], nodes[23], nodes[38], nodes[37], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[22] = std::make_shared<ShellMember>(22, nodes[37], nodes[38], nodes[5], nodes[2], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[23] = std::make_shared<ShellMember>(23, nodes[23], nodes[26], nodes[39], nodes[38], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[24] = std::make_shared<ShellMember>(24, nodes[38], nodes[39], nodes[8], nodes[5], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[25] = std::make_shared<ShellMember>(25, nodes[26], nodes[29], nodes[40], nodes[39], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[26] = std::make_shared<ShellMember>(26, nodes[39], nodes[40], nodes[11], nodes[8], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[27] = std::make_shared<ShellMember>(27, nodes[29], nodes[32], nodes[41], nodes[40], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[28] = std::make_shared<ShellMember>(28, nodes[40], nodes[41], nodes[14], nodes[11], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[29] = std::make_shared<ShellMember>(29, nodes[32], nodes[35], nodes[42], nodes[41], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+    elements[30] = std::make_shared<ShellMember>(30, nodes[41], nodes[42], nodes[17], nodes[14], mat, 0.01, MembraneType::Drilling, PlateType::MindlinFourNode);
+
+    // Restraints
+    std::vector<bool> fixed = { true, true, true, true, true, true };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    restraints[1] = std::make_shared<Restraint>(nodes[1], fixed, rest);
+    restraints[2] = std::make_shared<Restraint>(nodes[2], fixed, rest);
+    restraints[3] = std::make_shared<Restraint>(nodes[3], fixed, rest);
+    restraints[19] = std::make_shared<Restraint>(nodes[19], fixed, rest);
+    restraints[20] = std::make_shared<Restraint>(nodes[20], fixed, rest);
+    restraints[21] = std::make_shared<Restraint>(nodes[21], fixed, rest);
+    restraints[37] = std::make_shared<Restraint>(nodes[37], fixed, rest);
+
+    // Nodal loads
+    double nodalLoad[6] = { 0, -20000.0 / 3.0, 0, 0, 0, 0 };
+    nodalLoads[1] = std::make_shared<NodalLoad>(nodes[17], nodalLoad);
+    nodalLoads[2] = std::make_shared<NodalLoad>(nodes[35], nodalLoad);
+    nodalLoads[3] = std::make_shared<NodalLoad>(nodes[42], nodalLoad);
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Eigen);
+
+    auto printDisplacements = [&](int nodeIdx) {
+        auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodeIdx], disps);
+        LOG(" Node Index: " << nodes[nodeIdx]->NodeIndex);
+        LOG(" Node Location: " << nodes[nodeIdx]->Coordinate.X << " m, " << nodes[nodeIdx]->Coordinate.Y << " m, " << nodes[nodeIdx]->Coordinate.Z << " m");
+        LOG(" Vertical Displacement: " << nodalDisp(1, 0) << " m");
+        LOG(" Rotataion: " << nodalDisp(5, 0) << " rad");
+        LOG("");
+    };
+
+    printDisplacements(42);
+    printDisplacements(16);
+    printDisplacements(17);
+    printDisplacements(18);
+    printDisplacements(34);
+    printDisplacements(35);
+    printDisplacements(36); 
 }

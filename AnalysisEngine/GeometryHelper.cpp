@@ -14,9 +14,6 @@ Matrix<double> GeometryHelper::GetRotationMatrix(double thetaX, double thetaY, d
 
 Matrix<double> GeometryHelper::GetTranslationalRotationMatrix(Vector elmVector, double rotationAngle)
 {
-    // Skew angle is ignored. Create section in a skewed way for now.
-    //auto alpha = rotationAngle;
-
     // For vertical members (i.e., both cX and cY are zero, different approach should be followed)
     auto cX = elmVector.X / elmVector.Length;
     auto cY = elmVector.Y / elmVector.Length;
