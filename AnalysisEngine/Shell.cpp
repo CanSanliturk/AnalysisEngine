@@ -335,7 +335,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         int jk[4][2] = { {0, 1} , {1, 2} , {2, 3} , {3, 0} };
         int ms[4][2] = { {7, 4} , {4, 5} , {5, 6} , {6, 7} };
         int ml[4] = { 3, 0, 1, 2 };
-        int nL[4][2];
+        double nL[4][2];
 
         for (size_t i = 0; i < 4; i++)
         {
@@ -347,7 +347,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
             nL[i][0] = edgeEndNodeCoordY - edgeStartNodeCoordY;
             nL[i][1] = edgeStartNodeCoordX - edgeEndNodeCoordX;
         }
-
+        
         for (size_t gaussCounter = 0; gaussCounter < 4; gaussCounter++)
         {
             auto ksi = gauss2x2PointsWeights[gaussCounter][0];
@@ -402,7 +402,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
             dN4Y[3] = (inversejacobi(1, 0) * dN4Ksi[3]) + (inversejacobi(1, 1) * dN4Eta[3]);
 
             // Quadratic shape functions
-            double dN8[8] = {
+            double N8[8] = {
                 -0.25 * (-1 + ksi) * (-1 + eta) * (ksi + eta + 1),
                 0.25 * (1 + ksi) * (-1 + eta) * (-ksi + eta + 1),
                 0.25 * (1 + ksi) * (1 + eta) * (ksi + eta - 1),
@@ -443,7 +443,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
                 ((inversejacobi(0, 0) * dN8Ksi[2]) + (inversejacobi(0, 1) * dN8Eta[2])),
                 ((inversejacobi(0, 0) * dN8Ksi[3]) + (inversejacobi(0, 1) * dN8Eta[3])),
                 ((inversejacobi(0, 0) * dN8Ksi[4]) + (inversejacobi(0, 1) * dN8Eta[4])),
-                ((inversejacobi(0, 0) * dN8Ksi[6]) + (inversejacobi(0, 1) * dN8Eta[6])),
+                ((inversejacobi(0, 0) * dN8Ksi[5]) + (inversejacobi(0, 1) * dN8Eta[5])),
                 ((inversejacobi(0, 0) * dN8Ksi[6]) + (inversejacobi(0, 1) * dN8Eta[6])),
                 ((inversejacobi(0, 0) * dN8Ksi[7]) + (inversejacobi(0, 1) * dN8Eta[7]))
             };
@@ -454,7 +454,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
                 ((inversejacobi(1, 0) * dN8Ksi[2]) + (inversejacobi(1, 1) * dN8Eta[2])),
                 ((inversejacobi(1, 0) * dN8Ksi[3]) + (inversejacobi(1, 1) * dN8Eta[3])),
                 ((inversejacobi(1, 0) * dN8Ksi[4]) + (inversejacobi(1, 1) * dN8Eta[4])),
-                ((inversejacobi(1, 0) * dN8Ksi[6]) + (inversejacobi(1, 1) * dN8Eta[6])),
+                ((inversejacobi(1, 0) * dN8Ksi[5]) + (inversejacobi(1, 1) * dN8Eta[5])),
                 ((inversejacobi(1, 0) * dN8Ksi[6]) + (inversejacobi(1, 1) * dN8Eta[6])),
                 ((inversejacobi(1, 0) * dN8Ksi[7]) + (inversejacobi(1, 1) * dN8Eta[7]))
             };
@@ -473,10 +473,10 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
                 B(2, j) = dN4Y[i];
                 B(2, k) = dN4X[i];
 
-                B(0, m) = ((dN8X[ms[i][0]] * nL[ml[i]][0]) - (dN8X[ms[i][1]] * nL[i][0])) / 8;
-                B(1, m) = ((dN8Y[ms[i][0]] * nL[ml[i]][1]) - (dN8Y[ms[i][1]] * nL[i][1])) / 8;
-                B(2, m) = ((dN8Y[ms[i][0]] * nL[ml[i]][0]) - (dN8Y[ms[i][1]] * nL[i][0])) / 8;
-                B(2, m) += ((dN8X[ms[i][0]] * nL[ml[i]][1]) - (dN8X[ms[i][1]] * nL[i][1])) / 8;
+                B(0, m) =  ((dN8X[ms[i][0]] * nL[ml[i]][0]) - (dN8X[ms[i][1]] * nL[i][0])) / 8.0;
+                B(1, m) =  ((dN8Y[ms[i][0]] * nL[ml[i]][1]) - (dN8Y[ms[i][1]] * nL[i][1])) / 8.0;
+                B(2, m) =  ((dN8Y[ms[i][0]] * nL[ml[i]][0]) - (dN8Y[ms[i][1]] * nL[i][0])) / 8.0;
+                B(2, m) += ((dN8X[ms[i][0]] * nL[ml[i]][1]) - (dN8X[ms[i][1]] * nL[i][1])) / 8.0;
             }
 
             auto vi = thickness * detjacobi * weight;
