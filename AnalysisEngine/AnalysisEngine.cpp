@@ -1265,7 +1265,7 @@ void CE583Assignment8_2()
 {
     // Input Card (Units are in N & m)
     auto membraneType = MembraneType::Drilling;
-    auto plateType = PlateType::NONE;
+    auto plateType = PlateType::MindlinFourNode;
     double thickness = 0.4;
     double e = 25e9;
     double v = 0.0;
@@ -1287,8 +1287,8 @@ void CE583Assignment8_2()
     nodes[3] = std::make_shared<Node>(3, pt3);
     nodes[4] = std::make_shared<Node>(4, pt4);
 
-    std::vector<bool> fixed = { true, true, true, true, true, false };
-    std::vector<bool> universal = { false, false, true, true, true, false};
+    std::vector<bool> fixed = { true, true, true, true, true, true };
+    std::vector<bool> universal = { false, false, false, false, false, false};
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
 
     restraints[1] = std::make_shared<Restraint>(nodes[1], fixed, rest);
@@ -1297,7 +1297,7 @@ void CE583Assignment8_2()
     restraints[4] = std::make_shared<Restraint>(nodes[3], universal, rest);
 
     elements[1] = std::make_shared<ShellMember>(1, nodes[1], nodes[2], nodes[3], nodes[4],
-        std::make_shared<Material>(e, v, 0), 0.4, MembraneType::Drilling, PlateType::NONE);
+        std::make_shared<Material>(e, v, 0), 0.4, membraneType, plateType);
 
     // Nodal loads
     // Tip load is -20000 kN. Divide to tip nodes
