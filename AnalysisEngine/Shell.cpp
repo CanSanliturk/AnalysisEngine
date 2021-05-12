@@ -496,7 +496,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
 
         kD(2, 5) = -0.75 * kDia;
         kD(2, 8) = -0.25 * kDia;
-        kD(2, 11) = -0.25 * kDia;
+        kD(2, 11) = -0.75 * kDia;
         kD(5, 8) = -0.75 * kDia;
         kD(5, 11) = -0.25 * kDia;
         kD(8, 11) = -0.75 * kDia;
@@ -506,7 +506,6 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
         kD(8, 5) = -0.75 * kDia;
         kD(11, 5) = -0.25 * kDia;
         kD(11, 8) = -0.75 * kDia;
-
         kDrilling += kD;
 
         // Map membrane stifness to element stiffness (For a plate at XY-plane, it resists translation-X, translation-Y and rotation-Z)

@@ -20,7 +20,8 @@ void CE583Assignment6_2();
 void CE583Assignment6_3();
 void CE583Assignment7_2();
 void CE583Assignment7_3();
-void CE583Assignment8_2();
+void CE583Assignment8_2_MembraneAction();
+void CE583Assignment8_2_PlateAction();
 void CE583Assignment8_3();
 
 int main()
@@ -40,7 +41,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment8_2();
+        CE583Assignment8_2_PlateAction();
     }
     catch (const std::runtime_error& e)
     {
@@ -1261,7 +1262,7 @@ void CE583Assignment7_3()
     LOG("");
 }
 
-void CE583Assignment8_2()
+void CE583Assignment8_2_MembraneAction()
 {
     // Input Card (Units are in N & m)
     auto membraneType = MembraneType::Drilling;
@@ -1310,7 +1311,64 @@ void CE583Assignment8_2()
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Eigen);
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+
+    auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[2], disps);
+    LOG(" Node Index: " << nodes[2]->NodeIndex);
+    LOG(" Node Location: " << nodes[2]->Coordinate.X << " m, " << nodes[2]->Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << nodalDisp(1, 0) << " m");
+}
+
+void CE583Assignment8_2_PlateAction()
+{
+    // Input Card (Units are in N & m)
+    auto membraneType = MembraneType::Drilling;
+    auto plateType = PlateType::MindlinFourNode;
+    double thickness = 0.6;
+    double e = 25e6;
+    double v = 0.0;
+
+    // Solve
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    XYZPoint pt1(0.0, 0.0, 0.2);
+    XYZPoint pt2(4.0, 0., 0.2);
+    XYZPoint pt3(4.0, 0., -0.2);
+    XYZPoint pt4(0.0, 0.0, -0.2);
+
+    nodes[1] = std::make_shared<Node>(1, pt1);
+    nodes[2] = std::make_shared<Node>(2, pt2);
+    nodes[3] = std::make_shared<Node>(3, pt3);
+    nodes[4] = std::make_shared<Node>(4, pt4);
+
+    std::vector<bool> fixed = { true, true, true, true, false,  true};
+    std::vector<bool> universal = { false, false, false, false, false, false };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    restraints[1] = std::make_shared<Restraint>(nodes[1], fixed, rest);
+    restraints[2] = std::make_shared<Restraint>(nodes[4], fixed, rest);
+    restraints[3] = std::make_shared<Restraint>(nodes[2], universal, rest);
+    restraints[4] = std::make_shared<Restraint>(nodes[3], universal, rest);
+
+    elements[1] = std::make_shared<ShellMember>(1, nodes[1], nodes[2], nodes[3], nodes[4],
+        std::make_shared<Material>(e, v, 0), thickness, membraneType, plateType);
+
+    // Nodal loads
+    // Tip load is -20000 kN. Divide to tip nodes
+    double nodalForce = 10;
+    double nodalLoad[6] = { 0, -10, 0, 0, 0, 0 };
+    nodalLoads[1] = std::make_shared<NodalLoad>(nodes[2], nodalLoad);
+    nodalLoads[2] = std::make_shared<NodalLoad>(nodes[3], nodalLoad);
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
 
     auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[2], disps);
     LOG(" Node Index: " << nodes[2]->NodeIndex);
