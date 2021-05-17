@@ -41,7 +41,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment8_2_PlateAction();
+        CE583Assignment8_3();
     }
     catch (const std::runtime_error& e)
     {
@@ -1288,7 +1288,7 @@ void CE583Assignment8_2_MembraneAction()
     nodes[3] = std::make_shared<Node>(3, pt3);
     nodes[4] = std::make_shared<Node>(4, pt4);
 
-    std::vector<bool> fixed = { true, true, true, true, true, true };
+    std::vector<bool> fixed = { true, true, true, true, true, false };
     std::vector<bool> universal = { false, false, false, false, false, false};
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
 
@@ -1517,10 +1517,17 @@ void CE583Assignment8_3()
     restraints[37] = std::make_shared<Restraint>(nodes[37], fixed, rest);
 
     // Nodal loads
-    double nodalLoad[6] = { 0, -20000.0 / 3.0, 0, 0, 0, 0 };
-    nodalLoads[1] = std::make_shared<NodalLoad>(nodes[17], nodalLoad);
-    nodalLoads[2] = std::make_shared<NodalLoad>(nodes[35], nodalLoad);
-    nodalLoads[3] = std::make_shared<NodalLoad>(nodes[42], nodalLoad);
+    // double nodalLoad[6] = { 0, -20000.0 / 3.0, 0, 0, 0, 0 };
+    // nodalLoads[1] = std::make_shared<NodalLoad>(nodes[17], nodalLoad);
+    // nodalLoads[2] = std::make_shared<NodalLoad>(nodes[35], nodalLoad);
+    // nodalLoads[3] = std::make_shared<NodalLoad>(nodes[42], nodalLoad);
+
+    double nodalLoadPos[6] = { 0, 0, 40000.0 / 0.39, 0, 0, 0 };
+    double nodalLoadNeg[6] = { 0, 0, -40000.0 / 0.39, 0, 0, 0 };
+    nodalLoads[1] = std::make_shared<NodalLoad>(nodes[16], nodalLoadPos);
+    nodalLoads[2] = std::make_shared<NodalLoad>(nodes[18], nodalLoadPos);
+    nodalLoads[3] = std::make_shared<NodalLoad>(nodes[34], nodalLoadNeg);
+    nodalLoads[4] = std::make_shared<NodalLoad>(nodes[36], nodalLoadNeg);
 
     // Create structure
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
@@ -1535,15 +1542,33 @@ void CE583Assignment8_3()
         LOG(" Node Index: " << nodes[nodeIdx]->NodeIndex);
         LOG(" Node Location: " << nodes[nodeIdx]->Coordinate.X << " m, " << nodes[nodeIdx]->Coordinate.Y << " m, " << nodes[nodeIdx]->Coordinate.Z << " m");
         LOG(" Vertical Displacement: " << nodalDisp(1, 0) << " m");
-        LOG(" Rotataion: " << nodalDisp(5, 0) << " rad");
         LOG("");
     };
 
-    printDisplacements(42);
-    printDisplacements(16);
-    printDisplacements(17);
-    printDisplacements(18);
-    printDisplacements(34);
-    printDisplacements(35);
-    printDisplacements(36); 
+    auto printAngleOfTwist = [&](int nodeIdx) {
+        auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodeIdx], disps);
+        LOG(" Node Index: " << nodes[nodeIdx]->NodeIndex);
+        LOG(" Node Location: " << nodes[nodeIdx]->Coordinate.X << " m, " << nodes[nodeIdx]->Coordinate.Y << " m, " << nodes[nodeIdx]->Coordinate.Z << " m");
+        LOG(" Angle of twist: " << nodalDisp(3, 0) << " rad");
+        LOG("");
+    };
+
+    auto printVerticalDisplacements = [&](int nodeIdx) {
+        auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodeIdx], disps);
+        LOG((nodes[nodeIdx]->Coordinate.Z + nodalDisp(2, 0)) << "   " << (nodes[nodeIdx]->Coordinate.Y + nodalDisp(1, 0)));
+    };
+
+    auto printHorizontalDipslacements = [&](int nodeIdx) {
+        auto nodalDisp = StructureSolver::GetNodalDisplacements(*nodes[nodeIdx], disps);
+        LOG((nodes[nodeIdx]->Coordinate.Z) << "   " << (nodalDisp(0, 0)));
+    };
+
+    printHorizontalDipslacements(16);
+    printHorizontalDipslacements(17);
+    printHorizontalDipslacements(18);
+    LOG("---------------");
+    printHorizontalDipslacements(34);
+    printHorizontalDipslacements(35);
+    printHorizontalDipslacements(36);
+
 }

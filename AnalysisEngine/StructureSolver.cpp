@@ -1167,6 +1167,12 @@ Matrix<double> StructureSolver::LinearEquationSolver(Matrix<double>& A, Matrix<d
             bArmaVec(i) = b(i, 0);
         }
 
+        // auto format = [](double d) {return abs(d) < 1 ? 0 : d; };
+        // 
+        // auto asd = arma::eig_gen(aArmaMat);
+        // for (size_t i = 0; i < asd.size(); i++)
+        //     std::cout << " Eigenvalue #" << i + 1 << ": " << format(asd(i).real()) << "\n";
+
         // Solve
         arma::vec xArmaVec = arma::solve(aArmaMat, bArmaVec);
 
