@@ -41,7 +41,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment8_3();
+        TableModalAnalysis();
     }
     catch (const std::runtime_error& e)
     {

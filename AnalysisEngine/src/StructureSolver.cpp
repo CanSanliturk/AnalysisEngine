@@ -4,7 +4,7 @@
 #include <Eigen>
 #include <vector>
 #include <map>
-#include "Eigen/Eigenvalues"
+#include "../Eigen/Eigenvalues"
 #include "StructureSolver.h"
 #include "GeometryHelper.h"
 #include "Matrix.h"
