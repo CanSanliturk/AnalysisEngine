@@ -84,7 +84,7 @@ Vector Vector::operator*(const Vector& v)
     XYZPoint origin(0.0, 0.0, 0.0);
     auto length = p.DistanceTo(origin);
 
-    // Make it unit vector
+    // Normalize the vector
     vec.X /= length;
     vec.Y /= length;
     vec.Z /= length;
