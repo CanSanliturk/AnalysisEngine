@@ -41,7 +41,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        TableModalAnalysis();
+        CE583Assignment6_2();
     }
     catch (const std::runtime_error& e)
     {
@@ -704,7 +704,7 @@ void CE583Assignment5()
 void CE583Assignment6_2()
 {
     // Input Card (Units are in N & m)
-    int nElmX = 1;
+    int nElmX = 8;
     int nElmY = 1;
     auto membraneType = MembraneType::Incompatible;
     auto plateType = PlateType::NONE;
@@ -714,7 +714,7 @@ void CE583Assignment6_2()
     double lY = 0.6;
     double thickness = 0.4;
     double e = 25e9;
-    double v = 0.2;
+    double v = 0.0;
     XYZPoint restraintStart(0.0, 0.0, 0.0);
     XYZPoint restraintEnd(0.0, 0.6, 0.0);
 
