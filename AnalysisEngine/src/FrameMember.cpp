@@ -21,6 +21,7 @@ FrameMember::FrameMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std
     FrameSection = section;
     FrameMaterial = material;
     ElementLoads = elementLoads;
+    this->isLumpedMassMatrix = isLumpedMassMatrix;
     Type = (ElmType::ElementType::Frame);
     Length = jNode->Coordinate.DistanceTo(iNode->Coordinate);
     LocalCoordinateMassMatrix = std::make_shared<Matrix<double>>(12);
@@ -129,7 +130,7 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
         for (unsigned int j = 0; j < 12; j++)
             kElm[i][j] = 0;
 
-    kElm[0][0] = E * A / L;
+    /*kElm[0][0] = E * A / L;
     kElm[0][6] = -1 * E * A / L;
 
     kElm[1][1] = 12 * E * I11 / L3;
@@ -179,7 +180,59 @@ void FrameMember::AssembleElementLocalStiffnessMatrix()
     kElm[11][1] = kElm[1][11];
     kElm[11][5] = kElm[5][11];
     kElm[11][7] = kElm[7][11];
-    kElm[11][11] = 4 * E * I22 / L;
+    kElm[11][11] = 4 * E * I22 / L;*/
+
+    kElm[0][0] = E * A / L;
+    kElm[0][6] = -1 * E * A / L;
+
+    kElm[1][1] = 12 * E * I22 / L3;
+    kElm[1][5] = 6 * E * I22 / L2;
+    kElm[1][7] = -12 * E * I22 / L3;
+    kElm[1][11] = 6 * E * I22 / L2;
+
+    kElm[2][2] = 12 * E * I11 / L3;
+    kElm[2][4] = -6 * E * I11 / L2;
+    kElm[2][8] = -12 * E * I11 / L3;
+    kElm[2][10] = -6 * E * I11 / L2;
+
+    kElm[3][3] = G * J / L;
+    kElm[3][9] = -1 * G * J / L;
+
+    kElm[4][2] = kElm[2][4];
+    kElm[4][4] = 4 * E * I22 / L;
+    kElm[4][8] = 6 * E * I22 / L2;
+    kElm[4][10] = 2 * E * I22 / L;
+
+    kElm[5][1] = kElm[1][5];
+    kElm[5][5] = 4 * E * I11 / L;
+    kElm[5][7] = -6 * E * I11 / L2;
+    kElm[5][11] = 2 * E * I11 / L;
+
+    kElm[6][0] = kElm[0][6];
+    kElm[6][6] = E * A / L;
+
+    kElm[7][1] = kElm[1][7];
+    kElm[7][5] = kElm[5][7];
+    kElm[7][7] = 12 * E * I22 / L3;
+    kElm[7][11] = -6 * E * I22 / L2;
+
+    kElm[8][2] = kElm[2][8];
+    kElm[8][4] = kElm[4][8];
+    kElm[8][8] = 12 * E * I11 / L3;
+    kElm[8][10] = 6 * E * I11 / L2;
+
+    kElm[9][3] = kElm[3][9];
+    kElm[9][9] = G * J / L;
+
+    kElm[10][2] = kElm[2][10];
+    kElm[10][4] = kElm[4][10];
+    kElm[10][8] = kElm[8][10];
+    kElm[10][10] = 4 * E * I22 / L;
+
+    kElm[11][1] = kElm[1][11];
+    kElm[11][5] = kElm[5][11];
+    kElm[11][7] = kElm[7][11];
+    kElm[11][11] = 4 * E * I11 / L;
 
     // Check end releases
     for (int i = 0; i < 2; i++)
