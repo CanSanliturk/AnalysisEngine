@@ -279,7 +279,7 @@ Matrix<double> StructureSolver::GetModalPeriods(const Structure& str, SolverChoi
         arma::eig_pair(eigVal, eigVec, K, M);
 
         for (int i = eigVal.size() - 1; -1 < i; i--)
-            t.push_back(2 * pi / sqrt(*(eigVal.at(i)._Val)));
+            t.push_back(1.0 / sqrt(*(eigVal.at(i)._Val)));
     }
     else {}
 
