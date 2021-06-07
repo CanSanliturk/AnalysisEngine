@@ -1,6 +1,7 @@
 #include "Shell.h"
 #include "Vector.h"
 #include "GeometryHelper.h"
+constexpr double G = 9.807;
 
 ShellMember::ShellMember(unsigned int elmIndex,
     std::shared_ptr<Node> iNode, std::shared_ptr<Node> jNode, std::shared_ptr<Node> kNode, std::shared_ptr<Node> lNode,
@@ -118,8 +119,57 @@ std::vector<std::shared_ptr<Node>> ShellMember::GelElementNodes()
 
 void ShellMember::AssembleElementLocalMassMatrix()
 {
-    auto asd = std::make_shared<Matrix<double>>(24, 24);
-    this->LocalCoordinateMassMatrix = asd;
+    // Map coordinates of flat plane to 2-D surface
+    auto d1 = Nodes[0]->Coordinate.DistanceTo(Nodes[1]->Coordinate);
+    auto d2 = Nodes[1]->Coordinate.DistanceTo(Nodes[2]->Coordinate);
+    auto d3 = Nodes[2]->Coordinate.DistanceTo(Nodes[3]->Coordinate);
+    auto d4 = Nodes[3]->Coordinate.DistanceTo(Nodes[0]->Coordinate);
+
+    Vector p1V(Nodes[0]->Coordinate);
+    Vector p2V(Nodes[1]->Coordinate);
+    Vector p3V(Nodes[2]->Coordinate);
+    Vector p4V(Nodes[3]->Coordinate);
+
+    // Angle between first line and fourth line
+    auto firstVector0 = p2V - p1V;
+    auto secondVector0 = p4V - p1V;
+    auto alpha0 = firstVector0.AngleTo(secondVector0);
+
+    // Angle between first line and second line
+    auto firstVector1 = p1V - p2V;
+    auto secondVector1 = p3V - p2V;
+    auto alpha1 = firstVector1.AngleTo(secondVector1);
+
+    // Angle between second line and third line
+    auto firstVector2 = p2V - p3V;
+    auto secondVector2 = p4V - p3V;
+    auto alpha2 = firstVector2.AngleTo(secondVector2);
+
+    // Map 3D coordinates to 2D plane using angles and length found above to be able to
+    // use natural coordinates
+    auto x1 = 0.0; auto y1 = 0.0;
+    auto x2 = d1; auto y2 = 0.0;
+    auto x3 = x2 - (d2 * cos(alpha1)); auto y3 = d2 * sin(alpha1);
+    auto x4 = d4 * cos(alpha0); auto y4 = d4 * sin(alpha0);
+
+    // Calculate area of the polygon
+    auto area = abs(((x1 * y2) - (x2 * y1)) + ((x2 * y3) - (x3 * y2)) + ((x3 * y4) - (x4 * y3)) + ((x4 * y1) - (x1 * y4))) * 0.5;
+
+    // Get total mass
+    auto totalMass = area * this->Thickness * this->ShellMaterial->UnitWeight / G;
+
+    // Get nodal mass contribution
+    // TODO : Assumption is shell is rectangular. For non-rectangular shells (i.e. edges are not perpendicular), implement 
+    // mass matrix with shape functions and Gauss integration.
+    auto lM = totalMass / 4.0;
+
+    // Fill mass matrix
+    Matrix<double> m(24, 24);
+    m(0, 0) = lM; m(1, 1) = lM;
+    m(6, 6) = lM; m(7, 7) = lM;
+    m(12, 12) = lM; m(13, 13) = lM;
+    m(18, 18) = lM; m(19, 19) = lM;
+    this->LocalCoordinateMassMatrix = std::make_shared<Matrix<double>>(m);
 }
 
 void ShellMember::AssembleElementLocalStiffnessMatrix()
@@ -347,7 +397,7 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
             nL[i][0] = edgeEndNodeCoordY - edgeStartNodeCoordY;
             nL[i][1] = edgeStartNodeCoordX - edgeEndNodeCoordX;
         }
-        
+
         for (size_t gaussCounter = 0; gaussCounter < 4; gaussCounter++)
         {
             auto ksi = gauss2x2PointsWeights[gaussCounter][0];
@@ -473,9 +523,9 @@ void ShellMember::AssembleElementLocalStiffnessMatrix()
                 B(2, j) = dN4Y[i];
                 B(2, k) = dN4X[i];
 
-                B(0, m) =  ((dN8X[ms[i][0]] * nL[ml[i]][0]) - (dN8X[ms[i][1]] * nL[i][0])) / 8.0;
-                B(1, m) =  ((dN8Y[ms[i][0]] * nL[ml[i]][1]) - (dN8Y[ms[i][1]] * nL[i][1])) / 8.0;
-                B(2, m) =  ((dN8Y[ms[i][0]] * nL[ml[i]][0]) - (dN8Y[ms[i][1]] * nL[i][0])) / 8.0;
+                B(0, m) = ((dN8X[ms[i][0]] * nL[ml[i]][0]) - (dN8X[ms[i][1]] * nL[i][0])) / 8.0;
+                B(1, m) = ((dN8Y[ms[i][0]] * nL[ml[i]][1]) - (dN8Y[ms[i][1]] * nL[i][1])) / 8.0;
+                B(2, m) = ((dN8Y[ms[i][0]] * nL[ml[i]][0]) - (dN8Y[ms[i][1]] * nL[i][0])) / 8.0;
                 B(2, m) += ((dN8X[ms[i][0]] * nL[ml[i]][1]) - (dN8X[ms[i][1]] * nL[i][1])) / 8.0;
             }
 

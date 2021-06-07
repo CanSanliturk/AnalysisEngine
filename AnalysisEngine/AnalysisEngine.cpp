@@ -23,15 +23,19 @@ void CE583Assignment7_3();
 void CE583Assignment8_2_MembraneAction();
 void CE583Assignment8_2_PlateAction();
 void CE583Assignment8_3();
+void CE583Assignment9_2_1();
+void CE583Assignment9_2_2();
+void CE583Assignment9_2_3();
+void CE583Assignment9_3();
 
 int main()
 {
-    LOG("__________________________________________________");
-    LOG("|                                                |");
-    LOG("|    3-Dimensional Structural Analysis Engine    |");
-    LOG("|       Created by Mustafa Can Sanliturk         |");
-    LOG("|           All rights reserved ©                |");
-    LOG("|________________________________________________|");
+    LOG(" __________________________________________________");
+    LOG(" |                                                |");
+    LOG(" |  3-Dimensional Finite Element Analysis Engine  |");
+    LOG(" |          Created by Can Sanliturk              |");
+    LOG(" |           All rights reserved ©                |");
+    LOG(" |________________________________________________|");
     LOG("");
 
     // Start timer
@@ -41,13 +45,14 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment6_2();
+        CE583Assignment9_3();
+        LOG("\n Analysis completed without errors...");
     }
     catch (const std::runtime_error& e)
     {
-        LOG(e.what());
+        LOG("\n Analysis cannot be completed...");
+        LOG(" " << e.what());
     }
-    LOG("\n Analysis completed without errors....");
 
     // Log duration
     auto timenow2 =
@@ -1289,7 +1294,7 @@ void CE583Assignment8_2_MembraneAction()
     nodes[4] = std::make_shared<Node>(4, pt4);
 
     std::vector<bool> fixed = { true, true, true, true, true, false };
-    std::vector<bool> universal = { false, false, false, false, false, false};
+    std::vector<bool> universal = { false, false, false, false, false, false };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
 
     restraints[1] = std::make_shared<Restraint>(nodes[1], fixed, rest);
@@ -1345,7 +1350,7 @@ void CE583Assignment8_2_PlateAction()
     nodes[3] = std::make_shared<Node>(3, pt3);
     nodes[4] = std::make_shared<Node>(4, pt4);
 
-    std::vector<bool> fixed = { true, true, true, true, false,  true};
+    std::vector<bool> fixed = { true, true, true, true, false,  true };
     std::vector<bool> universal = { false, false, false, false, false, false };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
 
@@ -1571,4 +1576,335 @@ void CE583Assignment8_3()
     printHorizontalDipslacements(35);
     printHorizontalDipslacements(36);
 
+}
+
+void CE583Assignment9_2_1()
+{
+    // Fields
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Nodal coordinates
+    XYZPoint pt1(0, 0, 0);
+    XYZPoint pt2(30.0, 0, 0);
+
+    // Nodes
+    nodes[1] = std::make_shared<Node>(1, pt1);
+    nodes[2] = std::make_shared<Node>(2, pt2);
+
+    // Section
+    auto area = 0.4;
+    auto inertia11 = 1.0 / 30.0;
+    auto inertia22 = 0.064 / 12;
+    auto inertia12 = 0.015936;
+    // auto inertia22 = 0.064 / 12.0;
+    // auto inertia12 = 0;
+
+    auto sect = std::make_shared<Section>(area, inertia11, inertia22, inertia12);
+
+    // Material
+    auto mat = std::make_shared<Material>(25e9, 0.0, 23536.8);
+
+    // Fixities
+    std::vector<bool> fix1 = { true, true, true, true, true, false };
+    std::vector<bool> fix2 = { false, true, true, true, true, false };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    restraints[1] = std::make_shared<Restraint>(nodes[1], fix1, rest);
+    restraints[2] = std::make_shared<Restraint>(nodes[2], fix2, rest);
+
+    // Element
+    elements[1] = std::make_shared<FrameMember>(1, nodes[1], nodes[2], sect, mat, false);
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    LOG(" Mass Matrix");
+    str->MassMatrix->getSubmatrix(0, str->nUnrestrainedDOF - 1, 0, str->nUnrestrainedDOF - 1).printElements();
+    LOG("");
+
+    LOG(" Stiffness Matrix");
+    str->StiffnessMatrix->getSubmatrix(0, str->nUnrestrainedDOF - 1, 0, str->nUnrestrainedDOF - 1).printElements();
+    LOG("");
+
+    // Modal periods
+    auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Armadillo);
+    LOG(" Modal periods:");
+    for (size_t i = 0; i < modalPeriods.RowCount; i++)
+        if (modalPeriods(i, 0))
+            std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
+
+    return;
+}
+
+void CE583Assignment9_2_3()
+{
+    // Fields
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Nodal coordinates
+    XYZPoint pt1(0, 0, 0);
+    XYZPoint pt2(6.0, 0, 0);
+    XYZPoint pt3(12.0, 0, 0);
+    XYZPoint pt4(18.0, 0, 0);
+    XYZPoint pt5(24.0, 0, 0);
+    XYZPoint pt6(30.0, 0, 0);
+
+    // Nodes
+    nodes[1] = std::make_shared<Node>(1, pt1);
+    nodes[2] = std::make_shared<Node>(2, pt2);
+    nodes[3] = std::make_shared<Node>(3, pt3);
+    nodes[4] = std::make_shared<Node>(4, pt4);
+    nodes[5] = std::make_shared<Node>(5, pt5);
+    nodes[6] = std::make_shared<Node>(6, pt6);
+
+    // Section
+    auto area = 0.4;
+    auto inertia11 = 1.0 / 30.0;
+    auto inertia22 = 0.064 / 12;
+    auto inertia12 = 0.015936;
+    // auto inertia22 = 0.064 / 12.0;
+    // auto inertia12 = 0;
+
+    auto sect = std::make_shared<Section>(area, inertia11, inertia22, inertia12);
+
+    // Material
+    auto mat = std::make_shared<Material>(25e9, 0.0, 23536.8);
+
+    // Fixities
+    std::vector<bool> fix1 = { true, true, true, true, true, false };
+    std::vector<bool> fix2 = { false, true, true, true, true, false };
+    std::vector<bool> fix3 = { false, false, true, true, true, false };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    restraints[1] = std::make_shared<Restraint>(nodes[1], fix1, rest);
+    restraints[2] = std::make_shared<Restraint>(nodes[2], fix3, rest);
+    restraints[3] = std::make_shared<Restraint>(nodes[3], fix3, rest);
+    restraints[4] = std::make_shared<Restraint>(nodes[4], fix3, rest);
+    restraints[5] = std::make_shared<Restraint>(nodes[5], fix3, rest);
+    restraints[6] = std::make_shared<Restraint>(nodes[6], fix2, rest);
+
+    // Element
+    elements[1] = std::make_shared<FrameMember>(1, nodes[1], nodes[2], sect, mat, false);
+    elements[2] = std::make_shared<FrameMember>(2, nodes[2], nodes[3], sect, mat, false);
+    elements[3] = std::make_shared<FrameMember>(3, nodes[3], nodes[4], sect, mat, false);
+    elements[4] = std::make_shared<FrameMember>(4, nodes[4], nodes[5], sect, mat, false);
+    elements[5] = std::make_shared<FrameMember>(5, nodes[5], nodes[6], sect, mat, false);
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    /*LOG(" Mass Matrix");
+    str->MassMatrix->getSubmatrix(0, str->nUnrestrainedDOF - 1, 0, str->nUnrestrainedDOF - 1).printElements();
+    LOG("");
+
+    LOG(" Stiffness Matrix");
+    str->StiffnessMatrix->getSubmatrix(0, str->nUnrestrainedDOF - 1, 0, str->nUnrestrainedDOF - 1).printElements();
+    LOG("");*/
+
+    // Modal periods
+    auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Armadillo);
+    LOG(" Modal periods:");
+    for (size_t i = 0; i < modalPeriods.RowCount; i++)
+        if (modalPeriods(i, 0))
+            std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
+
+    return;
+}
+
+void CE583Assignment9_3()
+{
+    // INPUTS
+    auto speed = 5; // in km/hr
+    auto dt = 0.1; // in seconds
+
+    // Fields
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Generate nodes and put restraints
+    int nodeCounter = 0;
+    int restraintCounter = 0;
+
+    std::vector<bool> pin = { true, true, true, true, true, true };
+    std::vector<bool> roller = { false, true, true, true, true, true };
+    std::vector<bool> universal = { false, false, true, true, true, true };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    for (size_t i = 0; i < 2; i++)
+    {
+        double yCoord = i * 1.0;
+        for (size_t j = 0; j < 31; j++)
+        {
+            nodeCounter++;
+            double xCoord = j * 1.0;
+            XYZPoint coord(xCoord, yCoord, 0);
+            nodes[nodeCounter] = std::make_shared<Node>(nodeCounter, coord);
+
+            // Check restraint
+            if ((i == 1) && ((j == 0) || (j == 30))) // Top restraints
+            {
+                restraintCounter++;
+                restraints[restraintCounter] = std::make_shared<Restraint>(nodes[nodeCounter], roller, rest);
+            }
+            else if ((i == 0) && (j == 30)) // Bottom right roller
+            {
+                restraintCounter++;
+                restraints[restraintCounter] = std::make_shared<Restraint>(nodes[nodeCounter], roller, rest);
+            }
+            else if ((i == 0) && (j == 0)) // Bottom left pin
+            {
+                restraintCounter++;
+                restraints[restraintCounter] = std::make_shared<Restraint>(nodes[nodeCounter], pin, rest);
+            }
+            else // Universal
+            {
+                restraintCounter++;
+                restraints[restraintCounter] = std::make_shared<Restraint>(nodes[nodeCounter], universal, rest);
+            }
+        }
+    }
+
+    // Create material
+    auto mat = std::make_shared<Material>(25e6, 0.0, 23.5368);
+
+    // Place elements
+    auto thickness = 0.40;
+    auto membraneType = MembraneType::Incompatible;
+    auto plateType = PlateType::NONE;
+
+    for (size_t i = 1; i < 31; i++)
+    {
+        auto iNodeIdx = i;
+        auto jNodeIdx = iNodeIdx + 1;
+        auto kNodeIdx = jNodeIdx + 31;
+        auto lNodeIdx = kNodeIdx - 1;
+        elements[i] = std::make_shared<ShellMember>(i, nodes[iNodeIdx], nodes[jNodeIdx], nodes[kNodeIdx], nodes[lNodeIdx],
+            mat, thickness, membraneType, plateType);
+    }
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Modal periods
+    auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Armadillo);
+    LOG(" Modal periods:");
+    //for (size_t i = 0; i < modalPeriods.RowCount; i++)
+    for (size_t i = 0; i < 10; i++)
+        std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << " s\n";
+
+    LOG("\n Modal frequencies:");
+    //for (size_t i = 0; i < modalPeriods.RowCount; i++)
+    for (size_t i = 0; i < 10; i++)
+        std::cout << " Mode Number: " << i + 1 << ", Frequency = " << 2.0 * 3.141593 / modalPeriods(i, 0) << " rad/s\n";
+
+    // Create force vector for all time steps
+    // There is a 1 kN moving load with certain velocity. Create force vectors according to location
+    auto v = speed / 3.6; // Speed in m/s
+    auto tMax = 40.0;
+    auto nStep = (int)(tMax / dt) + 1;
+    std::vector<Matrix<double>> forceVectors(nStep);
+    auto p = 1.0;
+    for (size_t i = 0; i < nStep; i++)
+    {
+        Matrix<double> f(str->nDOF, 1);
+
+        // If force is on a node, take it as point load on that node. If it is in between, 
+        // use linear interpolation
+        auto forceLocation = ((double)i * dt) * v;
+
+        // Check nodes. There are 62 nodes.
+        auto smallerIdx = -1;
+        auto largerIdx = -1;
+        auto nIdx = -1;
+
+        for (size_t j = 32; j <= 62; j++)
+        {
+            auto&& n = nodes[j];
+
+            if (Utils::AreEqual(n->Coordinate.X, forceLocation, 0.0001))
+            {
+                nIdx = n->NodeIndex;
+                break;
+            }
+
+            if (forceLocation < n->Coordinate.X)
+            {
+                smallerIdx = n->NodeIndex - 1;
+                largerIdx = smallerIdx + 1;
+                nIdx = -1;
+                break;
+            }
+        }
+
+        if (nIdx != -1)
+        {
+            auto&& loadedNode = nodes[nIdx];
+            f(loadedNode->DofIndexTY - 1, 0) = -1 * p;
+        }
+        else if (forceLocation <= 30)
+        {
+            auto&& leftNode = nodes[smallerIdx];
+            auto&& rightNode = nodes[largerIdx];
+            f(leftNode->DofIndexTY - 1, 0) = (forceLocation - rightNode->Coordinate.X) * p;
+            f(rightNode->DofIndexTY - 1, 0) = (leftNode->Coordinate.X - forceLocation) * p;
+        }
+
+        forceVectors[i] = f;
+    }
+
+    // Calculate a0 and a1
+
+    // Call solver
+    auto wi = 2 * 3.14159262 / modalPeriods(0, 0);
+    auto wj = 2 * 3.14159262 / modalPeriods(2, 0);
+
+    // auto a0 = 0.0251;
+    // auto a1 = 0.00013736;
+
+    auto a0 = 0.01 * 2 * wi * wj / (wi + wj);
+    auto a1 = 0.01 * 2 / (wi + wj);
+
+    LOG("\n Dynamic Parameters");
+    LOG(" a0 = " << a0);
+    LOG(" a1 = " << a1);
+
+    auto res = StructureSolver::ImplicitNewmark(*str, forceVectors, tMax, dt, a0, a1, SolverChoice::Armadillo);
+
+    auto& disps = std::get<0>(res);
+
+    auto midNodeVerticalDispIndex = nodes[16]->DofIndexTY - 1;
+    auto absMaxDisp = 0;
+    auto maxDisp = 0;
+    auto t = 0.0;
+
+    LOG("");
+    for (size_t i = 0; i < disps.size(); i++)
+    {
+        auto& disp = disps[i];
+        auto midSpanDisp = disp(midNodeVerticalDispIndex, 0);
+
+        if (absMaxDisp < abs(midSpanDisp))
+        {
+            absMaxDisp = abs(midSpanDisp);
+            maxDisp = midSpanDisp;
+        }
+        LOG(" " << t << "," << midSpanDisp);
+        t += dt;
+    }
+
+    //LOG(" " << absMaxDisp);
+
+
+    return;
 }

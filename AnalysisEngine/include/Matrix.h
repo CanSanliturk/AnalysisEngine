@@ -187,7 +187,7 @@ public:
         {
             for (size_t j = 0; j < this->m_colCount; j++)
             {
-                std::cout << " "<< this->firstElementAdress[(i * m_colCount) + j] << " ";
+                std::cout << this->firstElementAdress[(i * m_colCount) + j] << " ";
             }
             std::cout << "\n";
         }

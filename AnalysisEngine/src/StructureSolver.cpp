@@ -279,7 +279,7 @@ Matrix<double> StructureSolver::GetModalPeriods(const Structure& str, SolverChoi
         arma::eig_pair(eigVal, eigVec, K, M);
 
         for (int i = eigVal.size() - 1; -1 < i; i--)
-            t.push_back(1.0 / sqrt(*(eigVal.at(i)._Val)));
+            t.push_back(2 * pi / sqrt(*(eigVal.at(i)._Val)));
     }
     else {}
 
@@ -289,6 +289,102 @@ Matrix<double> StructureSolver::GetModalPeriods(const Structure& str, SolverChoi
         periods(i, 0) = t[i];
 
     return periods;
+}
+
+std::tuple<std::vector<Matrix<double>>, std::vector<Matrix<double>>, std::vector<Matrix<double>>>
+StructureSolver::ImplicitNewmark(const Structure& str, std::vector<Matrix<double>> f, double tMax, double dT,
+    double a0, double a1, SolverChoice solverChoice)
+{
+    // Create fields
+    std::vector<Matrix<double>> displacements(f.size());
+    std::vector<Matrix<double>> velocities(f.size());
+    std::vector<Matrix<double>> accelerations(f.size());
+
+    // Impose boundary conditions
+    Matrix<double> initDisps(str.nDOF);
+    Matrix<double> initVelos(str.nDOF);
+    Matrix<double> initAccs(str.nDOF);
+
+    displacements[0] = initDisps;
+    velocities[0] = initVelos;
+    accelerations[0] = initAccs;
+
+    // Start solving    
+    // Solve for unrestrained dofs. Add restrained dofs after that.
+    auto nUDOF = str.nUnrestrainedDOF;
+    auto kOr = str.StiffnessMatrix->getSubmatrix(0, nUDOF - 1, 0, nUDOF - 1);
+    auto mOr = str.MassMatrix->getSubmatrix(0, nUDOF - 1, 0, nUDOF - 1);
+
+    arma::mat k(nUDOF, nUDOF);
+    arma::mat m(nUDOF, nUDOF);
+
+    for (size_t i = 0; i < nUDOF; i++)
+    {
+        for (size_t j = 0; j < nUDOF; j++)
+        {
+            k(i, j) = kOr(i, j);
+            m(i, j) = mOr(i, j);
+        }
+    }
+
+    arma::mat c = (a0 * m) + (a1 * k);
+    arma::mat mm = arma::inv(m + (c * dT * 0.5) + (k * dT * dT * 0.25));
+    arma::mat f1 = (c * dT * 0.5) + (k * dT * dT * 0.25);
+    arma::mat f2 = c + (k * dT);
+
+    auto nStep = (int)(tMax / dT);
+
+    for (size_t i = 1; i <= nStep; i++)
+    {
+        // Get current force vector for given time step
+        auto&& fOrCurr = f[i - 1];
+
+        // Get displacements, velocities and accelerations of previous step
+        auto&& uOrPrev = displacements[i - 1];
+        auto&& vOrPrev = velocities[i - 1];
+        auto&& aOrPrev = accelerations[i - 1];
+
+        arma::vec fArmaCurr(nUDOF);
+        arma::vec uArmaPrev(nUDOF);
+        arma::vec vArmaPrev(nUDOF);
+        arma::vec aArmaPrev(nUDOF);
+
+        for (size_t j = 0; j < nUDOF; j++)
+        {
+            fArmaCurr(j) = fOrCurr(j, 0);
+            uArmaPrev(j) = uOrPrev(j, 0);
+            vArmaPrev(j) = vOrPrev(j, 0);
+            aArmaPrev(j) = aOrPrev(j, 0);
+        }
+        //std::cout << "--------" << "\n";
+        //for (size_t i = 59; i < fArmaCurr.size(); i++)
+        //    std::cout << fArmaCurr.at(i) << "\n";
+
+        arma::vec fm = fArmaCurr - (f1 * aArmaPrev) - (f2 * vArmaPrev) - (k * uArmaPrev);
+
+        arma::vec aArmaCurr = mm * fm;
+
+        arma::vec vArmaCurr = vArmaPrev + (0.5 * dT * (aArmaPrev + aArmaCurr));
+
+        arma::vec uArmaCurr = uArmaPrev + (vArmaPrev * dT) + (0.25 * dT * dT * (aArmaPrev + aArmaCurr));
+
+        Matrix<double> uOrForward(str.nDOF, 1);
+        Matrix<double> vOrForward(str.nDOF, 1);
+        Matrix<double> aOrForward(str.nDOF, 1);
+
+        for (size_t j = 0; j < nUDOF; j++)
+        {
+            uOrForward(j, 0) = uArmaCurr(j);
+            vOrForward(j, 0) = vArmaCurr(j);
+            aOrForward(j, 0) = aArmaCurr(j);
+        }
+
+        displacements[i] = uOrForward;
+        velocities[i] = vOrForward;
+        accelerations[i] = aOrForward;
+    }
+
+    return std::make_tuple(displacements, velocities, accelerations);
 }
 
 Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex)

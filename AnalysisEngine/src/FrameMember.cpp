@@ -78,9 +78,13 @@ void FrameMember::AssembleElementLocalMassMatrix()
         mElm[0][0] = m;
         mElm[1][1] = m;
         mElm[2][2] = m;
+        mElm[4][4] = 1e-6 * m * L * L;
+        mElm[5][5] = 1e-6 * m * L * L;
         mElm[6][6] = m;
         mElm[7][7] = m;
         mElm[8][8] = m;
+        mElm[10][10] = 1e-6 * m * L * L;
+        mElm[11][11] = 1e-6 * m * L * L;
     }
     else
     {
