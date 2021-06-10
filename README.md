@@ -13,10 +13,10 @@ Current Capabilities
 
 * Modal analysis can be executed on created structural model.
 
+* Implicit Newmark-Beta Algorithm can be called for dynamic analysis of structures with both time and space varying loads.
+
 Future Development
 --------------------
-* Newmark-Beta algorithm will be implemented for dynamic analysis.
-
 * Material and geometrical nonlinearities will be considered.
 
 Solver
