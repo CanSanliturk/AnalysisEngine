@@ -19,6 +19,8 @@ Future Development
 --------------------
 * Material and geometrical nonlinearities will be considered.
 
+* Buckling analysis will be added.
+
 Solver
 ------------------
 * Eigen and Armadillo linear algebra solvers are implemented. 
