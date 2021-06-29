@@ -14,7 +14,6 @@ Structure::Structure(std::map<unsigned int, std::shared_ptr<Node>>* nodeMap, std
     this->AssignDegreesOfFreedom(unrestDofCount, totalDofCount);
     this->AssembleMassMatrix(totalDofCount);
     this->AssembleStiffnessMatrix(totalDofCount);
-    this->AssembleDampingMatrix(totalDofCount);
     this->AssembleForceVector(totalDofCount);
 }
 
@@ -24,6 +23,16 @@ Structure::Structure()
 
 Structure::~Structure()
 {
+}
+
+void Structure::updateStiffnessMatrix() 
+{
+    this->AssembleStiffnessMatrix(this->nDOF);
+}
+
+void Structure::updateMassMatrix()
+{
+    this->AssembleMassMatrix(this->nDOF);
 }
 
 void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount)
@@ -190,40 +199,6 @@ void Structure::AssembleMassMatrix(unsigned int totalDofCount)
                 auto idx1 = steerVector.at(i);
                 auto idx2 = steerVector.at(j);
                 (*this->MassMatrix)(idx1 - 1, idx2 - 1) += (*elmMassMat)(i, j);
-            }
-        }
-    }
-}
-
-void Structure::AssembleDampingMatrix(unsigned int totalDofCount)
-{
-    this->DampingMatrix = std::make_shared<Matrix<double>>(totalDofCount);
-    for (auto& elmPair : *this->Elements)
-    {
-        auto elm = elmPair.second;
-        auto nodes = elm->GelElementNodes();
-        std::vector<unsigned int> steerVector;
-
-        for (auto& n : nodes)
-        {
-            steerVector.push_back(n->DofIndexTX);
-            steerVector.push_back(n->DofIndexTY);
-            steerVector.push_back(n->DofIndexTZ);
-            steerVector.push_back(n->DofIndexRX);
-            steerVector.push_back(n->DofIndexRY);
-            steerVector.push_back(n->DofIndexRZ);
-        }
-
-        auto nDof = elm->GetNumberOfDoF();
-        auto elmDampingMatrix = elm->GetGlobalCoordinateDampingMatrix();
-
-        for (size_t i = 0; i < nDof; i++)
-        {
-            for (size_t j = 0; j < nDof; j++)
-            {
-                auto idx1 = steerVector.at(i);
-                auto idx2 = steerVector.at(j);
-                (*this->DampingMatrix)(idx1 - 1, idx2 - 1) += (*elmDampingMatrix)(i, j);
             }
         }
     }

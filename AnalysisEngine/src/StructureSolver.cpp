@@ -94,6 +94,13 @@ Matrix<double> StructureSolver::GetDisplacementForStaticCase(const Structure& st
     return retVal;
 }
 
+Matrix<double> StructureSolver::CalculateDisplacements(Matrix<double>& kMat, Matrix<double>& fVec, int nDof)
+{
+    auto kNdof = kMat.getSubmatrix(0, nDof - 1, 0, nDof - 1);
+    auto fNdof = fVec.getSubmatrix(0, nDof - 1, 0, 0);
+    return StructureSolver::LinearEquationSolver(kNdof, fNdof, SolverChoice::Armadillo);
+}
+
 // Returns member forces at local coordinates
 Matrix<double> StructureSolver::GetMemberEndForcesForLocalCoordinates(Element& elm, Matrix<double>& displacements)
 {

@@ -15,6 +15,7 @@ enum class SolverChoice
 namespace StructureSolver
 {
     Matrix<double> GetDisplacementForStaticCase(const Structure& str, SolverChoice solverChoice);
+    Matrix<double> CalculateDisplacements(Matrix<double>& kMat, Matrix<double>& fVec, int nDof);
     Matrix<double> GetMemberEndForcesForLocalCoordinates(Element& elm, Matrix<double>& displacements);
     Matrix<double> GetMemberEndForcesForGlobalCoordinates(Element& elm, Matrix<double>& displacements);
     Matrix<double> GetNodalDisplacements(Node& node, Matrix<double>& displacements);

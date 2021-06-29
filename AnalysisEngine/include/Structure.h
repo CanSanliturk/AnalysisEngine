@@ -24,7 +24,6 @@ public:
     std::map<unsigned int, std::shared_ptr<DistributedLoad>>* DistributedLoads;
 
     std::shared_ptr<Matrix<double>> MassMatrix;
-    std::shared_ptr<Matrix<double>> DampingMatrix;
     std::shared_ptr<Matrix<double>> StiffnessMatrix;
     std::shared_ptr<Matrix<double>> ForceVector;
 
@@ -37,10 +36,12 @@ public:
     Structure();
     ~Structure();
 
+    void updateStiffnessMatrix();
+    void updateMassMatrix();
+
 private:
     void AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount);
     void AssembleMassMatrix(unsigned int totalDofCount);
-    void AssembleDampingMatrix(unsigned int totalDofCount);
     void AssembleStiffnessMatrix(unsigned int totalDofCount);
     void AssembleForceVector(unsigned int totalDofCount);
 };

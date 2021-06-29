@@ -75,7 +75,7 @@ void StrutTieDesign()
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.1;
+    auto meshSize = 0.5;
 
     // Necessary fields
     std::map<unsigned int, std::shared_ptr<Node>> nodes;
@@ -128,11 +128,23 @@ void StrutTieDesign()
             auto& kNode = nodes[jNode->NodeIndex + nNodeX];
             auto& lNode = nodes[kNode->NodeIndex - 1];
             elements[memIdx] =
-                std::make_shared<ShellMember>(memIdx++, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Drilling, PlateType::NONE);
+                std::make_shared<ShellMember>(memIdx, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Drilling, PlateType::NONE);
+            memIdx++;
         }
     }
 
-    LOG(elements.size());
+    // Create structure
+    // START ITERATIONS
+    // Perform analysis
+    // Calculate stresses
+    // Update material properties
+    // Reperform analysis
+    // Update material properties once more
+    // END ITERATIONS
+    // Map all the elements to find nodes -> CHECK ARTICLE RELATED TO THIS
+    // Create truss analogy
+    // Find truss forces
+    // Find reinforcements (optional for now)
 }
 
 void CantileverDisplacements3D()
