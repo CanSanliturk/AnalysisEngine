@@ -9,6 +9,7 @@
 #define LOG(x) std::cout << x << "\n"
 constexpr double pi = 3.141592653589793;
 
+void StrutTieDesign();
 void CantileverDisplacements3D();
 void CantileverDisplacements2D();
 void TableModalAnalysis();
@@ -24,7 +25,6 @@ void CE583Assignment8_2_MembraneAction();
 void CE583Assignment8_2_PlateAction();
 void CE583Assignment8_3();
 void CE583Assignment9_2_1();
-void CE583Assignment9_2_2();
 void CE583Assignment9_2_3();
 void CE583Assignment9_3();
 
@@ -45,7 +45,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        CE583Assignment9_3();
+        StrutTieDesign();
         LOG("\n Analysis completed without errors...");
     }
     catch (const std::runtime_error& e)
@@ -61,6 +61,78 @@ int main()
 
     std::cin.get();
     return 0;
+}
+
+void StrutTieDesign()
+{
+    // INPUT CARD
+    // Length: m, Force: N
+    // Surface Outer Dimensions
+    auto lx = 4.0; // length in x
+    auto ly = 1.5; // length in y
+    auto thickness = 0.5;
+    auto eMod = 30e9; // youngs modulus
+    auto v = 0.3; // poissons ratio
+    auto fc = 30e6; // concrete compressive strength
+    auto fy = 420e6; // steel yield strength
+    auto meshSize = 0.1;
+
+    // Necessary fields
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Helper function to add restraints
+    std::vector<bool> pin = { true, true, true, true, true, false };
+    std::vector<bool> roller = { false, true, true, true, true, false };
+    std::vector<bool> universal = { false, false, true, true, true, false };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    auto addRestraint = [&](std::shared_ptr<Node> nR)
+    {
+        if (Utils::AreEqual(nR->Coordinate.X, 0.0, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
+        else if (Utils::AreEqual(nR->Coordinate.X, lx, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, roller, rest);
+        else
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, universal, rest);
+    };
+
+    int idx = 1;
+    // Populate nodes
+    int nNodeX = ((int)(lx / meshSize)) + 1;
+    int nNodeY = ((int)(ly / meshSize)) + 1;
+    for (auto yCoord = 0.0; yCoord < ly + meshSize * 0.1; yCoord += meshSize)
+    {
+        for (auto xCoord = 0.0; xCoord < lx + meshSize * 0.1; xCoord += meshSize)
+        {
+            XYZPoint pt(xCoord, yCoord, 0);
+            auto n = std::make_shared<Node>(idx++, pt);
+            nodes[n->NodeIndex] = n;
+            addRestraint(n);
+        }
+    }
+
+    // Populate elements
+    // Create elements
+    auto mt = std::make_shared<Material>(eMod, v, 0);
+    auto memIdx = 1;
+    for (size_t i = 0; i < nNodeY - 1; i++)
+    {
+        for (size_t j = 0; j < nNodeX - 1; j++)
+        {
+            auto& iNode = nodes[(i * nNodeX) + j + 1];
+            auto& jNode = nodes[iNode->NodeIndex + 1];
+            auto& kNode = nodes[jNode->NodeIndex + nNodeX];
+            auto& lNode = nodes[kNode->NodeIndex - 1];
+            elements[memIdx] =
+                std::make_shared<ShellMember>(memIdx++, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Drilling, PlateType::NONE);
+        }
+    }
+
+    LOG(elements.size());
 }
 
 void CantileverDisplacements3D()
@@ -632,7 +704,6 @@ void CE583Assignment5()
 
     // Create elements
     auto mt = std::make_shared<Material>(e, v, 0);
-    auto isMembrane = true;
     std::vector<ShellMember> membersAtSupport;
     for (size_t i = 0; i < nElmY; i++)
     {
