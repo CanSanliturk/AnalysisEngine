@@ -35,6 +35,27 @@ void Structure::updateMassMatrix()
     this->AssembleMassMatrix(this->nDOF);
 }
 
+Matrix<double> Structure::getForceVector(std::map<unsigned int, std::shared_ptr<NodalLoad>>* nodalLoadMap)
+{
+    // Nodal forces
+    Matrix<double> fVec(nDOF, 1);
+
+    for (auto& nodalLoadPair : *nodalLoadMap)
+    {
+        auto& load = nodalLoadPair.second;
+        auto& node = load->ActingNode;
+
+        fVec(node->DofIndexTX - 1, 0) = load->Loads[0];
+        fVec(node->DofIndexTY - 1, 0) = load->Loads[1];
+        fVec(node->DofIndexTZ - 1, 0) = load->Loads[2];
+        fVec(node->DofIndexRX - 1, 0) = load->Loads[3];
+        fVec(node->DofIndexRY - 1, 0) = load->Loads[4];
+        fVec(node->DofIndexRZ - 1, 0) = load->Loads[5];
+    }
+
+    return fVec;
+}
+
 void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount)
 {
     unsigned int dofIdx = 0;

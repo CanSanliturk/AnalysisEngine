@@ -94,11 +94,15 @@ Matrix<double> StructureSolver::GetDisplacementForStaticCase(const Structure& st
     return retVal;
 }
 
-Matrix<double> StructureSolver::CalculateDisplacements(Matrix<double>& kMat, Matrix<double>& fVec, int nDof)
+Matrix<double> StructureSolver::CalculateDisplacements(Matrix<double>& kMat, Matrix<double>& fVec, int nDof, int nUnrestainedDof, SolverChoice solverChoice)
 {
-    auto kNdof = kMat.getSubmatrix(0, nDof - 1, 0, nDof - 1);
-    auto fNdof = fVec.getSubmatrix(0, nDof - 1, 0, 0);
-    return StructureSolver::LinearEquationSolver(kNdof, fNdof, SolverChoice::Armadillo);
+    auto kNdof = kMat.getSubmatrix(0, nUnrestainedDof - 1, 0, nUnrestainedDof - 1);
+    auto fNdof = fVec.getSubmatrix(0, nUnrestainedDof - 1, 0, 0);
+    auto smallerResult = StructureSolver::LinearEquationSolver(kNdof, fNdof, solverChoice);
+    Matrix<double> retVal(nDof, 1);
+    for (int i = 0; i < nUnrestainedDof - 1; i++)
+        retVal(i, 0) = smallerResult(i, 0);
+    return retVal;
 }
 
 // Returns member forces at local coordinates
@@ -363,9 +367,6 @@ StructureSolver::ImplicitNewmark(const Structure& str, std::vector<Matrix<double
             vArmaPrev(j) = vOrPrev(j, 0);
             aArmaPrev(j) = aOrPrev(j, 0);
         }
-        //std::cout << "--------" << "\n";
-        //for (size_t i = 59; i < fArmaCurr.size(); i++)
-        //    std::cout << fArmaCurr.at(i) << "\n";
 
         arma::vec fm = fArmaCurr - (f1 * aArmaPrev) - (f2 * vArmaPrev) - (k * uArmaPrev);
 
@@ -394,6 +395,7 @@ StructureSolver::ImplicitNewmark(const Structure& str, std::vector<Matrix<double
     return std::make_tuple(displacements, velocities, accelerations);
 }
 
+// This will be moved to shell class
 Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex)
 {
     // For now, it is assumed that membrane is at XY-plane. If displacement vector is transformed into plane
@@ -647,6 +649,7 @@ Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember
     return stresses;
 }
 
+// This will be moved to shell class
 Matrix<double> StructureSolver::CalculatePlateForces(const ShellMember& elm, Matrix<double>& disps)
 {
     // Thickness
@@ -898,6 +901,7 @@ Matrix<double> StructureSolver::CalculatePlateForces(const ShellMember& elm, Mat
     return reactions;
 }
 
+// This will be moved to serendipity shell class
 Matrix<double> StructureSolver::CalculateSerendipityPlateForces(const SerendipityShell& elm, Matrix<double>& disps)
 {
     Matrix<double> reactions(5, 4);

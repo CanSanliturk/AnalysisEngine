@@ -44,6 +44,7 @@ public:
     std::shared_ptr<Matrix<double>> GetRotationMatrix();
     std::shared_ptr<Matrix<double>> GetElementLoads();
     std::vector<std::shared_ptr<Node>> GelElementNodes();
+    double getAxialForce(Matrix<double>& const displacementVector);
 
 private:
     void AssembleElementLocalMassMatrix();

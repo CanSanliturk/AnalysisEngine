@@ -7,6 +7,7 @@
 #include "UtilMethods.h"
 
 #define LOG(x) std::cout << x << "\n"
+#define LOGIF(x, cond) if (cond) LOG(x)
 constexpr double pi = 3.141592653589793;
 
 void StrutTieDesign();
@@ -68,14 +69,16 @@ void StrutTieDesign()
     // INPUT CARD
     // Length: m, Force: N
     // Surface Outer Dimensions
-    auto lx = 4.0; // length in x
-    auto ly = 1.5; // length in y
+    auto lx = 3.0; // length in x
+    auto ly = 2.0; // length in y
     auto thickness = 0.5;
-    auto eMod = 30e9; // youngs modulus
+    auto eMod = 100e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.5;
+    auto meshSize = 0.05;
+    double performanceRatioCriteria = 0.2;
+    auto isPrintMeshInfo = false;
 
     // Necessary fields
     std::map<unsigned int, std::shared_ptr<Node>> nodes;
@@ -85,9 +88,9 @@ void StrutTieDesign()
     std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
 
     // Helper function to add restraints
-    std::vector<bool> pin = { true, true, true, true, true, false };
-    std::vector<bool> roller = { false, true, true, true, true, false };
-    std::vector<bool> universal = { false, false, true, true, true, false };
+    std::vector<bool> pin = { true, true, true, true, true, true };
+    std::vector<bool> roller = { false, true, true, true, true, true };
+    std::vector<bool> universal = { false, false, true, true, true, true };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
 
     auto addRestraint = [&](std::shared_ptr<Node> nR)
@@ -100,40 +103,98 @@ void StrutTieDesign()
             restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, universal, rest);
     };
 
-    int idx = 1;
     // Populate nodes
+    int nodeIndex = 1;
     int nNodeX = ((int)(lx / meshSize)) + 1;
     int nNodeY = ((int)(ly / meshSize)) + 1;
+    LOGIF(" NODES (Node Index, X-Coordinate, Y-Coordinate)", isPrintMeshInfo);
     for (auto yCoord = 0.0; yCoord < ly + meshSize * 0.1; yCoord += meshSize)
     {
         for (auto xCoord = 0.0; xCoord < lx + meshSize * 0.1; xCoord += meshSize)
         {
+            LOGIF(" " << nodeIndex << ", " << xCoord << ", " << yCoord, isPrintMeshInfo);
             XYZPoint pt(xCoord, yCoord, 0);
-            auto n = std::make_shared<Node>(idx++, pt);
+            auto n = std::make_shared<Node>(nodeIndex++, pt);
             nodes[n->NodeIndex] = n;
             addRestraint(n);
         }
     }
 
     // Populate elements
-    // Create elements
-    auto mt = std::make_shared<Material>(eMod, v, 0);
-    auto memIdx = 1;
-    for (size_t i = 0; i < nNodeY - 1; i++)
+    // Initially, populate horizontal members
+    int memberIndex = 1;
+    auto&& mat = std::make_shared<Material>(eMod, v, 0);
+    auto&& sect = std::make_shared<Section>(0.01, 0, 0, 0);
+    LOGIF("\n ELEMENT-NODE CONNECTIVITY (Member Index, i-Node Index, j-Node Index)", isPrintMeshInfo);
+    for (int i = 1; i <= nNodeY; i++)
     {
-        for (size_t j = 0; j < nNodeX - 1; j++)
+        for (int j = 1; j < nNodeX; j++)
         {
-            auto& iNode = nodes[(i * nNodeX) + j + 1];
-            auto& jNode = nodes[iNode->NodeIndex + 1];
-            auto& kNode = nodes[jNode->NodeIndex + nNodeX];
-            auto& lNode = nodes[kNode->NodeIndex - 1];
-            elements[memIdx] =
-                std::make_shared<ShellMember>(memIdx, iNode, jNode, kNode, lNode, mt, thickness, MembraneType::Drilling, PlateType::NONE);
-            memIdx++;
+            auto index = j + (nNodeX * (i - 1));
+            auto& elmINode = nodes[index];
+            auto& elmJNode = nodes[index + 1];
+            LOGIF(" Horizontal Member, Member Index: " << memberIndex << ", " << elmINode->NodeIndex << ", " << elmJNode->NodeIndex, isPrintMeshInfo);
+            elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, elmINode, elmJNode, sect, mat);
+            memberIndex++;
         }
     }
 
+    // Then, populate vertical members
+    for (size_t i = 1; i < nNodeY; i++)
+    {
+        for (size_t j = 1; j <= nNodeX; j++)
+        {
+            auto iIdx = j + (nNodeX * (i - 1));
+            auto jIdx = iIdx + nNodeX;
+            LOGIF(" Vertical Member, Memmber Index: " << memberIndex << ", " << iIdx << ", " << jIdx, isPrintMeshInfo);
+            elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, nodes[iIdx], nodes[jIdx], sect, mat);
+            memberIndex++;
+        }
+    }
+
+    // Finally, populate diagonal members
+    for (size_t i = 1; i < nNodeY; i++)
+    {
+        for (size_t j = 1; j < nNodeX; j++)
+        {
+            // Two cross-truss will be added at this stage
+            auto lowerLeftNodeIndex = j + (nNodeX * (i - 1));
+            auto lowerRightNodeIndex = lowerLeftNodeIndex + 1;
+            auto upperLeftNodeIndex = lowerLeftNodeIndex + nNodeX;
+            auto upperRightNodeIndex = upperLeftNodeIndex + 1;
+
+            LOGIF(" Diagonal Member, Member Index: " << memberIndex << ", " << lowerLeftNodeIndex << ", " << upperRightNodeIndex, isPrintMeshInfo);
+            elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, nodes[lowerLeftNodeIndex], nodes[upperRightNodeIndex], sect, mat);
+            memberIndex++;
+
+            LOGIF(" Diagonal Member, Member Index: " << memberIndex << ", " << lowerRightNodeIndex << ", " << upperLeftNodeIndex, isPrintMeshInfo);
+            elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, nodes[lowerRightNodeIndex], nodes[upperLeftNodeIndex], sect, mat);
+            memberIndex++;
+        }
+    }
+
+    LOGIF(" Total member count: " << elements.size(), isPrintMeshInfo);
     // Create structure
+
+    for (auto& n : nodes)
+    {
+        if ((Utils::AreEqual(n.second->Coordinate.X, lx / 2.0, meshSize * 0.1)) && (Utils::AreEqual(n.second->Coordinate.Y, ly, meshSize * 0.1)))
+        {
+            double load[] = { 0, -5000, 0, 0, 0, 0 };
+            nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
+        }
+    }
+
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+    LOG(" Total dof: " << str->nUnrestrainedDOF);
+    auto fVec = str->getForceVector(&nodalLoads);
+    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, SolverChoice::Armadillo);
+    for (auto& elm : elements)
+    {
+        auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
+        LOGIF(" Truss Element Index: " << elm.first << ", Axial Force: " << trMem->getAxialForce(disps), true);
+    }
+
     // START ITERATIONS
     // Perform analysis
     // Calculate stresses
@@ -145,7 +206,9 @@ void StrutTieDesign()
     // Create truss analogy
     // Find truss forces
     // Find reinforcements (optional for now)
+
 }
+
 
 void CantileverDisplacements3D()
 {
