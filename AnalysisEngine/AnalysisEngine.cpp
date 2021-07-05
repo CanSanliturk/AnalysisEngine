@@ -69,16 +69,18 @@ void StrutTieDesign()
     // INPUT CARD
     // Length: m, Force: N
     // Surface Outer Dimensions
-    auto lx = 3.0; // length in x
-    auto ly = 2.0; // length in y
+    auto lx = 1.0; // length in x
+    auto ly = 1.0; // length in y
     auto thickness = 0.5;
     auto eMod = 100e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.05;
+    auto meshSize = 0.1;
     double performanceRatioCriteria = 0.2;
+    auto maxIterationCount = 100;
     auto isPrintMeshInfo = false;
+    auto isPrintForceInfo = true;
 
     // Necessary fields
     std::map<unsigned int, std::shared_ptr<Node>> nodes;
@@ -174,8 +176,8 @@ void StrutTieDesign()
     }
 
     LOGIF(" Total member count: " << elements.size(), isPrintMeshInfo);
-    // Create structure
 
+    // Force vector
     for (auto& n : nodes)
     {
         if ((Utils::AreEqual(n.second->Coordinate.X, lx / 2.0, meshSize * 0.1)) && (Utils::AreEqual(n.second->Coordinate.Y, ly, meshSize * 0.1)))
@@ -185,14 +187,54 @@ void StrutTieDesign()
         }
     }
 
+    // Create structure
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
-    LOG(" Total dof: " << str->nUnrestrainedDOF);
+    LOGIF(" Total DOF: " << str->nUnrestrainedDOF, false);
     auto fVec = str->getForceVector(&nodalLoads);
+
+    // Start iterations
+    auto comp = 0.0, tens = 0.0;
+    for (int i = 0; i < maxIterationCount; i++)
+    {
+        LOGIF(" Iteration #" << i + 1, true);
+        // Fields to be used for storing extreme forces on members
+        auto maxCompression = 0.0, maxTension = 0.0;
+
+        // Perform initial analysis
+        auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, SolverChoice::Armadillo);
+
+        // Find internal forces on elements
+        for (auto& elm : elements)
+        {
+            auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
+            auto axialForce = trMem->getAxialForce(disps);
+            if (axialForce < maxCompression) maxCompression = axialForce;
+            if (maxTension < axialForce) maxTension = axialForce;
+            LOGIF(" Comp: " << maxCompression << ", Tens:" << maxTension, false);
+        }
+
+        // Modify elements
+        for (auto& elm : elements)
+        {
+            auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
+            auto axialForce = trMem->getAxialForce(disps);
+            auto ratio = axialForce / (axialForce < 0 ? maxCompression : maxTension);
+            ratio = pow(ratio, 1.0 / (i + 1));
+            elm.second->updateStiffness(ratio);
+        }
+
+        str->updateStiffnessMatrix();
+        comp = maxCompression;
+        tens = maxTension;
+    }
+
     auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, SolverChoice::Armadillo);
     for (auto& elm : elements)
     {
         auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
-        LOGIF(" Truss Element Index: " << elm.first << ", Axial Force: " << trMem->getAxialForce(disps), true);
+        auto axialForce = trMem->getAxialForce(disps);
+        auto ratio = axialForce / (axialForce < 0 ? comp : tens);
+        LOGIF(" Element #" << trMem->ElementIndex << ", Ratio: " << ratio, performanceRatioCriteria < ratio);
     }
 
     // START ITERATIONS

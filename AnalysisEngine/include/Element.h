@@ -35,6 +35,7 @@ public:
     virtual std::shared_ptr<Matrix<double>> GetGlobalCoordinateDampingMatrix() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
     virtual std::shared_ptr<Matrix<double>> GetElementLoads() { auto nullVal = std::make_shared<Matrix<double>>(); return nullVal; }
     virtual void GetElm() { };
+    virtual void updateStiffness(double ratio) { };
 
     ElmType::ElementType Type;
 };

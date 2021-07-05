@@ -192,3 +192,10 @@ double TrussMember::getAxialForce(Matrix<double>& const displacementVector)
     auto&& internalForcesMemberCoordinates = kMat * displacementAtLocalCoordinates;
     return internalForcesMemberCoordinates(6, 0);
 }
+
+void TrussMember::updateStiffness(double ratio)
+{
+    auto modifiedLocalStiffnessMatrix = (*this->LocalCoordinateStiffnessMatrix) * ratio;
+    *this->LocalCoordinateStiffnessMatrix = modifiedLocalStiffnessMatrix;
+    AssembleElementGlobalStiffnessMatrix();
+}
