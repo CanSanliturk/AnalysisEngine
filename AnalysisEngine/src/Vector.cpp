@@ -72,6 +72,7 @@ Vector Vector::operator-(const Vector& v)
     return vec;
 }
 
+// Cross-product
 Vector Vector::operator*(const Vector& v)
 {
     Vector vec;
@@ -106,6 +107,12 @@ Vector Vector::operator*(const double mult)
     vec.Length = p.DistanceTo(origin);
     return vec;
 }
+
+double Vector::dotProduct(Vector& const v)
+{
+    return (this->X * v.X) + (this->Y * v.Y) + (this->Z * v.Z);
+}
+
 
 bool Vector::operator==(const Vector& v)
 {

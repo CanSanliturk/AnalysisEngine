@@ -77,8 +77,9 @@ void StrutTieDesign()
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
     auto meshSize = 0.1;
-    double performanceRatioCriteria = 0.2;
-    auto maxIterationCount = 100;
+    double performanceRatioCriteria = 0.2; // minimum performance ratio of elements to be considered
+    auto maxIterationCount = 100; // max iterations for topology optimization
+    auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
 
@@ -94,13 +95,19 @@ void StrutTieDesign()
     std::vector<bool> roller = { false, true, true, true, true, true };
     std::vector<bool> universal = { false, false, true, true, true, true };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
-
+    std::vector<int> realRestrainedNodes;
     auto addRestraint = [&](std::shared_ptr<Node> nR)
     {
         if (Utils::AreEqual(nR->Coordinate.X, 0.0, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+        {
             restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
+            realRestrainedNodes.push_back(nR->NodeIndex);
+        }
         else if (Utils::AreEqual(nR->Coordinate.X, lx, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+        {
             restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, roller, rest);
+            realRestrainedNodes.push_back(nR->NodeIndex);
+        }
         else
             restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, universal, rest);
     };
@@ -199,9 +206,10 @@ void StrutTieDesign()
         LOGIF(" Iteration #" << i + 1, true);
         // Fields to be used for storing extreme forces on members
         auto maxCompression = 0.0, maxTension = 0.0;
+        str->updateStiffnessMatrix();
 
         // Perform initial analysis
-        auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, SolverChoice::Armadillo);
+        auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
 
         // Find internal forces on elements
         for (auto& elm : elements)
@@ -223,12 +231,13 @@ void StrutTieDesign()
             elm.second->updateStiffness(ratio);
         }
 
-        str->updateStiffnessMatrix();
         comp = maxCompression;
         tens = maxTension;
     }
 
-    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, SolverChoice::Armadillo);
+    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
+
+#if false
     for (auto& elm : elements)
     {
         auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
@@ -236,6 +245,85 @@ void StrutTieDesign()
         auto ratio = axialForce / (axialForce < 0 ? comp : tens);
         LOGIF(" Element #" << trMem->ElementIndex << ", Ratio: " << ratio, performanceRatioCriteria < ratio);
     }
+#endif
+
+    // Identify nodes
+    std::vector<int> nodeIndices;
+    for (auto& nodePair : nodes)
+    {
+        // Get node
+        auto& node = nodePair.second;
+
+        // If there is a boundary condition at a node (either natural or essential), identify node 
+        // as strut&tie system node and continue
+        bool isStop = false;
+        for (auto& res : realRestrainedNodes)
+        {
+            if (res == node->NodeIndex)
+            {
+                nodeIndices.push_back(node->NodeIndex);
+                isStop = true;
+                break;
+            }
+        }
+
+        if (isStop) continue;
+
+        for (auto& nLoad : nodalLoads)
+        {
+            if (nLoad.second->ActingNode->NodeIndex == node->NodeIndex)
+            {
+                nodeIndices.push_back(node->NodeIndex);
+                isStop = true;
+                break;
+            }
+        }
+
+        if (isStop) continue;
+
+        // Get list of indices of connected elements
+        auto& listOfConnectedElements = node->ConnectedElements;
+
+        // Calculate axial forces on connected elements. If their ratio are higher than performance criteria,
+        // store them
+        std::vector<int> elementsSatisfyPerformanceCriteria;
+        for (auto& elmIndex : listOfConnectedElements)
+        {
+            auto trussElm = dynamic_cast<TrussMember*>(&*elements[elmIndex]);
+            auto axialForce = trussElm->getAxialForce(disps);
+            auto ratio = axialForce / (axialForce < 0 ? comp : tens);
+            if (performanceRatioCriteria <= ratio)
+                elementsSatisfyPerformanceCriteria.push_back(elmIndex);
+        }
+
+        // If there are at least three load carrying elements connecting to node, identify node as 
+        // strut&tie system node and continue
+        if (elementsSatisfyPerformanceCriteria.size() > 2)
+        {
+            nodeIndices.push_back(node->NodeIndex);
+            continue;
+        }
+        // Else if there are two elements connecting to the node and if they are not on the same line,
+        // identify node as strut&tie node and continue
+        else if (elementsSatisfyPerformanceCriteria.size() == 2)
+        {
+            auto firstElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[0]]);
+            auto secondElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[1]]);
+            Vector firstElmVector(firstElm->Nodes[0]->Coordinate, firstElm->Nodes[1]->Coordinate);
+            Vector secondElmVector(secondElm->Nodes[0]->Coordinate, secondElm->Nodes[1]->Coordinate);
+            
+            auto firstElmUnitVec = firstElmVector.getUnitVector();
+            auto secondElmUnitVec = secondElmVector.getUnitVector();
+            auto asdasd = abs(firstElmUnitVec.dotProduct(secondElmUnitVec));
+            // If dot-product of element vectors results in -1, they are on the same line.
+            if (!Utils::AreEqual(abs(firstElmUnitVec.dotProduct(secondElmUnitVec)),1))
+                nodeIndices.push_back(node->NodeIndex);
+        }
+    }
+
+    LOG("\n STRUT AND TIE SYSTEM NODES");
+    for (auto& nIdx : nodeIndices)
+        LOG(" Node Index: " << nIdx << ", Coordinates(x,y): (" << nodes[nIdx]->Coordinate.X << ", " << nodes[nIdx]->Coordinate.Y <<")");
 
     // START ITERATIONS
     // Perform analysis

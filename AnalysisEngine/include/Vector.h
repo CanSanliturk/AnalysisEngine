@@ -34,6 +34,7 @@ public:
     Vector operator-(const Vector& v);
     Vector operator*(const Vector& v);
     Vector operator*(const double mult);
+    double dotProduct(Vector& const v);
     bool operator==(const Vector& v);
 };
 
