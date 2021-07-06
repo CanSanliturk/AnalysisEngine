@@ -7,6 +7,7 @@
 #include "UtilMethods.h"
 
 #define LOG(x) std::cout << x << "\n"
+#define LOGW(x) std::wcout << x << "\n"
 #define LOGIF(x, cond) if (cond) LOG(x)
 constexpr double pi = 3.141592653589793;
 
@@ -31,12 +32,12 @@ void CE583Assignment9_3();
 
 int main()
 {
-    LOG(" __________________________________________________");
-    LOG(" |                                                |");
-    LOG(" |  3-Dimensional Finite Element Analysis Engine  |");
-    LOG(" |          Created by Can Sanliturk              |");
-    LOG(" |           All rights reserved ©                |");
-    LOG(" |________________________________________________|");
+    LOGW(L" __________________________________________________");
+    LOGW(L" |                                                |");
+    LOGW(L" |  3-Dimensional Finite Element Analysis Engine  |");
+    LOGW(L" |          Created by Can Sanliturk              |");
+    LOGW(L" |           All rights reserved ©                |");
+    LOGW(L" |________________________________________________|");
     LOG("");
 
     // Start timer
@@ -72,13 +73,14 @@ void StrutTieDesign()
     auto lx = 1.0; // length in x
     auto ly = 1.0; // length in y
     auto thickness = 0.5;
-    auto eMod = 100e9; // youngs modulus (xe9 means x gigapascals)
+    auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.1;
+    auto meshSize = 0.05;
     double performanceRatioCriteria = 0.2; // minimum performance ratio of elements to be considered
-    auto maxIterationCount = 100; // max iterations for topology optimization
+    auto maxIterationCount = 1000; // max iterations for topology optimization
+    auto iterationStoppingCount = 10;
     auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
@@ -201,8 +203,11 @@ void StrutTieDesign()
 
     // Start iterations
     auto comp = 0.0, tens = 0.0;
+    auto prevNumOfElmStsfyCrt = 0;
+    auto unchangedIterCount = 0;
     for (int i = 0; i < maxIterationCount; i++)
     {
+        auto currNumOfElmStsfyCrt = 0;
         LOGIF(" Iteration #" << i + 1, true);
         // Fields to be used for storing extreme forces on members
         auto maxCompression = 0.0, maxTension = 0.0;
@@ -227,12 +232,21 @@ void StrutTieDesign()
             auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
             auto axialForce = trMem->getAxialForce(disps);
             auto ratio = axialForce / (axialForce < 0 ? maxCompression : maxTension);
+            if (performanceRatioCriteria < ratio) currNumOfElmStsfyCrt++;
             ratio = pow(ratio, 1.0 / (i + 1));
             elm.second->updateStiffness(ratio);
         }
 
         comp = maxCompression;
         tens = maxTension;
+
+        if (currNumOfElmStsfyCrt == prevNumOfElmStsfyCrt)
+            unchangedIterCount++;
+
+        prevNumOfElmStsfyCrt = currNumOfElmStsfyCrt;
+
+        if (unchangedIterCount == iterationStoppingCount)
+            break;
     }
 
     auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
