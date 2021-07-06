@@ -30,14 +30,19 @@ void CE583Assignment9_2_1();
 void CE583Assignment9_2_3();
 void CE583Assignment9_3();
 
+struct NodeData {
+    int nodeIndex;
+    XYZPoint coordinate;
+};
+
 int main()
 {
-    LOGW(L" __________________________________________________");
-    LOGW(L" |                                                |");
-    LOGW(L" |  3-Dimensional Finite Element Analysis Engine  |");
-    LOGW(L" |          Created by Can Sanliturk              |");
-    LOGW(L" |           All rights reserved ©                |");
-    LOGW(L" |________________________________________________|");
+    LOG(" __________________________________________________");
+    LOG(" |                                                |");
+    LOG(" |  3-Dimensional Finite Element Analysis Engine  |");
+    LOG(" |          Created by Can Sanliturk              |");
+    LOG(" |           All rights reserved ©                |");
+    LOG(" |________________________________________________|");
     LOG("");
 
     // Start timer
@@ -325,19 +330,101 @@ void StrutTieDesign()
             auto secondElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[1]]);
             Vector firstElmVector(firstElm->Nodes[0]->Coordinate, firstElm->Nodes[1]->Coordinate);
             Vector secondElmVector(secondElm->Nodes[0]->Coordinate, secondElm->Nodes[1]->Coordinate);
-            
+
             auto firstElmUnitVec = firstElmVector.getUnitVector();
             auto secondElmUnitVec = secondElmVector.getUnitVector();
             auto asdasd = abs(firstElmUnitVec.dotProduct(secondElmUnitVec));
             // If dot-product of element vectors results in -1, they are on the same line.
-            if (!Utils::AreEqual(abs(firstElmUnitVec.dotProduct(secondElmUnitVec)),1))
+            if (!Utils::AreEqual(abs(firstElmUnitVec.dotProduct(secondElmUnitVec)), 1))
                 nodeIndices.push_back(node->NodeIndex);
         }
     }
 
-    LOG("\n STRUT AND TIE SYSTEM NODES");
-    for (auto& nIdx : nodeIndices)
-        LOG(" Node Index: " << nIdx << ", Coordinates(x,y): (" << nodes[nIdx]->Coordinate.X << ", " << nodes[nIdx]->Coordinate.Y <<")");
+    // After obtaining nodes, start merging nodes that are too close
+    // Create node data structs
+    std::vector<NodeData> nodeDataVector;
+    for (size_t i = 0; i < nodeIndices.size(); i++)
+    {
+        NodeData nd;
+        nd.nodeIndex = i;
+        nd.coordinate = nodes[nodeIndices[i]]->Coordinate;
+        nodeDataVector.push_back(nd);
+    }
+
+    LOG("\n STRUT AND TIE SYSTEM INITIAL NODES");
+    for (auto& nd : nodeDataVector)
+        LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
+
+    std::vector<NodeData> mergedNodes;
+    std::vector<int> encounteredNodes;
+    auto nodeIndexer = 1;
+    for (double yCoord = 0; yCoord < ly - 0.1 * meshSize; yCoord += 2 * meshSize)
+    {
+        for (double xCoord = 0; xCoord < lx - 0.1 * meshSize; xCoord += 2 * meshSize)
+        {
+            auto leftBound = xCoord - 0.01 * meshSize;
+            auto rightBound = xCoord + 2.01 * meshSize;
+            auto bottomBound = yCoord - 0.01 * meshSize;
+            auto upperBound = yCoord + 2.01 * meshSize;
+
+
+            std::vector<int> nodesToBeMerged;
+            for (auto &nd : nodeDataVector)
+            {
+                auto isRight = nd.coordinate.X > leftBound;
+                auto isLeft = nd.coordinate.X < rightBound;
+                auto isUpper = nd.coordinate.Y > bottomBound;
+                auto isLower = nd.coordinate.Y < upperBound;
+                auto isFresh = true;
+
+                for (auto encounteredNodeId : encounteredNodes)
+                {
+                    if (encounteredNodeId == nd.nodeIndex)
+                    {
+                        isFresh = false;
+                        break;
+                    }
+                }
+
+                if (isRight && isLeft && isUpper && isLower && isFresh)
+                {
+                    nodesToBeMerged.push_back(nd.nodeIndex);
+                    encounteredNodes.push_back(nd.nodeIndex);
+                }
+            }
+
+            if (1 < nodesToBeMerged.size())
+            {
+                auto sumXCoord = 0.0, sumYCoord = 0.0;
+                for (auto nid : nodesToBeMerged)
+                {
+                    sumXCoord += nodeDataVector[nid].coordinate.X;
+                    sumYCoord += nodeDataVector[nid].coordinate.Y;
+                }
+                auto xCd = sumXCoord / (double(nodesToBeMerged.size()));
+                auto yCd = sumYCoord / (double(nodesToBeMerged.size()));
+                XYZPoint pt(xCd, yCd, 0.0);
+                NodeData newNode;
+                newNode.nodeIndex = nodeIndexer;
+                newNode.coordinate = pt;
+                mergedNodes.push_back(newNode);
+                nodeIndexer++;
+            }
+            else if (1 == nodesToBeMerged.size())
+            {
+                NodeData newNode;
+                newNode.nodeIndex = nodeIndexer;
+                newNode.coordinate = nodeDataVector[nodesToBeMerged[0]].coordinate;
+                mergedNodes.push_back(newNode);
+                nodeIndexer++;
+            }
+        }
+    }
+
+    LOG("\n STRUT AND TIE SYSTEM MERGED NODES");
+    for (auto& nd : mergedNodes)
+        LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
+
 
     // START ITERATIONS
     // Perform analysis
@@ -352,7 +439,6 @@ void StrutTieDesign()
     // Find reinforcements (optional for now)
 
 }
-
 
 void CantileverDisplacements3D()
 {
