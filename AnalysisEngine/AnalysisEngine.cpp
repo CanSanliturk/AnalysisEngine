@@ -83,6 +83,7 @@ void StrutTieDesign()
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
     auto meshSize = 0.05;
+    auto merger = 3;
     double performanceRatioCriteria = 0.2; // minimum performance ratio of elements to be considered
     auto maxIterationCount = 1000; // max iterations for topology optimization
     auto iterationStoppingCount = 10;
@@ -254,17 +255,8 @@ void StrutTieDesign()
             break;
     }
 
+    LOG(" Iterations for optimization finished.");
     auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
-
-#if false
-    for (auto& elm : elements)
-    {
-        auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
-        auto axialForce = trMem->getAxialForce(disps);
-        auto ratio = axialForce / (axialForce < 0 ? comp : tens);
-        LOGIF(" Element #" << trMem->ElementIndex << ", Ratio: " << ratio, performanceRatioCriteria < ratio);
-    }
-#endif
 
     // Identify nodes
     std::vector<int> nodeIndices;
@@ -355,18 +347,17 @@ void StrutTieDesign()
     for (auto& nd : nodeDataVector)
         LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
 
-    std::vector<NodeData> mergedNodes;
+    /*std::vector<NodeData> mergedNodes;
     std::vector<int> encounteredNodes;
     auto nodeIndexer = 1;
-    for (double yCoord = 0; yCoord < ly - 0.1 * meshSize; yCoord += 2 * meshSize)
+    for (double yCoord = 0; yCoord < ly - 0.1 * meshSize; yCoord += merger * meshSize)
     {
-        for (double xCoord = 0; xCoord < lx - 0.1 * meshSize; xCoord += 2 * meshSize)
+        for (double xCoord = 0; xCoord < lx - 0.1 * meshSize; xCoord += merger * meshSize)
         {
             auto leftBound = xCoord - 0.01 * meshSize;
-            auto rightBound = xCoord + 2.01 * meshSize;
+            auto rightBound = xCoord + (merger * 1.01) * meshSize;
             auto bottomBound = yCoord - 0.01 * meshSize;
-            auto upperBound = yCoord + 2.01 * meshSize;
-
+            auto upperBound = yCoord + merger * 1.01 * meshSize;
 
             std::vector<int> nodesToBeMerged;
             for (auto &nd : nodeDataVector)
@@ -423,8 +414,211 @@ void StrutTieDesign()
 
     LOG("\n STRUT AND TIE SYSTEM MERGED NODES");
     for (auto& nd : mergedNodes)
-        LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
+        LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");*/
 
+        //// After merging nodes in a certain region, check the nodes and perform final merging
+        //std::vector<NodeData> finalNodes;
+        //std::vector<NodeData> nodesToBeSkipped;
+        //nodeIndexer = 1;
+        //for (auto& nd : mergedNodes)
+        //{
+        //    // Skip the already encountered nodes
+        //    bool isSkipOutside = false;
+        //    for (auto& nskp : nodesToBeSkipped)
+        //    {
+        //        if (nskp.nodeIndex == nd.nodeIndex)
+        //        {
+        //            isSkipOutside = true;
+        //            break;
+        //        }
+        //    }
+
+        //    if (isSkipOutside)
+        //        continue;
+
+        //    std::vector<NodeData> nodesWillBeMerged;
+        //    bool isFirstEncountering = true;
+        //    for (auto& nnd : mergedNodes)
+        //    {
+        //        // Skip the same nodes
+        //        if (nd.nodeIndex == nnd.nodeIndex)
+        //            continue;
+
+        //        // Skip the already encountered nodes
+        //        bool isSkipInside = false;
+        //        for(auto& nskp : nodesToBeSkipped)
+        //        {
+        //            if (nskp.nodeIndex == nnd.nodeIndex)
+        //            {
+        //                isSkipInside = true;
+        //                break;
+        //            }
+        //        }
+
+        //        if (isSkipInside)
+        //            continue;
+
+        //        auto dist = nd.coordinate.DistanceTo(nnd.coordinate);
+        //        if (dist < merger * meshSize)
+        //        {
+        //            if (isFirstEncountering)
+        //            {
+        //                nodesWillBeMerged.push_back(nd);
+        //                isFirstEncountering = false;
+        //            }
+
+        //            nodesWillBeMerged.push_back(nnd);
+        //        }
+        //    }
+
+        //    for (auto& nwbm : nodesWillBeMerged)
+        //    {
+        //        bool isInsert = true;
+
+        //        for (auto& ntbs : nodesToBeSkipped)
+        //        {
+        //            if (nwbm.nodeIndex == ntbs.nodeIndex)
+        //            {
+        //                isInsert = false;
+        //                break;
+        //            }
+        //        }
+
+        //        if (isInsert)
+        //            nodesToBeSkipped.push_back(nwbm);
+        //    }
+
+        //    if (1 < nodesWillBeMerged.size())
+        //    {
+        //        auto sumXCoord = 0.0, sumYCoord = 0.0;
+        //        for (auto& nid : nodesWillBeMerged)
+        //        {
+        //            sumXCoord += nid.coordinate.X;
+        //            sumYCoord += nid.coordinate.Y;
+        //        }
+
+        //        auto xCd = sumXCoord / (double(nodesWillBeMerged.size()));
+        //        auto yCd = sumYCoord / (double(nodesWillBeMerged.size()));
+        //        XYZPoint pt(xCd, yCd, 0.0);
+        //        NodeData newNode;
+        //        newNode.nodeIndex = nodeIndexer;
+        //        newNode.coordinate = pt;
+        //        finalNodes.push_back(newNode);
+        //        nodeIndexer++;
+        //    }
+        //    else
+        //    {
+        //        NodeData newNode;
+        //        newNode.nodeIndex = nodeIndexer;
+        //        newNode.coordinate = nd.coordinate;
+        //        finalNodes.push_back(newNode);
+        //        nodeIndexer++;
+        //    }
+        //}
+
+    // After merging nodes in a certain region, check the nodes and perform final merging
+    std::vector<NodeData> finalNodes;
+    std::vector<NodeData> nodesToBeSkipped;
+    auto nodeIndexer = 1;
+    for (auto& nd : nodeDataVector)
+    {
+        // Skip the already encountered nodes
+        bool isSkipOutside = false;
+        for (auto& nskp : nodesToBeSkipped)
+        {
+            if (nskp.nodeIndex == nd.nodeIndex)
+            {
+                isSkipOutside = true;
+                break;
+            }
+        }
+
+        if (isSkipOutside)
+            continue;
+
+        std::vector<NodeData> nodesWillBeMerged;
+        bool isFirstEncountering = true;
+        for (auto& nnd : nodeDataVector)
+        {
+            // Skip the same nodes
+            if (nd.nodeIndex == nnd.nodeIndex)
+                continue;
+
+            // Skip the already encountered nodes
+            bool isSkipInside = false;
+            for (auto& nskp : nodesToBeSkipped)
+            {
+                if (nskp.nodeIndex == nnd.nodeIndex)
+                {
+                    isSkipInside = true;
+                    break;
+                }
+            }
+
+            if (isSkipInside)
+                continue;
+
+            auto dist = nd.coordinate.DistanceTo(nnd.coordinate);
+            if (dist < merger * meshSize)
+            {
+                if (isFirstEncountering)
+                {
+                    nodesWillBeMerged.push_back(nd);
+                    isFirstEncountering = false;
+                }
+
+                nodesWillBeMerged.push_back(nnd);
+            }
+        }
+
+        for (auto& nwbm : nodesWillBeMerged)
+        {
+            bool isInsert = true;
+
+            for (auto& ntbs : nodesToBeSkipped)
+            {
+                if (nwbm.nodeIndex == ntbs.nodeIndex)
+                {
+                    isInsert = false;
+                    break;
+                }
+            }
+
+            if (isInsert)
+                nodesToBeSkipped.push_back(nwbm);
+        }
+
+        if (1 < nodesWillBeMerged.size())
+        {
+            auto sumXCoord = 0.0, sumYCoord = 0.0;
+            for (auto& nid : nodesWillBeMerged)
+            {
+                sumXCoord += nid.coordinate.X;
+                sumYCoord += nid.coordinate.Y;
+            }
+
+            auto xCd = sumXCoord / (double(nodesWillBeMerged.size()));
+            auto yCd = sumYCoord / (double(nodesWillBeMerged.size()));
+            XYZPoint pt(xCd, yCd, 0.0);
+            NodeData newNode;
+            newNode.nodeIndex = nodeIndexer;
+            newNode.coordinate = pt;
+            finalNodes.push_back(newNode);
+            nodeIndexer++;
+        }
+        else
+        {
+            NodeData newNode;
+            newNode.nodeIndex = nodeIndexer;
+            newNode.coordinate = nd.coordinate;
+            finalNodes.push_back(newNode);
+            nodeIndexer++;
+        }
+    }
+
+    LOG("\n STRUT AND TIE SYSTEM FINAL NODES");
+    for (auto& nd : finalNodes)
+        LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
 
     // START ITERATIONS
     // Perform analysis
