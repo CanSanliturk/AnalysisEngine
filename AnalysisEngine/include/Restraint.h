@@ -23,6 +23,10 @@ public:
     bool IsRestraintRotationY = false;
     bool IsRestraintRotationZ = false;
 
+    std::vector<bool> IsRestrainedVector;
+    std::vector<double> RestrainedCondition;
+
+
     Restraint(std::shared_ptr<Node> resNode, std::vector<bool> isRest, std::vector<double> rest)
         : RestrainedNode(resNode), 
         IsRestraintTranslationX(isRest.at(0)), IsRestraintTranslationY(isRest.at(1)), IsRestraintTranslationZ(isRest.at(2)),
