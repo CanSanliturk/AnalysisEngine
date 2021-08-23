@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <memory>
 #include <chrono>
@@ -35,13 +36,18 @@ struct NodeData {
     XYZPoint coordinate;
 };
 
+struct TrussData {
+    int trussIndex;
+    NodeData* iNode;
+    NodeData* jNode;
+};
+
 int main()
 {
     LOG(" __________________________________________________");
     LOG(" |                                                |");
     LOG(" |  3-Dimensional Finite Element Analysis Engine  |");
     LOG(" |          Created by Can Sanliturk              |");
-    LOG(" |           All rights reserved ©                |");
     LOG(" |________________________________________________|");
     LOG("");
 
@@ -75,21 +81,22 @@ void StrutTieDesign()
     // INPUT CARD
     // Length: m, Force: N
     // Surface Outer Dimensions
-    auto lx = 4.0; // length in x
-    auto ly = 3.0; // length in y
+    auto lx = 6.0; // length in x
+    auto ly = 1.0; // length in y
     auto thickness = 0.5;
     auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.1;
-    auto merger = 3;
-    double performanceRatioCriteria = 0.2; // minimum performance ratio of elements to be considered
-    auto maxIterationCount = 1000; // max iterations for topology optimization
-    auto iterationStoppingCount = 10;
-    auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
+    auto meshSize = 0.05;
+    auto merger = 1.0;
+    double performanceRatioCriteria = 0.1; // minimum performance ratio of elements to be considered
+    auto maxIterationCount = 7; // max iterations for topology optimization
+    auto iterationStoppingCount = 3;
+    auto solverSelection = SolverChoice::Armadillo; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
+    auto isPrintElements = true;
 
     // Necessary fields
     std::map<unsigned int, std::shared_ptr<Node>> nodes;
@@ -206,6 +213,23 @@ void StrutTieDesign()
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
     LOGIF(" Total DOF: " << str->nUnrestrainedDOF, false);
     auto fVec = str->getForceVector(&nodalLoads);
+
+    if (isPrintElements)
+    {
+        std::ofstream elementOutputStream;
+
+        elementOutputStream.open("elements.dat");
+        for (auto&& e : elements)
+        {
+            auto&& firstNode = e.second->GelElementNodes().at(0);
+            auto&& secondNode = e.second->GelElementNodes().at(1);
+            elementOutputStream << firstNode->Coordinate.X << " " << firstNode->Coordinate.Y << "\n";
+            elementOutputStream << secondNode->Coordinate.X << " " << secondNode->Coordinate.Y << "\n";
+            elementOutputStream << "\n";
+        }
+
+        elementOutputStream.close();
+    }
 
     // Start iterations
     auto comp = 0.0, tens = 0.0;
@@ -345,7 +369,7 @@ void StrutTieDesign()
 
     LOG("\n STRUT AND TIE SYSTEM INITIAL NODES");
     for (auto& nd : nodeDataVector)
-        LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
+        LOG(" Node Index: " << (nd.nodeIndex + 1) << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
 
     // Merge the nodes that are close to each other
     std::vector<NodeData> mergedNodes;
@@ -451,60 +475,39 @@ void StrutTieDesign()
     for (auto& nd : mergedNodes)
         LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
 
-    // Since nodes of the system are found, create truss analogy
+    // Since nodes of the system are found, create truss analogy by linking all the nodes to each other
+    std::vector<TrussData> trussDataVector;
+    int trussIndexer = 1;
+    LOG("\n STRUT AND TIE SYSTEM TRUSSES");
+    std::ofstream trussDataPrinter;
 
-    // Necessary fields
-    std::map<unsigned int, std::shared_ptr<Node>> finalNodes;
-    std::map<unsigned int, std::shared_ptr<Element>> finalElements;
-    std::map<unsigned int, std::shared_ptr<Restraint>> finalRestraints;
-    std::map<unsigned int, std::shared_ptr<NodalLoad>> finalNodalLoads;
-    std::map<unsigned int, std::shared_ptr<DistributedLoad>> finaldistLoads;
+    if (isPrintElements)
+        trussDataPrinter.open("strutTieSystem.dat");
 
-    // Populate nodes
-    for (auto& nd : mergedNodes)
-        finalNodes[nd.nodeIndex] = std::make_shared<Node>(nd.nodeIndex, nd.coordinate);
-
-    // Assign restraints finding the closest nodes
-    /*unsigned int restraintIndexer = 1;
-    for (auto& rest : restraints)
+    for (size_t i = 0; i < mergedNodes.size(); i++)
     {
-        auto& restNode = rest.second->RestrainedNode;
-
-        auto minDistance = 0.0;
-        std::map<double, int> nodesToRestraintMap;
-
-        for (auto& n : finalNodes)
+        auto iNode = mergedNodes[i];
+        for (size_t j = i + 1; j < mergedNodes.size(); j++)
         {
-            auto dist = restNode->Coordinate.DistanceTo(n.second->Coordinate);
-            if (dist < minDistance)
-                minDistance = dist;
-            nodesToRestraintMap[dist] = n.first;
+            auto jNode = mergedNodes[j];
+            TrussData t;
+            t.trussIndex = trussIndexer;
+            t.iNode = &iNode;
+            t.jNode = &jNode;
+            trussDataVector.push_back(t);
+            trussIndexer++;
+            LOG(" Truss Index: " << t.trussIndex << ", i-End Node Index: " << t.iNode->nodeIndex << ", j-End Node Index: " << t.jNode->nodeIndex);
+            if (isPrintElements)
+            {
+                trussDataPrinter << iNode.coordinate.X << " " << iNode.coordinate.Y << "\n";
+                trussDataPrinter << jNode.coordinate.X << " " << jNode.coordinate.Y << "\n\n";
+            }
         }
 
-        auto& nodeToBeRestrained = finalNodes[nodesToRestraintMap[minDistance]];
-        finalRestraints[restraintIndexer] = std::make_shared<Restraint>(nodeToBeRestrained, rest.second->IsRestrainedVector, rest.second->RestrainedCondition);
-        restraintIndexer++;
     }
 
-    for (auto& anan : finalRestraints)
-    {
-        auto& restNode = anan.second->RestrainedNode;
-        LOG(" Restraint Node Index: " << restNode->NodeIndex);
-    }*/
-
-
-    // START ITERATIONS
-    // Perform analysis
-    // Calculate stresses
-    // Update material properties
-    // Reperform analysis
-    // Update material properties once more
-    // END ITERATIONS
-    // Map all the elements to find nodes -> CHECK ARTICLE RELATED TO THIS
-    // Create truss analogy
-    // Find truss forces
-    // Find reinforcements (optional for now)
-
+    if (isPrintElements)
+        trussDataPrinter.close();
 }
 
 void CantileverDisplacements3D()
