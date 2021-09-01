@@ -81,18 +81,18 @@ void StrutTieDesign()
     // INPUT CARD
     // Length: m, Force: N
     // Surface Outer Dimensions
-    auto lx = 6.0; // length in x
+    auto lx = 1.0; // length in x
     auto ly = 1.0; // length in y
     auto thickness = 0.5;
     auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.05;
-    auto merger = 1.0;
-    double performanceRatioCriteria = 0.1; // minimum performance ratio of elements to be considered
-    auto maxIterationCount = 7; // max iterations for topology optimization
-    auto iterationStoppingCount = 3;
+    auto meshSize = 0.1;
+    auto merger = 3.0;
+    double performanceRatioCriteria = 0.2; // minimum performance ratio of elements to be considered
+    auto maxIterationCount = 1000; // max iterations for topology optimization
+    auto iterationStoppingCount = 100;
     auto solverSelection = SolverChoice::Armadillo; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
@@ -218,16 +218,18 @@ void StrutTieDesign()
     {
         std::ofstream elementOutputStream;
 
-        elementOutputStream.open("elements.dat");
+        elementOutputStream.open("plot\\elements.dat");
+        elementOutputStream << "BEGIN SCENE\n";
         for (auto&& e : elements)
         {
             auto&& firstNode = e.second->GelElementNodes().at(0);
             auto&& secondNode = e.second->GelElementNodes().at(1);
             elementOutputStream << firstNode->Coordinate.X << " " << firstNode->Coordinate.Y << "\n";
             elementOutputStream << secondNode->Coordinate.X << " " << secondNode->Coordinate.Y << "\n";
-            elementOutputStream << "\n";
+            elementOutputStream << "7\n";
         }
 
+        elementOutputStream << "END SCENE\n";
         elementOutputStream.close();
     }
 
@@ -235,6 +237,10 @@ void StrutTieDesign()
     auto comp = 0.0, tens = 0.0;
     auto prevNumOfElmStsfyCrt = 0;
     auto unchangedIterCount = 0;
+
+    std::ofstream animationStream;
+    animationStream.open("plot\\animation.dat");
+
     for (int i = 0; i < maxIterationCount; i++)
     {
         auto currNumOfElmStsfyCrt = 0;
@@ -256,16 +262,47 @@ void StrutTieDesign()
             LOGIF(" Comp: " << maxCompression << ", Tens:" << maxTension, false);
         }
 
+        animationStream << "BEGIN SCENE\n";
         // Modify elements
         for (auto& elm : elements)
         {
             auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
             auto axialForce = trMem->getAxialForce(disps);
+            auto isCompression = axialForce < 0;
+            auto isTension = 0 < axialForce ;
             auto ratio = axialForce / (axialForce < 0 ? maxCompression : maxTension);
             if (performanceRatioCriteria < ratio) currNumOfElmStsfyCrt++;
             ratio = pow(ratio, 1.0 / (i + 1));
             elm.second->updateStiffness(ratio);
+
+            int colour = 0;
+            if (isCompression)
+            {
+                if (ratio < 0.2) colour = 2;
+                else if (ratio < 0.4) colour = 3;
+                else if (ratio < 0.6) colour = 4;
+                else if (ratio < 0.8) colour = 5;
+                else if (ratio <= 1.0) colour = 6;
+            }
+            else if (isTension)
+            {
+                if (ratio < 0.2) colour = 7;
+                else if (ratio < 0.4) colour = 8;
+                else if (ratio < 0.6) colour = 9;
+                else if (ratio < 0.8) colour = 10;
+                else if (ratio <= 1.0) colour = 11;
+            }
+            else
+            {
+                colour = 0;
+            }
+
+            animationStream << trMem->Nodes[0]->Coordinate.X << " " << trMem->Nodes[0]->Coordinate.Y << "\n";
+            animationStream << trMem->Nodes[1]->Coordinate.X << " " << trMem->Nodes[1]->Coordinate.Y << "\n";
+            animationStream << colour << "\n";
         }
+
+        animationStream << "END SCENE\n";
 
         comp = maxCompression;
         tens = maxTension;
@@ -278,6 +315,7 @@ void StrutTieDesign()
         if (unchangedIterCount == iterationStoppingCount)
             break;
     }
+    animationStream.close();
 
     LOG(" Iterations for optimization finished.");
     auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
@@ -482,7 +520,10 @@ void StrutTieDesign()
     std::ofstream trussDataPrinter;
 
     if (isPrintElements)
-        trussDataPrinter.open("strutTieSystem.dat");
+    {
+        trussDataPrinter.open("plot\\strutTieSystem.dat");
+        trussDataPrinter << "BEGIN SCENE\n";
+    }
 
     for (size_t i = 0; i < mergedNodes.size(); i++)
     {
@@ -500,14 +541,18 @@ void StrutTieDesign()
             if (isPrintElements)
             {
                 trussDataPrinter << iNode.coordinate.X << " " << iNode.coordinate.Y << "\n";
-                trussDataPrinter << jNode.coordinate.X << " " << jNode.coordinate.Y << "\n\n";
+                trussDataPrinter << jNode.coordinate.X << " " << jNode.coordinate.Y << "\n";
+                trussDataPrinter << "7\n";
             }
         }
 
     }
 
     if (isPrintElements)
+    {
+        trussDataPrinter << "END SCENE";
         trussDataPrinter.close();
+    }
 }
 
 void CantileverDisplacements3D()
