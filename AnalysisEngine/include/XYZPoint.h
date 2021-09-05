@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math.h>
+#include "UtilMethods.h"
 
 struct XYZPoint
 {
@@ -23,4 +24,11 @@ struct XYZPoint
     {
         return sqrt(((X - pt.X) * (X - pt.X)) + ((Y - pt.Y) * (Y - pt.Y)) + ((Z - pt.Z) * (Z - pt.Z)));
     };
+
+    bool operator==(const XYZPoint& that)
+    {
+        return Utils::AreEqual(this->X, that.X) && 
+            Utils::AreEqual(this->Y, that.Y) && 
+            Utils::AreEqual(this->Z, that.Z);
+    }
 };

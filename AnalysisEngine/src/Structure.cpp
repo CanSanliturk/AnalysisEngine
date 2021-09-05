@@ -56,6 +56,23 @@ Matrix<double> Structure::getForceVector(std::map<unsigned int, std::shared_ptr<
     return fVec;
 }
 
+Node* Structure::getNodeAt(XYZPoint coord)
+{
+    for (auto&& nPair : *Nodes)
+    {
+        if (nPair.second->Coordinate == coord)
+            return &*(nPair.second);
+    }
+
+    return nullptr;
+}
+
+Node* Structure::getNodeAt(double x, double y, double z)
+{
+    XYZPoint pt(x, y, z);
+    return this->getNodeAt(pt);
+}
+
 void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount)
 {
     unsigned int dofIdx = 0;

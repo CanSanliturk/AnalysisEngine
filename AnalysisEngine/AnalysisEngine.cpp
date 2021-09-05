@@ -82,18 +82,18 @@ void StrutTieDesign()
     // Length: m, Force: N
     // Surface Outer Dimensions
     auto lx = 1.0; // length in x
-    auto ly = 1.0; // length in y
+    auto ly = 2.0; // length in y
     auto thickness = 0.5;
     auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.1;
-    auto merger = 3.0;
-    double performanceRatioCriteria = 0.2; // minimum performance ratio of elements to be considered
-    auto maxIterationCount = 1000; // max iterations for topology optimization
-    auto iterationStoppingCount = 100;
-    auto solverSelection = SolverChoice::Armadillo; // library to be used at linear algebraic equation solvings
+    auto meshSize = 0.10;
+    auto merger = 3;
+    double performanceRatioCriteria = 0.05; // minimum performance ratio of elements to be considered
+    auto maxIterationCount = 10000; // max iterations for topology optimization
+    auto iterationStoppingCount = 200;
+    auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
     auto isPrintElements = true;
@@ -120,7 +120,7 @@ void StrutTieDesign()
         }
         else if (Utils::AreEqual(nR->Coordinate.X, lx, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
         {
-            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, roller, rest);
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
             realRestrainedNodes.push_back(nR->NodeIndex);
         }
         else
@@ -204,8 +204,10 @@ void StrutTieDesign()
     {
         if ((Utils::AreEqual(n.second->Coordinate.X, lx / 2.0, meshSize * 0.1)) && (Utils::AreEqual(n.second->Coordinate.Y, ly, meshSize * 0.1)))
         {
-            double load[] = { 0, -5000, 0, 0, 0, 0 };
+            //double load[] = { 0, -5000000000000, 0, 0, 0, 0 };
+            double load[] = { 5000000000000, 0, 0, 0, 0, 0 };
             nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
+            break;
         }
     }
 
@@ -250,7 +252,21 @@ void StrutTieDesign()
         str->updateStiffnessMatrix();
 
         // Perform initial analysis
-        auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
+        //auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
+        auto disps = StructureSolver::GetDisplacementForStaticCase(*str, solverSelection);
+
+        auto leftTopNode = str->getNodeAt(0, ly, 0);
+        auto rightTopNode = str->getNodeAt(lx, ly, 0);
+
+        auto leftTopDofTX = leftTopNode->DofIndexTX;
+        auto leftTopDofTY = leftTopNode->DofIndexTY;
+        auto rightTopDofTX = rightTopNode->DofIndexTX;
+        auto rightTopDofTY = rightTopNode->DofIndexTY;
+
+        auto leftTopTX = disps(leftTopDofTX - 1, 0);
+        auto leftTopTY = disps(leftTopDofTY - 1, 0);
+        auto rightTopTX = disps(rightTopDofTX - 1, 0);
+        auto rightTopTY = disps(rightTopDofTY - 1, 0);
 
         // Find internal forces on elements
         for (auto& elm : elements)
