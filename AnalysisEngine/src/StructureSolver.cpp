@@ -100,7 +100,7 @@ Matrix<double> StructureSolver::CalculateDisplacements(Matrix<double>& kMat, Mat
     auto fNdof = fVec.getSubmatrix(0, nUnrestainedDof - 1, 0, 0);
     auto smallerResult = StructureSolver::LinearEquationSolver(kNdof, fNdof, solverChoice);
     Matrix<double> retVal(nDof, 1);
-    for (int i = 0; i < nUnrestainedDof - 1; i++)
+    for (int i = 0; i < nUnrestainedDof; i++)
         retVal(i, 0) = smallerResult(i, 0);
     return retVal;
 }
