@@ -14,6 +14,7 @@
 constexpr double pi = 3.141592653589793;
 
 void StrutTieDesign();
+void StrutTieDesignWithLattice();
 void CantileverDisplacements3D();
 void CantileverDisplacements2D();
 void TableModalAnalysis();
@@ -52,22 +53,6 @@ int main()
     LOG(" |________________________________________________|");
     LOG("");
 
-    XYPoint pt1(0, 0);
-    XYPoint pt2(10, 0);
-    XYPoint pt3(10, 10);
-    XYPoint pt4(0, 10);
-    std::vector<XYPoint> vertices;
-    vertices.push_back(pt1);
-    vertices.push_back(pt2);
-    vertices.push_back(pt3);
-    vertices.push_back(pt4);
-    Shape sh(vertices);
-
-    auto pts = sh.getPoints(1);
-
-    for (auto&& pt : pts)
-        LOG(pt.X << ", " << pt.Y);
-
     // Start timer
     auto timenow =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -75,7 +60,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        StrutTieDesign();
+        StrutTieDesignWithLattice();
         LOG("\n Analysis completed without errors...");
     }
     catch (const std::runtime_error& e)
@@ -216,6 +201,503 @@ void StrutTieDesign()
     }
 
     LOGIF(" Total member count: " << elements.size(), isPrintMeshInfo);
+
+    // Force vector
+    for (auto& n : nodes)
+    {
+        if ((Utils::AreEqual(n.second->Coordinate.X, lx / 2.0, meshSize * 0.1)) && (Utils::AreEqual(n.second->Coordinate.Y, ly, meshSize * 0.1)))
+        {
+            if (!isHorizontalLoad)
+            {
+                double load[] = { 0, -5000000000000, 0, 0, 0, 0 };
+                nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
+            }
+            else
+            {
+                double load[] = { 5000000000000, 0, 0, 0, 0, 0 };
+                nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
+            }
+            break;
+        }
+    }
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+    LOGIF(" Total DOF: " << str->nUnrestrainedDOF, false);
+    auto fVec = str->getForceVector(&nodalLoads);
+
+    if (isPrintElements)
+    {
+        std::ofstream elementOutputStream;
+
+        elementOutputStream.open("plot\\elements.dat");
+        elementOutputStream << "BEGIN SCENE\n";
+        for (auto&& e : elements)
+        {
+            auto&& firstNode = e.second->GelElementNodes().at(0);
+            auto&& secondNode = e.second->GelElementNodes().at(1);
+            elementOutputStream << firstNode->Coordinate.X << " " << firstNode->Coordinate.Y << "\n";
+            elementOutputStream << secondNode->Coordinate.X << " " << secondNode->Coordinate.Y << "\n";
+            elementOutputStream << "7\n";
+        }
+
+        elementOutputStream << "END SCENE\n";
+        elementOutputStream.close();
+    }
+
+    // Start iterations
+    auto comp = 0.0, tens = 0.0;
+    auto prevNumOfElmStsfyCrt = 0;
+    auto unchangedIterCount = 0;
+
+    std::ofstream animationStream;
+    animationStream.open("plot\\animation.dat");
+
+    for (int i = 0; i < maxIterationCount; i++)
+    {
+        auto currNumOfElmStsfyCrt = 0;
+        LOGIF(" Iteration #" << i + 1, true);
+        // Fields to be used for storing extreme forces on members
+        auto maxCompression = 0.0, maxTension = 0.0;
+        str->updateStiffnessMatrix();
+
+        // Perform initial analysis
+        //auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
+        auto disps = StructureSolver::GetDisplacementForStaticCase(*str, solverSelection);
+
+        auto leftTopNode = str->getNodeAt(0, ly, 0);
+        auto rightTopNode = str->getNodeAt(lx, ly, 0);
+
+        auto leftTopDofTX = leftTopNode->DofIndexTX;
+        auto leftTopDofTY = leftTopNode->DofIndexTY;
+        auto rightTopDofTX = rightTopNode->DofIndexTX;
+        auto rightTopDofTY = rightTopNode->DofIndexTY;
+
+        auto leftTopTX = disps(leftTopDofTX - 1, 0);
+        auto leftTopTY = disps(leftTopDofTY - 1, 0);
+        auto rightTopTX = disps(rightTopDofTX - 1, 0);
+        auto rightTopTY = disps(rightTopDofTY - 1, 0);
+
+        // Find internal forces on elements
+        for (auto& elm : elements)
+        {
+            auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
+            auto axialForce = trMem->getAxialForce(disps);
+            if (axialForce < maxCompression) maxCompression = axialForce;
+            if (maxTension < axialForce) maxTension = axialForce;
+            LOGIF(" Comp: " << maxCompression << ", Tens:" << maxTension, false);
+        }
+
+        animationStream << "BEGIN SCENE\n";
+        // Modify elements
+        for (auto& elm : elements)
+        {
+            auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
+            auto axialForce = trMem->getAxialForce(disps);
+            auto isCompression = axialForce < 0;
+            auto isTension = 0 < axialForce;
+            auto ratio = axialForce / (axialForce < 0 ? maxCompression : maxTension);
+            if (performanceRatioCriteria < ratio) currNumOfElmStsfyCrt++;
+            ratio = pow(ratio, 1.0 / (i + 1));
+            elm.second->updateStiffness(ratio);
+
+            int colour = 0;
+            if (isCompression)
+            {
+                if (ratio < 0.2) colour = 2;
+                else if (ratio < 0.4) colour = 3;
+                else if (ratio < 0.6) colour = 4;
+                else if (ratio < 0.8) colour = 5;
+                else if (ratio <= 1.0) colour = 6;
+            }
+            else if (isTension)
+            {
+                if (ratio < 0.2) colour = 7;
+                else if (ratio < 0.4) colour = 8;
+                else if (ratio < 0.6) colour = 9;
+                else if (ratio < 0.8) colour = 10;
+                else if (ratio <= 1.0) colour = 11;
+            }
+            else
+            {
+                colour = 0;
+            }
+
+            animationStream << trMem->Nodes[0]->Coordinate.X << " " << trMem->Nodes[0]->Coordinate.Y << "\n";
+            animationStream << trMem->Nodes[1]->Coordinate.X << " " << trMem->Nodes[1]->Coordinate.Y << "\n";
+            animationStream << colour << "\n";
+        }
+
+        animationStream << "END SCENE\n";
+
+        comp = maxCompression;
+        tens = maxTension;
+
+        if (currNumOfElmStsfyCrt == prevNumOfElmStsfyCrt)
+            unchangedIterCount++;
+
+        prevNumOfElmStsfyCrt = currNumOfElmStsfyCrt;
+
+        if (unchangedIterCount == iterationStoppingCount)
+            break;
+    }
+    animationStream.close();
+
+    LOG(" Iterations for optimization finished.");
+    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
+
+    // Identify nodes
+    std::vector<int> nodeIndices;
+    for (auto& nodePair : nodes)
+    {
+        // Get node
+        auto& node = nodePair.second;
+
+        // If there is a boundary condition at a node (either natural or essential), identify node 
+        // as strut&tie system node and continue
+        bool isStop = false;
+        for (auto& res : realRestrainedNodes)
+        {
+            if (res == node->NodeIndex)
+            {
+                nodeIndices.push_back(node->NodeIndex);
+                isStop = true;
+                break;
+            }
+        }
+
+        if (isStop) continue;
+
+        for (auto& nLoad : nodalLoads)
+        {
+            if (nLoad.second->ActingNode->NodeIndex == node->NodeIndex)
+            {
+                nodeIndices.push_back(node->NodeIndex);
+                isStop = true;
+                break;
+            }
+        }
+
+        if (isStop) continue;
+
+        // Get list of indices of connected elements
+        auto& listOfConnectedElements = node->ConnectedElements;
+
+        // Calculate axial forces on connected elements. If their ratio are higher than performance criteria,
+        // store them
+        std::vector<int> elementsSatisfyPerformanceCriteria;
+        for (auto& elmIndex : listOfConnectedElements)
+        {
+            auto trussElm = dynamic_cast<TrussMember*>(&*elements[elmIndex]);
+            auto axialForce = trussElm->getAxialForce(disps);
+            auto ratio = axialForce / (axialForce < 0 ? comp : tens);
+            if (performanceRatioCriteria <= ratio)
+                elementsSatisfyPerformanceCriteria.push_back(elmIndex);
+        }
+
+        // If there are at least three load carrying elements connecting to node, identify node as 
+        // strut&tie system cantidate node and continue
+        if (elementsSatisfyPerformanceCriteria.size() > 2)
+        {
+            nodeIndices.push_back(node->NodeIndex);
+            continue;
+        }
+        // Else if there are two elements connecting to the node and if they are not on the same line,
+        // identify node as strut&tie candidate node and continue
+        else if (elementsSatisfyPerformanceCriteria.size() == 2)
+        {
+            auto firstElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[0]]);
+            auto secondElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[1]]);
+            Vector firstElmVector(firstElm->Nodes[0]->Coordinate, firstElm->Nodes[1]->Coordinate);
+            Vector secondElmVector(secondElm->Nodes[0]->Coordinate, secondElm->Nodes[1]->Coordinate);
+
+            auto firstElmUnitVec = firstElmVector.getUnitVector();
+            auto secondElmUnitVec = secondElmVector.getUnitVector();
+            auto asdasd = abs(firstElmUnitVec.dotProduct(secondElmUnitVec));
+            // If dot-product of element vectors results in -1, they are on the same line.
+            if (!Utils::AreEqual(abs(firstElmUnitVec.dotProduct(secondElmUnitVec)), 1))
+                nodeIndices.push_back(node->NodeIndex);
+        }
+    }
+
+    // After obtaining nodes, start merging nodes that are too close
+    // Create node data structs
+    std::vector<NodeData> nodeDataVector;
+    for (size_t i = 0; i < nodeIndices.size(); i++)
+    {
+        NodeData nd;
+        nd.nodeIndex = i;
+        nd.coordinate = nodes[nodeIndices[i]]->Coordinate;
+        nodeDataVector.push_back(nd);
+    }
+
+    LOG("\n STRUT AND TIE SYSTEM INITIAL NODES");
+    for (auto& nd : nodeDataVector)
+        LOG(" Node Index: " << (nd.nodeIndex + 1) << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
+
+    // Merge the nodes that are close to each other
+    std::vector<NodeData> mergedNodes;
+    std::vector<NodeData> nodesToBeSkipped;
+    auto nodeIndexer = 1;
+    for (auto& nd : nodeDataVector)
+    {
+        // Skip the already encountered nodes
+        bool isSkipOutside = false;
+        for (auto& nskp : nodesToBeSkipped)
+        {
+            if (nskp.nodeIndex == nd.nodeIndex)
+            {
+                isSkipOutside = true;
+                break;
+            }
+        }
+
+        if (isSkipOutside)
+            continue;
+
+        std::vector<NodeData> nodesWillBeMerged;
+        bool isFirstEncountering = true;
+        for (auto& nnd : nodeDataVector)
+        {
+            // Skip the same nodes
+            if (nd.nodeIndex == nnd.nodeIndex)
+                continue;
+
+            // Skip the already encountered nodes
+            bool isSkipInside = false;
+            for (auto& nskp : nodesToBeSkipped)
+            {
+                if (nskp.nodeIndex == nnd.nodeIndex)
+                {
+                    isSkipInside = true;
+                    break;
+                }
+            }
+
+            if (isSkipInside)
+                continue;
+
+            auto dist = nd.coordinate.DistanceTo(nnd.coordinate);
+            if (dist < merger * meshSize)
+            {
+                if (isFirstEncountering)
+                {
+                    nodesWillBeMerged.push_back(nd);
+                    isFirstEncountering = false;
+                }
+
+                nodesWillBeMerged.push_back(nnd);
+            }
+        }
+
+        for (auto& nwbm : nodesWillBeMerged)
+        {
+            bool isInsert = true;
+
+            for (auto& ntbs : nodesToBeSkipped)
+            {
+                if (nwbm.nodeIndex == ntbs.nodeIndex)
+                {
+                    isInsert = false;
+                    break;
+                }
+            }
+
+            if (isInsert)
+                nodesToBeSkipped.push_back(nwbm);
+        }
+
+        if (1 < nodesWillBeMerged.size())
+        {
+            auto sumXCoord = 0.0, sumYCoord = 0.0;
+            for (auto& nid : nodesWillBeMerged)
+            {
+                sumXCoord += nid.coordinate.X;
+                sumYCoord += nid.coordinate.Y;
+            }
+
+            auto xCd = sumXCoord / (double(nodesWillBeMerged.size()));
+            auto yCd = sumYCoord / (double(nodesWillBeMerged.size()));
+            XYZPoint pt(xCd, yCd, 0.0);
+            NodeData newNode;
+            newNode.nodeIndex = nodeIndexer;
+            newNode.coordinate = pt;
+            mergedNodes.push_back(newNode);
+            nodeIndexer++;
+        }
+        else
+        {
+            NodeData newNode;
+            newNode.nodeIndex = nodeIndexer;
+            newNode.coordinate = nd.coordinate;
+            mergedNodes.push_back(newNode);
+            nodeIndexer++;
+        }
+    }
+
+    LOG("\n STRUT AND TIE SYSTEM MERGED NODES");
+    for (auto& nd : mergedNodes)
+        LOG(" Node Index: " << nd.nodeIndex << ", Coordinates(x,y): (" << nd.coordinate.X << ", " << nd.coordinate.Y << ")");
+
+    // Since nodes of the system are found, create truss analogy by linking all the nodes to each other
+    std::vector<TrussData> trussDataVector;
+    int trussIndexer = 1;
+    LOG("\n STRUT AND TIE SYSTEM TRUSSES");
+    std::ofstream trussDataPrinter;
+
+    if (isPrintElements)
+    {
+        trussDataPrinter.open("plot\\strutTieSystem.dat");
+        trussDataPrinter << "BEGIN SCENE\n";
+    }
+
+    for (size_t i = 0; i < mergedNodes.size(); i++)
+    {
+        auto iNode = mergedNodes[i];
+        for (size_t j = i + 1; j < mergedNodes.size(); j++)
+        {
+            auto jNode = mergedNodes[j];
+            TrussData t;
+            t.trussIndex = trussIndexer;
+            t.iNode = &iNode;
+            t.jNode = &jNode;
+            trussDataVector.push_back(t);
+            trussIndexer++;
+            LOG(" Truss Index: " << t.trussIndex << ", i-End Node Index: " << t.iNode->nodeIndex << ", j-End Node Index: " << t.jNode->nodeIndex);
+            if (isPrintElements)
+            {
+                trussDataPrinter << iNode.coordinate.X << " " << iNode.coordinate.Y << "\n";
+                trussDataPrinter << jNode.coordinate.X << " " << jNode.coordinate.Y << "\n";
+                trussDataPrinter << "7\n";
+            }
+        }
+
+    }
+
+    if (isPrintElements)
+    {
+        trussDataPrinter << "END SCENE";
+        trussDataPrinter.close();
+    }
+}
+
+void StrutTieDesignWithLattice()
+{
+    // INPUT CARD
+    // Length: m, Force: N
+    // Surface Outer Dimensions
+    auto lx = 1.0; // length in x
+    auto ly = 1.0; // length in y
+    auto thickness = 0.5;
+    auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
+    auto v = 0.3; // poissons ratio
+    auto fc = 30e6; // concrete compressive strength
+    auto fy = 420e6; // steel yield strength
+    auto meshSize = 0.1;
+    auto horizon = 1.5 * meshSize;
+    auto merger = 0.5;
+    double performanceRatioCriteria = 0.05; // minimum performance ratio of elements to be considered
+    auto maxIterationCount = 10000; // max iterations for topology optimization
+    auto iterationStoppingCount = 50;
+    auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
+    auto isPrintMeshInfo = false;
+    auto isPrintForceInfo = true;
+    auto isPrintElements = true;
+    auto isHorizontalLoad = false;
+
+    // Necessary fields
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Helper function to add restraints
+    std::vector<bool> pin = { true, true, true, true, true, true };
+    std::vector<bool> roller = { false, true, true, true, true, true };
+    std::vector<bool> universal = { false, false, true, true, true, true };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    std::vector<int> realRestrainedNodes;
+    auto addRestraint = [&](std::shared_ptr<Node> nR)
+    {
+        if (Utils::AreEqual(nR->Coordinate.X, 0.0, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+        {
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
+            realRestrainedNodes.push_back(nR->NodeIndex);
+        }
+        else if (Utils::AreEqual(nR->Coordinate.X, lx, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+        {
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
+            realRestrainedNodes.push_back(nR->NodeIndex);
+        }
+        else
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, universal, rest);
+    };
+
+    // Populate nodes
+    int nodeIndex = 1;
+
+    XYPoint firstPt(0, 0);
+    XYPoint secondPt(lx, 0);
+    XYPoint thirdPt(lx, ly);
+    XYPoint fourthPt(0, ly);
+    std::vector<XYPoint> vertices;
+    vertices.push_back(firstPt);
+    vertices.push_back(secondPt);
+    vertices.push_back(thirdPt);
+    vertices.push_back(fourthPt);
+
+    XYPoint hole1(0.4, 0.4);
+    XYPoint hole2(0.6, 0.4);
+    XYPoint hole3(0.6, 0.6);
+    XYPoint hole4(0.4, 0.6);
+    std::vector<XYPoint> holeVertices;
+    holeVertices.push_back(hole1);
+    holeVertices.push_back(hole2);
+    holeVertices.push_back(hole3);
+    holeVertices.push_back(hole4);
+    Shape hole(holeVertices);
+    std::vector<Shape> holes;
+    holes.push_back(hole);
+
+    Shape sh(vertices);
+    auto meshPoints = sh.getPoints(meshSize);
+
+    int nNodeX = ((int)(lx / meshSize)) + 1;
+    int nNodeY = ((int)(ly / meshSize)) + 1;
+    for (auto&& pt : meshPoints)
+    {
+        XYZPoint pt(pt.X, pt.Y, 0);
+        auto n = std::make_shared<Node>(nodeIndex++, pt);
+        nodes[n->NodeIndex] = n;
+        addRestraint(n);
+    }
+
+    // Populate elements
+    // Initially, populate horizontal members
+    int memberIndex = 1;
+    auto&& mat = std::make_shared<Material>(eMod, v, 0);
+    auto&& sect = std::make_shared<Section>(0.01, 0, 0, 0);
+    for (auto&& thisNodePair : nodes)
+    {
+        for (auto&& thatNodePair : nodes)
+        {
+            if ((thisNodePair.first != thatNodePair.first) && (thisNodePair.first < thatNodePair.first))
+            {
+                if (thisNodePair.second->Coordinate.DistanceTo(thatNodePair.second->Coordinate) < horizon)
+                {
+                    auto midX = (thisNodePair.second->Coordinate.X + thatNodePair.second->Coordinate.X) / 2.0;
+                    auto midY = (thisNodePair.second->Coordinate.Y + thatNodePair.second->Coordinate.Y) / 2.0;
+                    XYPoint midPt(midX, midY);
+                    //if (!hole.isInside(midPt))
+                    //{
+                    elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, thisNodePair.second, thatNodePair.second, sect, mat);
+                    memberIndex++;
+                    //}
+                }
+            }
+        }
+    }
 
     // Force vector
     for (auto& n : nodes)
