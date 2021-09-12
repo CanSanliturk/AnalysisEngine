@@ -6,6 +6,7 @@
 #include "StructureSolver.h"
 #include "Vector.h"
 #include "UtilMethods.h"
+#include "Shape.h"
 
 #define LOG(x) std::cout << x << "\n"
 #define LOGW(x) std::wcout << x << "\n"
@@ -51,6 +52,22 @@ int main()
     LOG(" |________________________________________________|");
     LOG("");
 
+    XYPoint pt1(0, 0);
+    XYPoint pt2(10, 0);
+    XYPoint pt3(10, 10);
+    XYPoint pt4(0, 10);
+    std::vector<XYPoint> vertices;
+    vertices.push_back(pt1);
+    vertices.push_back(pt2);
+    vertices.push_back(pt3);
+    vertices.push_back(pt4);
+    Shape sh(vertices);
+
+    auto pts = sh.getPoints(1);
+
+    for (auto&& pt : pts)
+        LOG(pt.X << ", " << pt.Y);
+
     // Start timer
     auto timenow =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -82,21 +99,22 @@ void StrutTieDesign()
     // Length: m, Force: N
     // Surface Outer Dimensions
     auto lx = 1.0; // length in x
-    auto ly = 2.0; // length in y
+    auto ly = 3.0; // length in y
     auto thickness = 0.5;
     auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.10;
-    auto merger = 3;
+    auto meshSize = 0.1;
+    auto merger = 5;
     double performanceRatioCriteria = 0.05; // minimum performance ratio of elements to be considered
     auto maxIterationCount = 10000; // max iterations for topology optimization
-    auto iterationStoppingCount = 200;
+    auto iterationStoppingCount = 30;
     auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
     auto isPrintElements = true;
+    auto isHorizontalLoad = true;
 
     // Necessary fields
     std::map<unsigned int, std::shared_ptr<Node>> nodes;
@@ -204,9 +222,16 @@ void StrutTieDesign()
     {
         if ((Utils::AreEqual(n.second->Coordinate.X, lx / 2.0, meshSize * 0.1)) && (Utils::AreEqual(n.second->Coordinate.Y, ly, meshSize * 0.1)))
         {
-            //double load[] = { 0, -5000000000000, 0, 0, 0, 0 };
-            double load[] = { 5000000000000, 0, 0, 0, 0, 0 };
-            nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
+            if (!isHorizontalLoad)
+            {
+                double load[] = { 0, -5000000000000, 0, 0, 0, 0 };
+                nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
+            }
+            else
+            {
+                double load[] = { 5000000000000, 0, 0, 0, 0, 0 };
+                nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
+            }
             break;
         }
     }
@@ -285,7 +310,7 @@ void StrutTieDesign()
             auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
             auto axialForce = trMem->getAxialForce(disps);
             auto isCompression = axialForce < 0;
-            auto isTension = 0 < axialForce ;
+            auto isTension = 0 < axialForce;
             auto ratio = axialForce / (axialForce < 0 ? maxCompression : maxTension);
             if (performanceRatioCriteria < ratio) currNumOfElmStsfyCrt++;
             ratio = pow(ratio, 1.0 / (i + 1));
@@ -386,14 +411,14 @@ void StrutTieDesign()
         }
 
         // If there are at least three load carrying elements connecting to node, identify node as 
-        // strut&tie system node and continue
+        // strut&tie system cantidate node and continue
         if (elementsSatisfyPerformanceCriteria.size() > 2)
         {
             nodeIndices.push_back(node->NodeIndex);
             continue;
         }
         // Else if there are two elements connecting to the node and if they are not on the same line,
-        // identify node as strut&tie node and continue
+        // identify node as strut&tie candidate node and continue
         else if (elementsSatisfyPerformanceCriteria.size() == 2)
         {
             auto firstElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[0]]);

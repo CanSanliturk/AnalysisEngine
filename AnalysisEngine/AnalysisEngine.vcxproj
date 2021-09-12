@@ -160,6 +160,7 @@
     <ClCompile Include="src\Piece.cpp" />
     <ClCompile Include="src\Section.cpp" />
     <ClCompile Include="src\SerendipityShell.cpp" />
+    <ClCompile Include="src\Shape.cpp" />
     <ClCompile Include="src\Shell.cpp" />
     <ClCompile Include="src\Structure.cpp" />
     <ClCompile Include="src\StructureSolver.cpp" />
@@ -181,6 +182,7 @@
     <ClInclude Include="include\Restraint.h" />
     <ClInclude Include="include\Section.h" />
     <ClInclude Include="include\SerendipityShell.h" />
+    <ClInclude Include="include\Shape.h" />
     <ClInclude Include="include\Shell.h" />
     <ClInclude Include="include\Structure.h" />
     <ClInclude Include="include\StructureSolver.h" />

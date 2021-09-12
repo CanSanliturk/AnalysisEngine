@@ -1,4 +1,5 @@
 #pragma once
+#include "UtilMethods.h"
 
 struct XYPoint
 {
@@ -15,4 +16,15 @@ struct XYPoint
 
     ~XYPoint()
     { };
+
+    double DistanceTo(XYPoint pt)
+    {
+        return sqrt(((X - pt.X) * (X - pt.X)) + ((Y - pt.Y) * (Y - pt.Y)));
+    };
+
+    bool operator==(const XYPoint& that)
+    {
+        return Utils::AreEqual(this->X, that.X) &&
+            Utils::AreEqual(this->Y, that.Y);
+    }
 };

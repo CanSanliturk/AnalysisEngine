@@ -81,6 +81,9 @@
     <ClCompile Include="src\Vector.cpp">
       <Filter>src\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="src\Shape.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\DistributedLoad.h">
@@ -145,6 +148,9 @@
     </ClInclude>
     <ClInclude Include="include\XYZPoint.h">
       <Filter>src\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Shape.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
