@@ -593,12 +593,12 @@ void StrutTieDesignWithLattice()
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.1;
-    auto horizon = 1.5 * meshSize;
-    auto merger = 0.5;
+    auto meshSize = 0.05;
+    auto horizon = 3.5 * meshSize;
+    auto merger = 3.5;
     double performanceRatioCriteria = 0.05; // minimum performance ratio of elements to be considered
     auto maxIterationCount = 10000; // max iterations for topology optimization
-    auto iterationStoppingCount = 50;
+    auto iterationStoppingCount = 350;
     auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
@@ -660,7 +660,7 @@ void StrutTieDesignWithLattice()
     std::vector<Shape> holes;
     holes.push_back(hole);
 
-    Shape sh(vertices);
+    Shape sh(vertices, holes);
     auto meshPoints = sh.getPoints(meshSize);
 
     int nNodeX = ((int)(lx / meshSize)) + 1;
@@ -689,11 +689,11 @@ void StrutTieDesignWithLattice()
                     auto midX = (thisNodePair.second->Coordinate.X + thatNodePair.second->Coordinate.X) / 2.0;
                     auto midY = (thisNodePair.second->Coordinate.Y + thatNodePair.second->Coordinate.Y) / 2.0;
                     XYPoint midPt(midX, midY);
-                    //if (!hole.isInside(midPt))
-                    //{
-                    elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, thisNodePair.second, thatNodePair.second, sect, mat);
-                    memberIndex++;
-                    //}
+                    if (!hole.isInside(midPt))
+                    {
+                        elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, thisNodePair.second, thatNodePair.second, sect, mat);
+                        memberIndex++;
+                    }
                 }
             }
         }
