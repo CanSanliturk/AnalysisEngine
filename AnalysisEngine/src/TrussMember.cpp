@@ -193,6 +193,32 @@ double TrussMember::getAxialForce(Matrix<double>& const displacementVector)
     return internalForcesMemberCoordinates(6, 0);
 }
 
+double TrussMember::getTrussDeformation(Matrix<double>& const displacementVector)
+{
+    Matrix<double> dispVector(12, 1);
+    dispVector(0, 0) = displacementVector(Nodes[0]->DofIndexTX - 1, 0);
+    dispVector(1, 0) = displacementVector(Nodes[0]->DofIndexTY - 1, 0);
+    dispVector(2, 0) = displacementVector(Nodes[0]->DofIndexTZ - 1, 0);
+    dispVector(3, 0) = displacementVector(Nodes[0]->DofIndexRX - 1, 0);
+    dispVector(4, 0) = displacementVector(Nodes[0]->DofIndexRY - 1, 0);
+    dispVector(5, 0) = displacementVector(Nodes[0]->DofIndexRZ - 1, 0);
+    dispVector(6, 0) = displacementVector(Nodes[1]->DofIndexTX - 1, 0);
+    dispVector(7, 0) = displacementVector(Nodes[1]->DofIndexTY - 1, 0);
+    dispVector(8, 0) = displacementVector(Nodes[1]->DofIndexTZ - 1, 0);
+    dispVector(9, 0) = displacementVector(Nodes[1]->DofIndexRX - 1, 0);
+    dispVector(10, 0) = displacementVector(Nodes[1]->DofIndexRY - 1, 0);
+    dispVector(11, 0) = displacementVector(Nodes[1]->DofIndexRZ - 1, 0);
+
+    auto& rotMat = *this->RotationMatrix;
+
+    auto&& displacementAtLocalCoordinates = rotMat * dispVector;
+
+    auto jEndDisp = displacementAtLocalCoordinates(6, 0);
+    auto iEndDisp = displacementAtLocalCoordinates(0, 0);
+
+    return jEndDisp - iEndDisp;
+}
+
 void TrussMember::updateStiffness(double ratio)
 {
     auto modifiedLocalStiffnessMatrix = (*this->LocalCoordinateStiffnessMatrix) * ratio;

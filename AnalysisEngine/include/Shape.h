@@ -18,6 +18,7 @@ public:
 
     bool isInside(XYPoint coord);
     bool isOnBoundary(XYPoint coord);
+    short getNumberOfHoles();
     std::tuple<XYPoint, XYPoint> getBoundingBoxLowerleftAndUpperright();
 
 private:

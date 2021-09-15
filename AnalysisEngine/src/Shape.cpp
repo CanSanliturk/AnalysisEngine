@@ -97,6 +97,11 @@ bool Shape::isOnBoundary(XYPoint coord)
     return Utils::isPointOnLine(firstPt, lastPt, pt);
 }
 
+short Shape::getNumberOfHoles()
+{
+    return this->holes.size();
+}
+
 std::tuple<XYPoint, XYPoint> Shape::getBoundingBoxLowerleftAndUpperright()
 {
     auto lowerLeftX = this->vertices[0].X;

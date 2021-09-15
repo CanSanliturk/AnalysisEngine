@@ -1084,19 +1084,19 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
     // INPUT CARD
     // Length: m, Force: N
     // Surface Outer Dimensions
-    auto lx = 1.0; // length in x
+    auto lx = 4.0; // length in x
     auto ly = 1.0; // length in y
     auto thickness = 0.25;
     auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.05;
+    auto meshSize = 0.10;
     auto horizon = 3.5 * meshSize;
     auto merger = 3.5;
     double performanceRatioCriteria = 0.30; // minimum performance ratio of elements to be considered
     auto maxIterationCount = 10000; // max iterations for topology optimization
-    auto iterationStoppingCount = 250;
+    auto iterationStoppingCount = 200;
     auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
@@ -1126,7 +1126,7 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
         }
         else if (Utils::AreEqual(nR->Coordinate.X, lx, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
         {
-            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
+            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, roller, rest);
             realRestrainedNodes.push_back(nR->NodeIndex);
         }
         else
@@ -1159,7 +1159,7 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
     std::vector<Shape> holes;
     holes.push_back(hole);
 
-    Shape sh(vertices, holes);
+    Shape sh(vertices);
     auto meshPoints = sh.getPoints(meshSize);
 
     int nNodeX = ((int)(lx / meshSize)) + 1;
@@ -1189,11 +1189,11 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
                     auto midX = (thisNodePair.second->Coordinate.X + thatNodePair.second->Coordinate.X) / 2.0;
                     auto midY = (thisNodePair.second->Coordinate.Y + thatNodePair.second->Coordinate.Y) / 2.0;
                     XYPoint midPt(midX, midY);
-                    if (!hole.isInside(midPt))
-                    {
+                    //if (!hole.isInside(midPt))
+                    //{
                         elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, thisNodePair.second, thatNodePair.second, sect, mat);
                         memberIndex++;
-                    }
+                    //}
                 }
             }
         }
@@ -1204,14 +1204,14 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
     {
         if ((Utils::AreEqual(n.second->Coordinate.X, lx / 2.0, meshSize * 0.1)) && (Utils::AreEqual(n.second->Coordinate.Y, ly, meshSize * 0.1)))
         {
-            if (!isHorizontalLoad)
+            if (isHorizontalLoad)
             {
-                double load[] = { 0, -5000000000000, 0, 0, 0, 0 };
+                double load[] = { 5000000000000, 0, 0, 0, 0, 0 };
                 nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
             }
             else
             {
-                double load[] = { 5000000000000, 0, 0, 0, 0, 0 };
+                double load[] = { 0, -5000000000000, 0, 0, 0, 0 };
                 nodalLoads[1] = std::make_shared<NodalLoad>(n.second, load);
             }
             break;
@@ -1247,57 +1247,60 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
     auto comp = 0.0, tens = 0.0;
     auto prevNumOfElmStsfyCrt = 0;
     auto unchangedIterCount = 0;
+    long double initialInternalEnergy = 0.0; // This will be updated at each iteration
 
     std::ofstream animationStream;
     animationStream.open("plot\\animation.dat");
 
     for (int i = 0; i < maxIterationCount; i++)
     {
+        long double currentInternalEnergy = 0.0;
         auto currNumOfElmStsfyCrt = 0;
-        LOGIF(" Iteration #" << i + 1, true);
         // Fields to be used for storing extreme forces on members
         auto maxCompression = 0.0, maxTension = 0.0;
         str->updateStiffnessMatrix();
 
         // Perform initial analysis
         auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fVec, str->nDOF, str->nUnrestrainedDOF, solverSelection);
-        //auto disps = StructureSolver::GetDisplacementForStaticCase(*str, solverSelection);
-
-        auto leftTopNode = str->getNodeAt(0, ly, 0);
-        auto rightTopNode = str->getNodeAt(lx, ly, 0);
-
-        auto leftTopDofTX = leftTopNode->DofIndexTX;
-        auto leftTopDofTY = leftTopNode->DofIndexTY;
-        auto rightTopDofTX = rightTopNode->DofIndexTX;
-        auto rightTopDofTY = rightTopNode->DofIndexTY;
-
-        auto leftTopTX = disps(leftTopDofTX - 1, 0);
-        auto leftTopTY = disps(leftTopDofTY - 1, 0);
-        auto rightTopTX = disps(rightTopDofTX - 1, 0);
-        auto rightTopTY = disps(rightTopDofTY - 1, 0);
 
         // Find internal forces on elements
         for (auto& elm : elements)
         {
-            auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
+            auto trMem = static_cast<TrussMember*>(&*elm.second);
             auto axialForce = trMem->getAxialForce(disps);
+            auto deformation = trMem->getTrussDeformation(disps);
+            auto internalEnergy = 0.5 * axialForce * deformation;
+
+            if (!i)
+                initialInternalEnergy += internalEnergy;
+
+            currentInternalEnergy += internalEnergy;
+
             if (axialForce < maxCompression) maxCompression = axialForce;
             if (maxTension < axialForce) maxTension = axialForce;
             LOGIF(" Comp: " << maxCompression << ", Tens:" << maxTension, false);
         }
 
+        auto energyCorrector = currentInternalEnergy / initialInternalEnergy;
+        LOGIF(" Iteration #" << i + 1 << ", Energy Corrector: " << energyCorrector, true);
+
         animationStream << "BEGIN SCENE\n";
         // Modify elements
         for (auto& elm : elements)
         {
-            auto trMem = dynamic_cast<TrussMember*>(&*elm.second);
+            auto trMem = static_cast<TrussMember*>(&*elm.second);
             auto axialForce = trMem->getAxialForce(disps);
+            auto deformation = trMem->getTrussDeformation(disps);
             auto isCompression = axialForce < 0;
             auto isTension = 0 < axialForce;
             auto ratio = axialForce / (axialForce < 0 ? maxCompression : maxTension);
-            if (performanceRatioCriteria < ratio) currNumOfElmStsfyCrt++;
-            ratio = pow(ratio, 1.0 / (i + 1));
+            ratio = pow(ratio, 1.0 / (i + 1.0));
+            ratio *= energyCorrector;
+
             elm.second->updateStiffness(ratio);
+
+            if (performanceRatioCriteria < ratio) 
+                currNumOfElmStsfyCrt++;
 
             int colour = 0;
             if (isCompression)
@@ -1386,7 +1389,7 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
         std::vector<int> elementsSatisfyPerformanceCriteria;
         for (auto& elmIndex : listOfConnectedElements)
         {
-            auto trussElm = dynamic_cast<TrussMember*>(&*elements[elmIndex]);
+            auto trussElm = static_cast<TrussMember*>(&*elements[elmIndex]);
             auto axialForce = trussElm->getAxialForce(disps);
             auto ratio = axialForce / (axialForce < 0 ? comp : tens);
             if (performanceRatioCriteria <= ratio)
@@ -1404,8 +1407,8 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
         // identify node as strut&tie candidate node and continue
         else if (elementsSatisfyPerformanceCriteria.size() == 2)
         {
-            auto firstElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[0]]);
-            auto secondElm = dynamic_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[1]]);
+            auto firstElm = static_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[0]]);
+            auto secondElm = static_cast<TrussMember*>(&*elements[elementsSatisfyPerformanceCriteria[1]]);
             Vector firstElmVector(firstElm->Nodes[0]->Coordinate, firstElm->Nodes[1]->Coordinate);
             Vector secondElmVector(secondElm->Nodes[0]->Coordinate, secondElm->Nodes[1]->Coordinate);
 
