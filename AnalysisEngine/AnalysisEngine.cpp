@@ -1084,25 +1084,27 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
     // INPUT CARD
     // Length: m, Force: N
     // Surface Outer Dimensions
-    auto lx = 4.0; // length in x
-    auto ly = 1.0; // length in y
-    auto thickness = 0.25;
-    auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
+    auto lx = 1.0; // length in x
+    auto ly = 2.0; // length in y
+    auto isHorizontalLoad = false; // is load given horizontally
+    auto isConserveEnergy = true; // is energy conserved between iterations
+
+    auto meshSize = 0.1;
+    auto horizon = 1.05 * sqrt((0.25 * lx * lx) + (ly * ly));
+    auto maxIterationCount = 10000; // max iterations for topology optimization
+    auto iterationStoppingCount = 100;
+    double performanceRatioCriteria = 0.1; // minimum performance ratio of elements to be considered
+    auto merger = 3.5;
     auto v = 0.3; // poissons ratio
     auto fc = 30e6; // concrete compressive strength
     auto fy = 420e6; // steel yield strength
-    auto meshSize = 0.10;
-    auto horizon = 3.5 * meshSize;
-    auto merger = 3.5;
-    double performanceRatioCriteria = 0.30; // minimum performance ratio of elements to be considered
-    auto maxIterationCount = 10000; // max iterations for topology optimization
-    auto iterationStoppingCount = 200;
+    auto thickness = 0.25;
+    auto eMod = 30e9; // youngs modulus (xe9 means x gigapascals)
     auto solverSelection = SolverChoice::Eigen; // library to be used at linear algebraic equation solvings
     auto isPrintMeshInfo = false;
     auto isPrintForceInfo = true;
     auto isPrintElements = true;
-    auto isHorizontalLoad = false;
-    auto isConserveEnergy = true;
+    auto isPrintEnergyCorrector = true;
 
     // Necessary fields
     std::map<unsigned int, std::shared_ptr<Node>> nodes;
@@ -1119,18 +1121,37 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
     std::vector<int> realRestrainedNodes;
     auto addRestraint = [&](std::shared_ptr<Node> nR)
     {
-        if (Utils::AreEqual(nR->Coordinate.X, 0.0, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+        if (isHorizontalLoad)
         {
-            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
-            realRestrainedNodes.push_back(nR->NodeIndex);
-        }
-        else if (Utils::AreEqual(nR->Coordinate.X, lx, meshSize * 0.1) && Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
-        {
-            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, roller, rest);
-            realRestrainedNodes.push_back(nR->NodeIndex);
+            // If load is horizontal, fix the bottom part like a shear wall
+            if (Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+            {
+                restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
+                realRestrainedNodes.push_back(nR->NodeIndex);
+            }
+            else
+                restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, universal, rest);
         }
         else
-            restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, universal, rest);
+        {
+            // If load is vertical, restrain left side and right side along depth. Only bottom-left is pin, rest of sides are roller.
+            if (Utils::AreEqual(nR->Coordinate.X, 0.0, meshSize * 0.1))
+            {
+                if (Utils::AreEqual(nR->Coordinate.Y, 0.0, meshSize * 0.1))
+                    restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, pin, rest);
+                else
+                    restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, roller, rest);
+
+                realRestrainedNodes.push_back(nR->NodeIndex);
+            }
+            else if (Utils::AreEqual(nR->Coordinate.X, lx, meshSize * 0.1))
+            {
+                restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, roller, rest);
+                realRestrainedNodes.push_back(nR->NodeIndex);
+            }
+            else
+                restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, universal, rest);
+        }
     };
 
     // Populate nodes
@@ -1191,8 +1212,8 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
                     XYPoint midPt(midX, midY);
                     //if (!hole.isInside(midPt))
                     //{
-                        elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, thisNodePair.second, thatNodePair.second, sect, mat);
-                        memberIndex++;
+                    elements[memberIndex] = std::make_shared<TrussMember>(memberIndex, thisNodePair.second, thatNodePair.second, sect, mat);
+                    memberIndex++;
                     //}
                 }
             }
@@ -1282,7 +1303,10 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
         }
 
         auto energyCorrector = currentInternalEnergy / initialInternalEnergy;
-        LOGIF(" Iteration #" << i + 1 << ", Energy Corrector: " << energyCorrector, true);
+        if (isPrintEnergyCorrector)
+            LOGIF(" Iteration #" << i + 1 << ", Energy Corrector: " << energyCorrector, true);
+        else
+            LOGIF(" Iteration #" << i + 1, true);
 
         animationStream << "BEGIN SCENE\n";
         // Modify elements
@@ -1295,11 +1319,13 @@ void StrutTieDesignWithLatticeAndEnergyConservation()
             auto isTension = 0 < axialForce;
             auto ratio = axialForce / (axialForce < 0 ? maxCompression : maxTension);
             ratio = pow(ratio, 1.0 / (i + 1.0));
-            ratio *= energyCorrector;
+
+            if (isConserveEnergy)
+                ratio *= energyCorrector;
 
             elm.second->updateStiffness(ratio);
 
-            if (performanceRatioCriteria < ratio) 
+            if (performanceRatioCriteria < ratio)
                 currNumOfElmStsfyCrt++;
 
             int colour = 0;
