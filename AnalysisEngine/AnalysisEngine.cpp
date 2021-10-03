@@ -1,12 +1,12 @@
-#include <iostream>
-#include <fstream>
+#include <chrono>
 #include <vector>
 #include <memory>
-#include <chrono>
-#include "StructureSolver.h"
+#include <fstream>
+#include <iostream>
+#include "Shape.h"
 #include "Vector.h"
 #include "UtilMethods.h"
-#include "Shape.h"
+#include "StructureSolver.h"
 
 #define LOG(x) std::cout << x << "\n"
 #define LOGW(x) std::wcout << x << "\n"
@@ -14,6 +14,9 @@
 constexpr double pi = 3.141592653589793;
 
 void StrutTieDesign();
+void KaganHocaAlgorithm();
+double internalEnergyFromMembraneSystem(double width, double height, double thickness,
+    double nodeInterval, double modulus, double verticalLoadMagnitude);
 void CantileverDisplacements3D();
 void CantileverDisplacements2D();
 void TableModalAnalysis();
@@ -33,12 +36,12 @@ void CE583Assignment9_2_3();
 void CE583Assignment9_3();
 
 struct NodeData {
-    int nodeIndex;
+    int nodeIndex{};
     XYZPoint coordinate;
 };
 
 struct TrussData {
-    int trussIndex;
+    int trussIndex{};
     NodeData* iNode;
     NodeData* jNode;
 };
@@ -59,7 +62,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        StrutTieDesign();
+        KaganHocaAlgorithm();
         LOG("\n Analysis completed without errors...");
     }
     catch (const std::runtime_error& e)
@@ -75,6 +78,257 @@ int main()
 
     std::cin.get();
     return 0;
+}
+
+/// <summary>
+/// Design algorithm for reinforced concrete structures with predefined steel reinforcement
+/// layout.
+/// </summary>
+void KaganHocaAlgorithm()
+{
+    // ALGORITHM
+    //
+    // 1- MODEL A BEAM WITH SHELL ELEMENTS THAT RESISTS DEFORMATION WITH MEMBRANE ACTION. 
+    // THE REASON THAT MEMBRANE ELEMENTS ARE USED IS TO CALCULATE INTERNAL ENERGY CORRECTLY
+    // FROM USING A CONTINUUM MODEL.
+    //
+    // 2- CALCULATE THE INTERNAL ENERGY.
+    //
+    // 3- REMODEL THE BEAM USING A LATTICE NETWORK WITH ONLY CONCRETE TRUSSES ARE INCLUDED WITH AN
+    // ARBITRARY TRUSS CROSS-SECTIONAL AREA.
+    //
+    // 4- CALCULATE INTERNAL ENERGY OF TRUSS SYSTEM WITH LOADING.
+    //
+    // 5- OBTAIN NECESSARY CROSS-SECTIONAL AREA FOR TRUSSES THAT EQUATES ENERGY WITH THE MODEL
+    // CONSTRUCTED WITH SHELL ELEMENTS. MODIFY STRUCTURE ACCORDINGLY.
+    //
+    // 6- PLACE PREDEFINED STEEL REINFORCEMENT LAYOUT
+    //
+
+    // INPUT CARD
+    // Length unit is meters and force unit is Newton.
+    //    GEOMETRY INPUTS
+    auto memberWidth = 4.0;
+    auto memberHeight = 1.0;
+    auto memberThickness = 1.0;
+    auto nodeInterval = 1.0;
+
+    //    MATERIAL INPUTS
+    auto concreteModulus = 30.0e9; // 30 GPa
+    auto concretePoissonRatio = 0.2;
+    auto steelModulus = 200.0e9; // 200 GPa
+
+    //    LOAD INPUTS
+    // LOAD IS AT MID-SPAN THAT POINTS DOWNWARD.
+    auto loadMagnitude = 5.0e6;
+
+    //    STEEL REINFOCEMENT LAYOUT INPUTS
+
+    /////////////////////////////////////////////////////////////////////////////////////////
+    // Get correct internal energy from a continuum model.
+    auto internalEnergy = internalEnergyFromMembraneSystem(memberWidth, memberHeight, memberThickness,
+        nodeInterval, concreteModulus, loadMagnitude);
+
+#pragma region beam
+
+    // Units are in N & m
+
+    // Coordinates
+    //XYZPoint pt1(0, 0, 0); // Origin
+    //XYZPoint pt2(2, 0, 0);
+    //XYZPoint pt3(4, 0, 0);
+
+    //// Nodes
+    //std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    //auto node1 = std::make_shared<Node>(1, pt1); nodes[node1->NodeIndex] = node1;
+    //auto node2 = std::make_shared<Node>(2, pt2); nodes[node2->NodeIndex] = node2;
+    //auto node3 = std::make_shared<Node>(3, pt3); nodes[node3->NodeIndex] = node3;
+
+    //// Section
+    //auto area = 1.0;
+    //auto inertia11 = 1.0 / 12.0;
+    //auto inertia22 = 1.0 / 12.0;
+    //auto inertia12 = 1.0 / 12.0;
+    //auto sect = std::make_shared<Section>(area, inertia11, inertia22, inertia12);
+
+    //// Material
+    //auto mat = std::make_shared<Material>(30.0e9, 0.0, 24000);
+
+    //// Members
+    //std::map<unsigned int, std::shared_ptr<Element>> elements;
+    //auto beam1 = std::make_shared<FrameMember>(1, node1, node2, sect, mat, true); elements[beam1->ElementIndex] = beam1;
+    //auto beam2 = std::make_shared<FrameMember>(2, node2, node3, sect, mat, true); elements[beam2->ElementIndex] = beam2;
+
+    //// Restraints
+    //std::vector<bool> pin = { true, true, true, true, true, false };
+    //std::vector<bool> roller = { false, true, true, true, true, false };
+    //std::vector<bool> universal = { false, false, true, true, true, false };
+    //std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    //std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    //auto res1 = std::make_shared<Restraint>(node1, pin, rest); restraints[1] = res1;
+    //auto res2 = std::make_shared<Restraint>(node2, universal, rest); restraints[2] = res2;
+    //auto res3 = std::make_shared<Restraint>(node3, roller, rest); restraints[3] = res3;
+
+    //// Nodal loads
+    //std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    //double nodalLoad[6] = { 0, -5.0e6, 0, 0, 0, 0 };
+    //auto nl1 = std::make_shared<NodalLoad>(node2, nodalLoad); nodalLoads[1] = nl1;
+
+    //// Distributed loads
+    //std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    //// Create structure
+    //auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    //// Solve displacement
+    //auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+    //for (auto& nodePair : nodes)
+    //{
+    //    auto node = nodePair.second;
+
+    //    LOG("");
+    //    LOG(" Node Index: ");
+    //    std::cout << " " << node->NodeIndex << "\n";
+
+    //    auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
+
+    //    for (size_t i = 0; i < 6; i++)
+    //        std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
+    //}
+
+    //// Modal periods
+    //auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Eigen);
+    //LOG("");
+    //for (size_t i = 0; i < modalPeriods.RowCount; i++)
+    //    std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << "\n";
+
+    //return;
+
+
+#pragma endregion
+
+}
+
+double internalEnergyFromMembraneSystem(double width, double height, double thickness,
+    double nodeInterval, double modulus, double verticalLoadMagnitude)
+{
+    nodeInterval = 0.5;
+    auto nElmX = (int)(width / nodeInterval);
+    auto nElmY = (int)(height / nodeInterval);
+    auto membraneType = MembraneType::Drilling;
+    auto plateType = PlateType::NONE;
+    auto lX = width;
+    auto lY = height;
+    auto e = modulus;
+    auto v = 0.0;
+
+    // Solve
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Populate nodes
+    auto hX = lX / nElmX;
+    auto hY = lY / nElmY;
+    auto nNodeX = nElmX + 1;
+    auto nNodeY = nElmY + 1;
+
+    std::vector<bool> pin = { true, true, true, true, true, membraneType != MembraneType::Drilling };
+    std::vector<bool> roller = { false, true, true, true, true, membraneType != MembraneType::Drilling };
+    std::vector<bool> universal = { false, false, true, true, true, membraneType != MembraneType::Drilling };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    auto addRestaint = [&](std::shared_ptr<Node> nR)
+    {
+        auto isLeft = Utils::AreEqual(nR->Coordinate.X, 0.0, nodeInterval * 0.1);
+        auto isRight = Utils::AreEqual(nR->Coordinate.X, lX, nodeInterval * 0.1);
+        restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, isLeft ? pin : (isRight ? roller : universal), rest);
+    };
+
+    int maxNodeIdx = 0;
+    // Create nodes
+    for (size_t i = 0; i < nNodeY; i++)
+    {
+        for (size_t j = 0; j < nNodeX; j++)
+        {
+            auto idx = (i * nNodeX) + j + 1;
+            XYZPoint pt(j * hX, i * hY, 0);
+            auto n = std::make_shared<Node>(idx, pt);
+            nodes[n->NodeIndex] = n;
+            addRestaint(n);
+            maxNodeIdx = idx;
+        }
+    }
+
+    // Create elements
+    auto mt = std::make_shared<Material>(e, v, 0);
+    for (size_t i = 0; i < nElmY; i++)
+    {
+        for (size_t j = 0; j < nElmX; j++)
+        {
+            auto idx = (i * nElmX) + j + 1;
+            auto& iNode = nodes[(i * nNodeX) + j + 1];
+            auto& jNode = nodes[iNode->NodeIndex + 1];
+            auto& kNode = nodes[jNode->NodeIndex + nNodeX];
+            auto& lNode = nodes[kNode->NodeIndex - 1];
+            elements[idx] = std::make_shared<ShellMember>(idx, iNode, jNode, kNode, lNode, mt, thickness, membraneType, plateType);
+        }
+    }
+
+    // Nodal loads
+    // Find midspan nodes and apply load.
+    double nodalLoad[6] = { 0, -1 * verticalLoadMagnitude / nNodeY, 0, 0, 0, 0 };
+    int botMidIndex = -1;
+    int topMidIndex = -1;
+    int loadIndex = 0;
+    for (auto&& nPair : nodes)
+    {
+        auto& nVal = nPair.second;
+        auto isMidspanNode = Utils::AreEqual(nVal->Coordinate.X, lX * 0.5, nodeInterval * 0.1);
+
+        if (isMidspanNode)
+        {
+            loadIndex++;
+            auto isMidBottomNode = Utils::AreEqual(nVal->Coordinate.Y, 0.0, nodeInterval * 0.1);
+            auto isMidTopNode = Utils::AreEqual(nVal->Coordinate.Y, lY, nodeInterval * 0.1);
+            if (isMidBottomNode)
+                botMidIndex = nVal->NodeIndex;
+            else if (isMidTopNode)
+                topMidIndex = nVal->NodeIndex;
+            nodalLoads[loadIndex] = std::make_shared<NodalLoad>(nVal, nodalLoad);
+        }
+    }
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    //auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, SolverChoice::Eigen);
+
+
+    // Print midspan results
+    auto& topNode = *(nodes[topMidIndex]);
+    auto& botNode = *(nodes[botMidIndex]);
+    auto topMidVerticalDisplacement = StructureSolver::GetNodalDisplacements(topNode, disps);
+    auto botMidVerticalDisplacement = StructureSolver::GetNodalDisplacements(botNode, disps);
+
+    LOG(" MID-SPAN NODE OF TOP SURFACE");
+    LOG(" ---------------------------");
+    LOG(" Node Index: " << topNode.NodeIndex);
+    LOG(" Node Location: " << topNode.Coordinate.X << " m, " << topNode.Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << topMidVerticalDisplacement(1, 0) << " m");
+    LOG("");
+    LOG(" MID-SPAN NODE OF BOTTOM SURFACE");
+    LOG(" -------------------------------");
+    LOG(" Node Index: " << botNode.NodeIndex);
+    LOG(" Node Location: " << botNode.Coordinate.X << " m, " << botNode.Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << botMidVerticalDisplacement(1, 0) << " m");
+    LOG("");
+
+    return 0.0;
 }
 
 void StrutTieDesign()
