@@ -36,6 +36,7 @@ namespace StructureSolver
     std::tuple<std::vector<Matrix<double>>, std::vector<Matrix<double>>, std::vector<Matrix<double>>>
         ImplicitNewmark(const Structure& str, std::vector<Matrix<double>> f, double tMax, double dT, 
             double a0, double a1, SolverChoice solverChoice);
+
     Matrix<double> CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex);
     Matrix<double> CalculatePlateForces(const ShellMember& elm, Matrix<double>& disps);
     Matrix<double> CalculateSerendipityPlateForces(const SerendipityShell& elm, Matrix<double>& disps);
@@ -43,4 +44,6 @@ namespace StructureSolver
     double CondenseForceVectorForSpecificDOF(const Structure& str, unsigned int dofIndex, SolverChoice solverChoice);
     Matrix<double> LinearEquationSolver(Matrix<double>& A, Matrix<double>& b, SolverChoice solverChoice);
     Matrix<double> GetInverse(Matrix<double>& A, SolverChoice solverChoice);
+
+    double CalculateInternalEnergy(const Structure& str, Matrix<double>& disps, SolverChoice);
 }

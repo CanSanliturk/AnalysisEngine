@@ -63,11 +63,11 @@ int main()
     try
     {
         KaganHocaAlgorithm();
-        LOG("\n Analysis completed without errors...");
+        LOG(" Analysis completed without errors...");
     }
     catch (const std::runtime_error& e)
     {
-        LOG("\n Analysis cannot be completed...");
+        LOG(" Analysis cannot be completed...");
         LOG(" " << e.what());
     }
 
@@ -86,7 +86,8 @@ int main()
 /// </summary>
 void KaganHocaAlgorithm()
 {
-    // ALGORITHM
+#pragma region Algorithm
+
     //
     // 1- MODEL A BEAM WITH SHELL ELEMENTS THAT RESISTS DEFORMATION WITH MEMBRANE ACTION. 
     // THE REASON THAT MEMBRANE ELEMENTS ARE USED IS TO CALCULATE INTERNAL ENERGY CORRECTLY
@@ -105,6 +106,8 @@ void KaganHocaAlgorithm()
     // 6- PLACE PREDEFINED STEEL REINFORCEMENT LAYOUT
     //
 
+#pragma endregion
+
 #pragma region Input Card
 
     // Length unit is meters and force unit is Newton.
@@ -115,7 +118,7 @@ void KaganHocaAlgorithm()
     // Note that number of nodes in vertical direction must be an odd number because restraints of both
     // continuum model and discrete model are assigned to the mid points to satisfy consistency with
     // Euler-Bernoulli beam theory for simply supported system.
-    auto nodeInterval = 0.1;
+    auto nodeInterval = 0.25;
     auto latticeHorizon = 1.5;
 
     // MATERIAL INPUTS
@@ -302,6 +305,8 @@ void KaganHocaAlgorithm()
                 midNodeIndex = nVal->NodeIndex;
         }
     }
+    auto& midNode = *(nodes[midNodeIndex]);
+
 
 #pragma endregion
 
@@ -311,74 +316,38 @@ void KaganHocaAlgorithm()
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, SolverChoice::Eigen);
+    auto displacementsBeforeModification = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
 
     // Print midspan results
-    auto& midNode = *(nodes[midNodeIndex]);
-    auto midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, disps);
+    auto midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, displacementsBeforeModification);
 
-    LOG(" MID-SPAN NODE OF DISCRETE SYSTEM BEFORE MODIFICATION");
-    LOG(" ---------------------------");
-    LOG(" Node Index: " << midNode.NodeIndex);
+    LOG(" DISCRETE SYSTEM RESULTS BEFORE STIFFNESS MODIFICATIONS");
+    LOG(" ------------------------------------------------------");
     LOG(" Node Location: " << midNode.Coordinate.X << " m, " << midNode.Coordinate.Y << " m");
     LOG(" Vertical Displacement: " << midNodeDisplacements(1, 0) << " m");
-    LOG("");
 
     // Calculate energy of system
     // Calculate total internal energy
-    auto internalEnergyOfInitialDiscreteSystem = 0.0;
-    for (auto& elmPair : elements)
-    {
-        // Cast element to truss member
-        auto truss = dynamic_cast<TrussMember*>(&*(elmPair.second));
+    auto internalEnergyOfInitialDiscreteSystemBeforeModifications = StructureSolver::CalculateInternalEnergy(*str, displacementsBeforeModification, solverChoice);
 
-        // Get nodal displacements in global coordinates and form a vector of 24 elements
-        auto&& nodes = truss->GelElementNodes();
-        auto iNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(0), disps);
-        auto jNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(1), disps);
-        Matrix<double> nodalDisps(12, 1);
-
-        int matrixIndexer = 0;
-        int vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        // Calculate internal energy of the member
-        auto tNodalDisps = nodalDisps.transpose();
-        auto& elmGlobalStiffness = *truss->GlobalCoordinateStiffnessMatrix;
-        auto firstStep = tNodalDisps * elmGlobalStiffness;
-        auto elmInternalEnergy = firstStep * nodalDisps;
-        internalEnergyOfInitialDiscreteSystem += elmInternalEnergy(0, 0);
-    }
-
-    LOG(" Internal Energy of System From Unmodified Discrete System: " << internalEnergyOfInitialDiscreteSystem);
+    LOG(" Internal Energy: " << internalEnergyOfInitialDiscreteSystemBeforeModifications << "\n");
 
 #pragma endregion
 
 #pragma region Adjust Stiffness with Internal Energy from Continuum Model
 
     // Modify stiffness of truss elements using energy corrector
-    auto energyCorrector = internalEnergyFromContinuum / internalEnergyOfInitialDiscreteSystem;
-
+    auto stiffnessMultiplier = internalEnergyOfInitialDiscreteSystemBeforeModifications / internalEnergyFromContinuum;
+    LOG(" STIFFNESS MULTIPLIER FROM INTERNAL ENERGY CORRECTION");
+    LOG(" ----------------------------------------------------");
+    LOG(" Multiplier: " << stiffnessMultiplier << "\n");
     for (auto& elmPair : elements)
     {
         // Cast element to truss member
         auto truss = dynamic_cast<TrussMember*>(&*(elmPair.second));
-        truss->updateStiffness(energyCorrector);
+
+        // Update stiffness of element using energy corrector
+        truss->updateStiffness(stiffnessMultiplier);
     }
 
     str->updateStiffnessMatrix();
@@ -393,56 +362,16 @@ void KaganHocaAlgorithm()
     // Print midspan results
     midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, dispsAfterModification);
 
-    LOG(" MID-SPAN NODE OF DISCRETE SYSTEM AFTER MODIFICATIONS");
-    LOG(" ---------------------------");
-    LOG(" Node Index: " << midNode.NodeIndex);
+    LOG(" DISCRETE SYSTEM RESULTS AFTER MODIFICATIONS");
+    LOG(" -------------------------------------------");
     LOG(" Node Location: " << midNode.Coordinate.X << " m, " << midNode.Coordinate.Y << " m");
     LOG(" Vertical Displacement: " << midNodeDisplacements(1, 0) << " m");
-    LOG("");
 
     // Calculate energy of system
     // Calculate total internal energy
-    auto internalEnergyOfInitialDiscreteSystem = 0.0;
-    for (auto& elmPair : elements)
-    {
-        // Cast element to truss member
-        auto truss = dynamic_cast<TrussMember*>(&*(elmPair.second));
+    auto internalEnergyOfInitialDiscreteSystemAfterModification = StructureSolver::CalculateInternalEnergy(*str, dispsAfterModification, solverChoice);
 
-        // Get nodal displacements in global coordinates and form a vector of 24 elements
-        auto&& nodes = truss->GelElementNodes();
-        auto iNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(0), disps);
-        auto jNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(1), disps);
-        Matrix<double> nodalDisps(12, 1);
-
-        int matrixIndexer = 0;
-        int vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        // Calculate internal energy of the member
-        auto tNodalDisps = nodalDisps.transpose();
-        auto& elmGlobalStiffness = *truss->GlobalCoordinateStiffnessMatrix;
-        auto firstStep = tNodalDisps * elmGlobalStiffness;
-        auto elmInternalEnergy = firstStep * nodalDisps;
-        internalEnergyOfInitialDiscreteSystem += elmInternalEnergy(0, 0);
-    }
-
-    LOG(" Internal Energy of System From Unmodified Discrete System: " << internalEnergyOfInitialDiscreteSystem);
-
+    LOG(" Internal Energy: " << internalEnergyOfInitialDiscreteSystemAfterModification << "\n");
 
 #pragma endregion
 
@@ -648,78 +577,21 @@ double internalEnergyFromMembraneSystem(Shape shape, double thickness, double no
     auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
 
     // Solve displacement
-    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, SolverChoice::Eigen);
+    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
 
     // Print midspan results
     auto& midNode = *(nodes[midNodeIndex]);
     auto midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, disps);
 
-    LOG(" MID-SPAN NODE OF CONTINUUM SYSTEM");
-    LOG(" ---------------------------");
-    LOG(" Node Index: " << midNode.NodeIndex);
+    LOG(" CONTINUUM SYSTEM RESULTS");
+    LOG(" ------------------------");
     LOG(" Node Location: " << midNode.Coordinate.X << " m, " << midNode.Coordinate.Y << " m");
     LOG(" Vertical Displacement: " << midNodeDisplacements(1, 0) << " m");
-    LOG("");
 
     // Calculate total internal energy
-    auto totalInternalEnergy = 0.0;
-    for (auto& elmPair : elements)
-    {
-        // Cast element to shell member
-        auto shell = dynamic_cast<ShellMember*>(&*(elmPair.second));
+    auto totalInternalEnergy = StructureSolver::CalculateInternalEnergy(*str, disps, solverChoice);
 
-        // Get nodal displacements in global coordinates and form a vector of 24 elements
-        auto&& nodes = shell->GelElementNodes();
-        auto iNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(0), disps);
-        auto jNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(1), disps);
-        auto kNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(2), disps);
-        auto lNodeDisps = StructureSolver::GetNodalDisplacements(*nodes.at(3), disps);
-        Matrix<double> nodalDisps(24, 1);
-
-        int matrixIndexer = 0;
-        int vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = iNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = jNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = kNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = kNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = kNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = kNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = kNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = kNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        nodalDisps(matrixIndexer++, 0) = lNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = lNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = lNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = lNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = lNodeDisps(vectorIndexer++, 0);
-        nodalDisps(matrixIndexer++, 0) = lNodeDisps(vectorIndexer++, 0);
-        vectorIndexer = 0;
-
-        // Calculate internal energy of the member
-        auto tNodalDisps = nodalDisps.transpose();
-        auto& elmGlobalStiffness = *shell->GlobalCoordinateStiffnessMatrix;
-        auto firstStep = tNodalDisps * elmGlobalStiffness;
-        auto elmInternalEnergy = firstStep * nodalDisps;
-        totalInternalEnergy += elmInternalEnergy(0, 0);
-    }
-
-    LOG(" Total Internal Energy of System From Continuum Model: " << totalInternalEnergy);
+    LOG(" Internal Energy: " << totalInternalEnergy << "\n");
 
     return totalInternalEnergy;
 }
