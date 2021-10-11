@@ -30,7 +30,7 @@ std::vector<XYPoint> Shape::getPoints(double interval)
 {
     std::vector<XYPoint> retVal;
 
-    auto bounds = this->getBoundingBoxLowerleftAndUpperright();
+    auto bounds = this->getBoundingBoxLowerLeftAndUpperRight();
 
     auto lowerLeftX = std::get<0>(bounds).X;
     auto lowerLeftY = std::get<0>(bounds).Y;
@@ -102,7 +102,7 @@ short Shape::getNumberOfHoles()
     return this->holes.size();
 }
 
-std::tuple<XYPoint, XYPoint> Shape::getBoundingBoxLowerleftAndUpperright()
+std::tuple<XYPoint, XYPoint> Shape::getBoundingBoxLowerLeftAndUpperRight()
 {
     auto lowerLeftX = this->vertices[0].X;
     auto lowerLeftY = this->vertices[0].Y;
@@ -125,3 +125,6 @@ std::tuple<XYPoint, XYPoint> Shape::getBoundingBoxLowerleftAndUpperright()
 
     return std::make_tuple(lowerLeft, upperRight);
 }
+
+std::vector<Shape> Shape::getHoles() { return this->holes; }
+

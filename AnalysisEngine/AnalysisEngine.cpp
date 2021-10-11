@@ -1,12 +1,12 @@
-#include <iostream>
-#include <fstream>
+#include <chrono>
 #include <vector>
 #include <memory>
-#include <chrono>
-#include "StructureSolver.h"
+#include <fstream>
+#include <iostream>
+#include "Shape.h"
 #include "Vector.h"
 #include "UtilMethods.h"
-#include "Shape.h"
+#include "StructureSolver.h"
 
 #define LOG(x) std::cout << x << "\n"
 #define LOGW(x) std::wcout << x << "\n"
@@ -14,6 +14,9 @@
 constexpr double pi = 3.141592653589793;
 
 void StrutTieDesign();
+void KaganHocaAlgorithm();
+double internalEnergyFromMembraneSystem(Shape shape, double thickness,
+    double nodeInterval, double modulus, double verticalLoadMagnitude, SolverChoice);
 void CantileverDisplacements3D();
 void CantileverDisplacements2D();
 void TableModalAnalysis();
@@ -33,12 +36,12 @@ void CE583Assignment9_2_3();
 void CE583Assignment9_3();
 
 struct NodeData {
-    int nodeIndex;
+    int nodeIndex{};
     XYZPoint coordinate;
 };
 
 struct TrussData {
-    int trussIndex;
+    int trussIndex{};
     NodeData* iNode;
     NodeData* jNode;
 };
@@ -59,12 +62,12 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        StrutTieDesign();
-        LOG("\n Analysis completed without errors...");
+        KaganHocaAlgorithm();
+        LOG(" Analysis completed without errors...");
     }
     catch (const std::runtime_error& e)
     {
-        LOG("\n Analysis cannot be completed...");
+        LOG(" Analysis cannot be completed...");
         LOG(" " << e.what());
     }
 
@@ -75,6 +78,522 @@ int main()
 
     std::cin.get();
     return 0;
+}
+
+/// <summary>
+/// Design algorithm for reinforced concrete structures with predefined steel reinforcement
+/// layout.
+/// </summary>
+void KaganHocaAlgorithm()
+{
+#pragma region Algorithm
+
+    //
+    // 1- MODEL A BEAM WITH SHELL ELEMENTS THAT RESISTS DEFORMATION WITH MEMBRANE ACTION. 
+    // THE REASON THAT MEMBRANE ELEMENTS ARE USED IS TO CALCULATE INTERNAL ENERGY CORRECTLY
+    // FROM USING A CONTINUUM MODEL.
+    //
+    // 2- CALCULATE THE INTERNAL ENERGY.
+    //
+    // 3- REMODEL THE BEAM USING A LATTICE NETWORK WITH ONLY CONCRETE TRUSSES ARE INCLUDED WITH AN
+    // ARBITRARY TRUSS CROSS-SECTIONAL AREA.
+    //
+    // 4- CALCULATE INTERNAL ENERGY OF TRUSS SYSTEM WITH LOADING.
+    //
+    // 5- OBTAIN NECESSARY CROSS-SECTIONAL AREA FOR TRUSSES THAT EQUATES ENERGY WITH THE MODEL
+    // CONSTRUCTED WITH SHELL ELEMENTS. MODIFY STRUCTURE ACCORDINGLY.
+    //
+    // 6- PLACE PREDEFINED STEEL REINFORCEMENT LAYOUT
+    //
+
+#pragma endregion
+
+#pragma region Input Card
+
+    // Length unit is meters and force unit is Newton.
+    // GEOMETRY INPUTS
+    auto memberWidth = 4.0;
+    auto memberHeight = 1.0;
+    auto memberThickness = 1.0;
+    // Note that number of nodes in vertical direction must be an odd number because restraints of both
+    // continuum model and discrete model are assigned to the mid points to satisfy consistency with
+    // Euler-Bernoulli beam theory for simply supported system.
+    auto nodeInterval = 0.25;
+    auto latticeHorizon = 1.5;
+
+    // MATERIAL INPUTS
+    auto concreteModulus = 30.0e9; // 30 GPa
+    auto concretePoissonRatio = 0.0;
+    auto steelModulus = 200.0e9; // 200 GPa
+
+    // LOAD INPUTS
+    // LOAD IS AT MID-SPAN THAT POINTS DOWNWARD.
+    auto loadMagnitude = 5.0e6;
+
+    // STEEL REINFOCEMENT LAYOUT INPUTS
+
+    // LINEAR ALGEABRIC SOLVER LIBRARY SELECTION
+    auto solverChoice = SolverChoice::Eigen;
+
+#pragma endregion
+
+#pragma region Create Shape
+
+    XYPoint pt1(0.0, 0.0);
+    XYPoint pt2(memberWidth, 0.0);
+    XYPoint pt3(memberWidth, memberHeight);
+    XYPoint pt4(0.0, memberHeight);
+    std::vector<XYPoint> vertices;
+    vertices.push_back(pt1);
+    vertices.push_back(pt2);
+    vertices.push_back(pt3);
+    vertices.push_back(pt4);
+    Shape shape(vertices);
+
+#pragma endregion
+
+#pragma region Internal Energy From Continuum Model
+
+    // Get correct internal energy from a continuum model.
+    auto internalEnergyFromContinuum = internalEnergyFromMembraneSystem(shape, memberThickness, nodeInterval, concreteModulus, loadMagnitude, solverChoice);
+
+#pragma endregion
+
+#pragma region Fields for Discrete Model
+
+    // Create lattice model
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+#pragma endregion
+
+#pragma region Populate Nodes
+
+    std::vector<bool> pin = { true, true, true, true, true, true };
+    std::vector<bool> roller = { false, true, true, true, true, true };
+    std::vector<bool> universal = { false, false, true, true, true, true };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    unsigned int restraintIndexer = 0;
+    auto addRestaint = [&](std::shared_ptr<Node> nR)
+    {
+        auto isLeft = Utils::AreEqual(nR->Coordinate.X, 0.0, nodeInterval * 0.1);
+        auto isRight = Utils::AreEqual(nR->Coordinate.X, memberWidth, nodeInterval * 0.1);
+
+        auto isPin = isLeft && Utils::AreEqual(nR->Coordinate.Y, memberHeight * 0.5, nodeInterval * 0.1);
+        auto isRoller = (isLeft || isRight) && (!Utils::AreEqual(nR->Coordinate.Y, memberHeight * 0.5, nodeInterval * 0.1));
+
+        restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, isPin ? pin : (isRoller ? roller : universal), rest);
+    };
+    auto meshPoints = shape.getPoints(nodeInterval);
+    auto nodeIndexer = 0;
+    for (auto& meshPt : meshPoints)
+    {
+        nodeIndexer++;
+        XYZPoint meshPt3d(meshPt.X, meshPt.Y, 0.0);
+        auto n = std::make_shared<Node>(nodeIndexer, meshPt3d);
+        nodes[n->NodeIndex] = n;
+        addRestaint(n);
+    }
+
+#pragma endregion
+
+#pragma region Populate Truss Elements
+
+    // Map each node. Find the other nodes that are closer than horizon boundary and connect them.
+    // However, pay attention not to connect already connected nodes. Also, do not connect nodes
+    // if truss between them falls in a gap.
+
+    // Horizon distance
+    auto horizonDistance = latticeHorizon * nodeInterval;
+
+    // Number of segments to check whether truss between two nodes does not fall in a gap.
+    auto numOfSegmentsToCheckInsideGap = 10;
+
+    // Holes
+    auto holes = shape.getHoles();
+
+    // Indexer for truss
+    unsigned int trussIndexer = 0;
+
+    std::ofstream latticeModel;
+
+    latticeModel.open("plot\\latticeModel.dat");
+    latticeModel << "BEGIN SCENE\n";
+
+    // Loop for source node
+    auto&& mat = std::make_shared<Material>(concreteModulus, concretePoissonRatio, 0);
+    auto&& sect = std::make_shared<Section>(1.0, 0, 0, 0);
+    for (auto& sourceNodePair : nodes)
+    {
+        // Loop for target node
+        for (auto& targetNodePair : nodes)
+        {
+            // Ensure that source and target are not same
+            if (sourceNodePair.first != targetNodePair.first)
+            {
+                auto& source = sourceNodePair.second;
+                auto& target = targetNodePair.second;
+
+                // Check if target node is in the horizon of the source node
+                if (target->Coordinate.DistanceTo(source->Coordinate) < horizonDistance)
+                {
+                    // Check if there is already a truss between these nodes
+                    if (source->NodeIndex < target->NodeIndex)
+                    {
+                        // Check whether a truss between these two nodes falls in a gap or not
+                        auto isInGap = false;
+                        auto xIncrement = (target->Coordinate.X - source->Coordinate.X) / numOfSegmentsToCheckInsideGap;
+                        auto yIncrement = (target->Coordinate.Y - source->Coordinate.Y) / numOfSegmentsToCheckInsideGap;
+
+                        for (size_t i = 1; i < numOfSegmentsToCheckInsideGap; i++)
+                        {
+                            XYPoint pt(source->Coordinate.X + (i * xIncrement), source->Coordinate.Y + (i * yIncrement));
+                            for (auto& hole : holes)
+                            {
+                                if (hole.isInside(pt))
+                                {
+                                    isInGap = true;
+                                    break;
+                                }
+                            }
+                            if (isInGap)
+                                break;
+                        }
+
+                        // Ensure that truss between these two nodes will not be inside a gap
+                        if (!isInGap)
+                        {
+                            trussIndexer++;
+                            elements[trussIndexer] = std::make_shared<TrussMember>(trussIndexer, source, target, sect, mat);
+
+                            latticeModel << source->Coordinate.X << " " << source->Coordinate.Y << "\n";
+                            latticeModel << target->Coordinate.X << " " << target->Coordinate.Y << "\n";
+                            latticeModel << "7\n";
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    latticeModel << "END SCENE\n";
+    latticeModel.close();
+
+#pragma endregion
+
+#pragma region Add Point Load to Midspan
+
+    // Distribute loads to nodes lies on midspan vertically
+    // Find midspan nodes and apply load.
+    double nodalLoad[6] = { 0, -1 * loadMagnitude / ((memberHeight / nodeInterval) + 1), 0, 0, 0, 0 };
+    int midNodeIndex = -1;
+    int loadIndex = 0;
+    for (auto&& nPair : nodes)
+    {
+        auto& nVal = nPair.second;
+
+        // Load the mid-span
+        if (Utils::AreEqual(nVal->Coordinate.X, memberWidth * 0.5, nodeInterval * 0.1))
+        {
+            loadIndex++;
+            nodalLoads[loadIndex] = std::make_shared<NodalLoad>(nVal, nodalLoad);
+
+            if (Utils::AreEqual(nVal->Coordinate.Y, memberHeight * 0.5, nodeInterval * 0.1))
+                midNodeIndex = nVal->NodeIndex;
+        }
+    }
+    auto& midNode = *(nodes[midNodeIndex]);
+
+
+#pragma endregion
+
+#pragma region Solve Before Modification
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto displacementsBeforeModification = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+
+    // Print midspan results
+    auto midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, displacementsBeforeModification);
+
+    LOG(" DISCRETE SYSTEM RESULTS BEFORE STIFFNESS MODIFICATIONS");
+    LOG(" ------------------------------------------------------");
+    LOG(" Node Location: " << midNode.Coordinate.X << " m, " << midNode.Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << midNodeDisplacements(1, 0) << " m");
+
+    // Calculate energy of system
+    // Calculate total internal energy
+    auto internalEnergyOfInitialDiscreteSystemBeforeModifications = StructureSolver::CalculateInternalEnergy(*str, displacementsBeforeModification, solverChoice);
+
+    LOG(" Internal Energy: " << internalEnergyOfInitialDiscreteSystemBeforeModifications << "\n");
+
+#pragma endregion
+
+#pragma region Adjust Stiffness with Internal Energy from Continuum Model
+
+    // Modify stiffness of truss elements using energy corrector
+    auto stiffnessMultiplier = internalEnergyOfInitialDiscreteSystemBeforeModifications / internalEnergyFromContinuum;
+    LOG(" STIFFNESS MULTIPLIER FROM INTERNAL ENERGY CORRECTION");
+    LOG(" ----------------------------------------------------");
+    LOG(" Multiplier: " << stiffnessMultiplier << "\n");
+    for (auto& elmPair : elements)
+    {
+        // Cast element to truss member
+        auto truss = dynamic_cast<TrussMember*>(&*(elmPair.second));
+
+        // Update stiffness of element using energy corrector
+        truss->updateStiffness(stiffnessMultiplier);
+    }
+
+    str->updateStiffnessMatrix();
+
+#pragma endregion
+
+#pragma region Solve After Modification
+
+    // Solve displacement
+    auto dispsAfterModification = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+
+    // Print midspan results
+    midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, dispsAfterModification);
+
+    LOG(" DISCRETE SYSTEM RESULTS AFTER MODIFICATIONS");
+    LOG(" -------------------------------------------");
+    LOG(" Node Location: " << midNode.Coordinate.X << " m, " << midNode.Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << midNodeDisplacements(1, 0) << " m");
+
+    // Calculate energy of system
+    // Calculate total internal energy
+    auto internalEnergyOfInitialDiscreteSystemAfterModification = StructureSolver::CalculateInternalEnergy(*str, dispsAfterModification, solverChoice);
+
+    LOG(" Internal Energy: " << internalEnergyOfInitialDiscreteSystemAfterModification << "\n");
+
+#pragma endregion
+
+
+#pragma region beam
+
+    // Units are in N & m
+
+    // Coordinates
+    //XYZPoint pt1(0, 0, 0); // Origin
+    //XYZPoint pt2(2, 0, 0);
+    //XYZPoint pt3(4, 0, 0);
+
+    //// Nodes
+    //std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    //auto node1 = std::make_shared<Node>(1, pt1); nodes[node1->NodeIndex] = node1;
+    //auto node2 = std::make_shared<Node>(2, pt2); nodes[node2->NodeIndex] = node2;
+    //auto node3 = std::make_shared<Node>(3, pt3); nodes[node3->NodeIndex] = node3;
+
+    //// Section
+    //auto area = 1.0;
+    //auto inertia11 = 1.0 / 12.0;
+    //auto inertia22 = 1.0 / 12.0;
+    //auto inertia12 = 1.0 / 12.0;
+    //auto sect = std::make_shared<Section>(area, inertia11, inertia22, inertia12);
+
+    //// Material
+    //auto mat = std::make_shared<Material>(30.0e9, 0.0, 24000);
+
+    //// Members
+    //std::map<unsigned int, std::shared_ptr<Element>> elements;
+    //auto beam1 = std::make_shared<FrameMember>(1, node1, node2, sect, mat, true); elements[beam1->ElementIndex] = beam1;
+    //auto beam2 = std::make_shared<FrameMember>(2, node2, node3, sect, mat, true); elements[beam2->ElementIndex] = beam2;
+
+    //// Restraints
+    //std::vector<bool> pin = { true, true, true, true, true, false };
+    //std::vector<bool> roller = { false, true, true, true, true, false };
+    //std::vector<bool> universal = { false, false, true, true, true, false };
+    //std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+
+    //std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    //auto res1 = std::make_shared<Restraint>(node1, pin, rest); restraints[1] = res1;
+    //auto res2 = std::make_shared<Restraint>(node2, universal, rest); restraints[2] = res2;
+    //auto res3 = std::make_shared<Restraint>(node3, roller, rest); restraints[3] = res3;
+
+    //// Nodal loads
+    //std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    //double nodalLoad[6] = { 0, -5.0e6, 0, 0, 0, 0 };
+    //auto nl1 = std::make_shared<NodalLoad>(node2, nodalLoad); nodalLoads[1] = nl1;
+
+    //// Distributed loads
+    //std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    //// Create structure
+    //auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    //// Solve displacement
+    //auto disps = StructureSolver::GetDisplacementForStaticCase(*str, SolverChoice::Armadillo);
+    //for (auto& nodePair : nodes)
+    //{
+    //    auto node = nodePair.second;
+
+    //    LOG("");
+    //    LOG(" Node Index: ");
+    //    std::cout << " " << node->NodeIndex << "\n";
+
+    //    auto nodalDisps = StructureSolver::GetNodalDisplacements(*node, disps);
+
+    //    for (size_t i = 0; i < 6; i++)
+    //        std::cout << " DOF Index: " << i + 1 << ", Displacement = " << nodalDisps(i, 0) << "\n";
+    //}
+
+    //// Modal periods
+    //auto modalPeriods = StructureSolver::GetModalPeriods(*str, SolverChoice::Eigen);
+    //LOG("");
+    //for (size_t i = 0; i < modalPeriods.RowCount; i++)
+    //    std::cout << " Mode Number: " << i + 1 << ", Period = " << modalPeriods(i, 0) << "\n";
+
+    //return;
+
+
+#pragma endregion
+
+}
+
+double internalEnergyFromMembraneSystem(Shape shape, double thickness, double nodeInterval,
+    double modulus, double verticalLoadMagnitude, SolverChoice solverChoice)
+{
+    auto corners = shape.getBoundingBoxLowerLeftAndUpperRight();
+    auto width = std::get<1>(corners).X - std::get<0>(corners).X;
+    auto height = std::get<1>(corners).Y - std::get<0>(corners).Y;
+    auto nElmX = (int)(width / nodeInterval);
+    auto nElmY = (int)(height / nodeInterval);
+    auto membraneType = MembraneType::Drilling;
+    auto plateType = PlateType::NONE;
+    auto lX = width;
+    auto lY = height;
+    auto e = modulus;
+    auto v = 0.0;
+
+    // Solve
+    std::map<unsigned int, std::shared_ptr<Node>> nodes;
+    std::map<unsigned int, std::shared_ptr<Element>> elements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+
+    // Populate nodes
+    auto meshPoints = shape.getPoints(nodeInterval);
+    auto hX = nodeInterval;
+    auto hY = nodeInterval;
+    auto nNodeX = nElmX + 1;
+    auto nNodeY = nElmY + 1;
+
+    std::vector<bool> pin = { true, true, true, true, true, false };
+    std::vector<bool> roller = { false, true, true, true, true, false };
+    std::vector<bool> universal = { false, false, true, true, true, false };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    unsigned int restraintIndexer = 0;
+    auto addRestaint = [&](std::shared_ptr<Node> nR)
+    {
+        auto isLeft = Utils::AreEqual(nR->Coordinate.X, 0.0, nodeInterval * 0.1);
+        auto isRight = Utils::AreEqual(nR->Coordinate.X, lX, nodeInterval * 0.1);
+
+        auto isPin = isLeft && Utils::AreEqual(nR->Coordinate.Y, lY * 0.5, nodeInterval * 0.1);
+        auto isRoller = (isLeft || isRight) && (!Utils::AreEqual(nR->Coordinate.Y, lY * 0.5, nodeInterval * 0.1));
+
+        restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, isPin ? pin : (isRoller ? roller : universal), rest);
+    };
+
+    auto nodeIndexer = 0;
+    for (auto& meshPt : meshPoints)
+    {
+        nodeIndexer++;
+        XYZPoint meshPt3d(meshPt.X, meshPt.Y, 0.0);
+        auto n = std::make_shared<Node>(nodeIndexer, meshPt3d);
+        nodes[n->NodeIndex] = n;
+        addRestaint(n);
+    }
+
+    std::ofstream membraneRepresentationStream;
+
+    membraneRepresentationStream.open("plot\\membraneRepresentation.dat");
+    membraneRepresentationStream << "BEGIN SCENE\n";
+
+    // Create elements
+    auto mt = std::make_shared<Material>(e, v, 0);
+    for (size_t i = 0; i < nElmY; i++)
+    {
+        for (size_t j = 0; j < nElmX; j++)
+        {
+            auto idx = (i * nElmX) + j + 1;
+            auto& iNode = nodes[(i * nNodeX) + j + 1];
+            auto& jNode = nodes[iNode->NodeIndex + 1];
+            auto& kNode = nodes[jNode->NodeIndex + nNodeX];
+            auto& lNode = nodes[kNode->NodeIndex - 1];
+            elements[idx] = std::make_shared<ShellMember>(idx, iNode, jNode, kNode, lNode, mt, thickness, membraneType, plateType);
+
+            const char* col = "3\n";
+
+            membraneRepresentationStream << iNode->Coordinate.X << " " << iNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << jNode->Coordinate.X << " " << jNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << col;
+
+            membraneRepresentationStream << jNode->Coordinate.X << " " << jNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << kNode->Coordinate.X << " " << kNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << col;
+
+            membraneRepresentationStream << kNode->Coordinate.X << " " << kNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << lNode->Coordinate.X << " " << lNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << col;
+
+            membraneRepresentationStream << lNode->Coordinate.X << " " << lNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << iNode->Coordinate.X << " " << iNode->Coordinate.Y << "\n";
+            membraneRepresentationStream << col;
+        }
+    }
+
+    membraneRepresentationStream << "END SCENE\n";
+    membraneRepresentationStream.close();
+
+    // Nodal loads
+    // Find midspan nodes and apply load.
+    double nodalLoad[6] = { 0, -1 * verticalLoadMagnitude / nNodeY, 0, 0, 0, 0 };
+    int midNodeIndex = -1;
+    int loadIndex = 0;
+    for (auto&& nPair : nodes)
+    {
+        auto& nVal = nPair.second;
+
+        // Load the mid-span
+        if (Utils::AreEqual(nVal->Coordinate.X, lX * 0.5, nodeInterval * 0.1))
+        {
+            loadIndex++;
+            nodalLoads[loadIndex] = std::make_shared<NodalLoad>(nVal, nodalLoad);
+
+            if (Utils::AreEqual(nVal->Coordinate.Y, lY * 0.5, nodeInterval * 0.1))
+                midNodeIndex = nVal->NodeIndex;
+        }
+    }
+
+    // Create structure
+    auto str = std::make_shared<Structure>(&nodes, &elements, &restraints, &nodalLoads, &distLoads);
+
+    // Solve displacement
+    auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+
+    // Print midspan results
+    auto& midNode = *(nodes[midNodeIndex]);
+    auto midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, disps);
+
+    LOG(" CONTINUUM SYSTEM RESULTS");
+    LOG(" ------------------------");
+    LOG(" Node Location: " << midNode.Coordinate.X << " m, " << midNode.Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << midNodeDisplacements(1, 0) << " m");
+
+    // Calculate total internal energy
+    auto totalInternalEnergy = StructureSolver::CalculateInternalEnergy(*str, disps, solverChoice);
+
+    LOG(" Internal Energy: " << totalInternalEnergy << "\n");
+
+    return totalInternalEnergy;
 }
 
 void StrutTieDesign()
