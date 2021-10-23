@@ -450,7 +450,47 @@ void KaganHocaAlgorithm()
 
 #pragma region Add steel trusses to structure
 
-    // Do not forget to have a map that relates the steel rebar id with the truss id included 
+    // Do not forget to have a map that relates the steel rebar id with the truss id included in the structure.
+    std::map<unsigned int, std::vector<unsigned int>> rebarToTrussMap;
+    auto newTrussID = str->Elements->size() + 1;
+
+    for (auto& steelRebar : steelReinforcements)
+    {
+        auto rebarId = steelRebar.first;
+        std::vector<unsigned int> rebarTrussesIDs;
+
+        auto& rebarsFirstPt = std::get<0>(steelRebar.second);
+        auto& rebarsSecondPt = std::get<1>(steelRebar.second);
+
+        auto rebarFirstPtXCoord = rebarsFirstPt.X;
+        auto rebarFirstPtYCoord = rebarsFirstPt.Y;
+
+        auto rebarSecondPtXCoord = rebarsSecondPt.X;
+        auto rebarSecondPtYCoord = rebarsSecondPt.Y;
+
+        auto xDiff = rebarSecondPtXCoord - rebarFirstPtXCoord;
+        auto yDiff = rebarSecondPtYCoord - rebarFirstPtYCoord;
+
+        auto numOfTrusses = (int)((rebarsSecondPt.DistanceTo(rebarsFirstPt)) / (nodeInterval));
+
+        auto xIncrement = xDiff / numOfTrusses;
+        auto yIncrement = yDiff / numOfTrusses;
+
+        for (size_t i = 0; i < numOfTrusses; i++)
+        {
+
+
+
+
+            newTrussID++;
+        }
+
+
+        
+        rebarToTrussMap[rebarId] = rebarTrussesIDs;
+    }
+
+
 
 #pragma endregion
 
