@@ -118,19 +118,41 @@ void KaganHocaAlgorithm()
     // Note that number of nodes in vertical direction must be an odd number because restraints of both
     // continuum model and discrete model are assigned to the mid points to satisfy consistency with
     // Euler-Bernoulli beam theory for simply supported system.
-    auto nodeInterval = 0.25;
-    auto latticeHorizon = 1.5;
+    auto nodeInterval = 0.1;
+    auto latticeHorizon = 3.5;
 
     // MATERIAL INPUTS
     auto concreteModulus = 30.0e9; // 30 GPa
     auto concretePoissonRatio = 0.0;
     auto steelModulus = 200.0e9; // 200 GPa
+    auto steelYieldStrength = 420.0e6; // 420 MPa
 
     // LOAD INPUTS
     // LOAD IS AT MID-SPAN THAT POINTS DOWNWARD.
     auto loadMagnitude = 5.0e6;
 
     // STEEL REINFOCEMENT LAYOUT INPUTS
+    auto flexuralRebarDiameter = 0.012;
+    auto shearRebarDiameter = 0.008;
+    auto shearRebarsDist = nodeInterval;
+
+    // Store the steel reinforcement information. Steel reinforcement
+    // information is collection of reinforcement id, bar starting point,
+    // bar end point and bar diameter.
+    // MAP<BAR ID, TUPLE<START POINT, END POINT, DIAMETER>>
+    std::map<unsigned short, std::tuple<XYPoint, XYPoint, double>> steelReinforcements;
+    auto getXYPt = [](double x, double y) { XYPoint pt(x, y); return pt; };
+
+    // Generate a rebar layout
+    // First rebar is flexural reinforcement at the bottom of the member.
+    steelReinforcements[1] = 
+        std::make_tuple(getXYPt(nodeInterval, nodeInterval), getXYPt(memberWidth - nodeInterval, nodeInterval), flexuralRebarDiameter);
+
+    // Rest of the rebars are vertical shear reinforcements.
+    unsigned int shearRebarIndexer = 1;
+    for (double rebarXCoord = nodeInterval; rebarXCoord < memberWidth - (0.1 * nodeInterval); rebarXCoord += shearRebarsDist)
+        steelReinforcements[++shearRebarIndexer] = 
+            std::make_tuple(getXYPt(rebarXCoord, nodeInterval), getXYPt(rebarXCoord, memberHeight - nodeInterval), shearRebarDiameter);
 
     // LINEAR ALGEABRIC SOLVER LIBRARY SELECTION
     auto solverChoice = SolverChoice::Eigen;
@@ -149,6 +171,57 @@ void KaganHocaAlgorithm()
     vertices.push_back(pt3);
     vertices.push_back(pt4);
     Shape shape(vertices);
+
+    // Draw member
+    std::ofstream memberGeometry;
+    memberGeometry.open("plot\\memberGeometry.dat");
+    memberGeometry << "BEGIN SCENE\n";
+
+    // Draw shapes and holes bounding boxes
+
+    // Helper method to draw shapes
+
+    auto drawLine = [&](std::ofstream& outputFileWriter, XYPoint firstPt, XYPoint secondPt, const char* color) {
+        outputFileWriter << firstPt.X << " " << firstPt.Y << "\n";
+        outputFileWriter << secondPt.X << " " << secondPt.Y << "\n";
+        outputFileWriter << color << "\n";
+    };
+
+    auto drawBoundingBox = [&](Shape boundingBoxItem) {
+        auto shapeBoundingBox = shape.getBoundingBoxLowerLeftAndUpperRight();
+        auto& shapeLowerLeftPt = std::get<0>(shapeBoundingBox);
+        auto& shapeUpperRightPt = std::get<1>(shapeBoundingBox);
+
+        memberGeometry << shapeLowerLeftPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        memberGeometry << shapeUpperRightPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        memberGeometry << "7\n";
+
+        memberGeometry << shapeUpperRightPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        memberGeometry << shapeUpperRightPt.X << " " << shapeUpperRightPt.Y << "\n";
+        memberGeometry << "7\n";
+
+        memberGeometry << shapeUpperRightPt.X << " " << shapeUpperRightPt.Y << "\n";
+        memberGeometry << shapeLowerLeftPt.X << " " << shapeUpperRightPt.Y << "\n";
+        memberGeometry << "7\n";
+
+        memberGeometry << shapeLowerLeftPt.X << " " << shapeUpperRightPt.Y << "\n";
+        memberGeometry << shapeLowerLeftPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        memberGeometry << "7\n";
+    };
+
+    // Draw outer shape
+    drawBoundingBox(shape);
+
+    // Draw holes
+    for (auto& shapesHole : shape.getHoles())
+        drawBoundingBox(shapesHole);
+
+    // Draw reinforcement
+    for (auto& steelRebarPair : steelReinforcements)
+        drawLine(memberGeometry, std::get<0>(steelRebarPair.second), std::get<1>(steelRebarPair.second), "1");
+
+    memberGeometry << "END SCENE\n";
+    memberGeometry.close();
 
 #pragma endregion
 
@@ -374,6 +447,13 @@ void KaganHocaAlgorithm()
     LOG(" Internal Energy: " << internalEnergyOfInitialDiscreteSystemAfterModification << "\n");
 
 #pragma endregion
+
+#pragma region Add steel trusses to structure
+
+    // Do not forget to have a map that relates the steel rebar id with the truss id included 
+
+#pragma endregion
+
 
 
 #pragma region beam
