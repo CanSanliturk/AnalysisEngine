@@ -118,7 +118,7 @@ void KaganHocaAlgorithm()
     // Note that number of nodes in vertical direction must be an odd number because restraints of both
     // continuum model and discrete model are assigned to the mid points to satisfy consistency with
     // Euler-Bernoulli beam theory for simply supported system.
-    auto nodeInterval = 0.1;
+    auto nodeInterval = 0.25;
     auto latticeHorizon = 3.5;
 
     // MATERIAL INPUTS
@@ -297,7 +297,7 @@ void KaganHocaAlgorithm()
     latticeModel << "BEGIN SCENE\n";
 
     // Loop for source node
-    auto&& mat = std::make_shared<Material>(concreteModulus, concretePoissonRatio, 0);
+    auto&& mat = std::make_shared<Material>(concreteModulus, concretePoissonRatio, 24000);
     auto&& sect = std::make_shared<Section>(1.0, 0, 0, 0);
     for (auto& sourceNodePair : nodes)
     {
@@ -390,6 +390,7 @@ void KaganHocaAlgorithm()
 
     // Solve displacement
     auto displacementsBeforeModification = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+    auto modesBeforeModification = StructureSolver::GetModalPeriods(*str, solverChoice);
 
     // Print midspan results
     auto midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, displacementsBeforeModification);
@@ -424,6 +425,7 @@ void KaganHocaAlgorithm()
     }
 
     str->updateStiffnessMatrix();
+    str->updateMassMatrix();
 
 #pragma endregion
 
@@ -431,6 +433,7 @@ void KaganHocaAlgorithm()
 
     // Solve displacement
     auto dispsAfterModification = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+    auto modesAfterModification = StructureSolver::GetModalPeriods(*str, solverChoice);
 
     // Print midspan results
     midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, dispsAfterModification);
@@ -452,25 +455,39 @@ void KaganHocaAlgorithm()
 
     // Do not forget to have a map that relates the steel rebar id with the truss id included in the structure.
     std::map<unsigned int, std::vector<unsigned int>> rebarToTrussMap;
+
+    // Create rebar material
+    auto rebarMat = std::make_shared<Material>(steelModulus, 0.0, 78500);
+
+    // Indexer for steel trusses
     auto newTrussID = str->Elements->size() + 1;
 
     for (auto& steelRebar : steelReinforcements)
     {
-        auto rebarId = steelRebar.first;
+        // Calculate rebar area
+        auto rebarDiameter = std::get<2>(steelRebar.second);
+        auto rebarArea = pi * rebarDiameter * rebarDiameter / 4.0;
+        auto rebarSect = std::make_shared<Section>(rebarArea, 0, 0, 0);
+
+        // Create a vector to store steel rebar trusses
         std::vector<unsigned int> rebarTrussesIDs;
 
+        // Get first and last points of the rebar
         auto& rebarsFirstPt = std::get<0>(steelRebar.second);
         auto& rebarsSecondPt = std::get<1>(steelRebar.second);
 
+        // Get coordinates of the end points of the rebar
         auto rebarFirstPtXCoord = rebarsFirstPt.X;
         auto rebarFirstPtYCoord = rebarsFirstPt.Y;
 
         auto rebarSecondPtXCoord = rebarsSecondPt.X;
         auto rebarSecondPtYCoord = rebarsSecondPt.Y;
 
+        // Find coordinate difference of the rebar end coordinates
         auto xDiff = rebarSecondPtXCoord - rebarFirstPtXCoord;
         auto yDiff = rebarSecondPtYCoord - rebarFirstPtYCoord;
 
+        // Calculate number of trusses to model the rebar
         auto numOfTrusses = (int)((rebarsSecondPt.DistanceTo(rebarsFirstPt)) / (nodeInterval));
 
         auto xIncrement = xDiff / numOfTrusses;
@@ -478,19 +495,48 @@ void KaganHocaAlgorithm()
 
         for (size_t i = 0; i < numOfTrusses; i++)
         {
+            auto rebarTrussINodeXCoord = rebarFirstPtXCoord + (i * xIncrement);
+            auto rebarTrussINodeYCoord = rebarFirstPtYCoord + (i * yIncrement);
 
+            auto rebarTrussJNodeXCoord = rebarTrussINodeXCoord + xIncrement;
+            auto rebarTrussJNodeYCoord = rebarTrussINodeYCoord + yIncrement;
 
+            auto&& rebarTrussINode = str->getNodeAt(rebarTrussINodeXCoord, rebarTrussINodeYCoord, 0);
+            auto&& rebarTrussJNode = str->getNodeAt(rebarTrussJNodeXCoord, rebarTrussJNodeYCoord, 0);
 
-
+            // Create truss
+            auto& elms = *(str->Elements);
+            elms[newTrussID] = std::make_shared<TrussMember>(newTrussID, rebarTrussINode, rebarTrussJNode, rebarSect, rebarMat);
+            rebarTrussesIDs.push_back(newTrussID);
             newTrussID++;
         }
-
-
         
-        rebarToTrussMap[rebarId] = rebarTrussesIDs;
+        rebarToTrussMap[steelRebar.first] = rebarTrussesIDs;
     }
 
+    // Update structures stiffness matrix
+    str->updateStiffnessMatrix();
+    str->updateMassMatrix();
 
+    // Solve displacement
+    auto dispsAfterRebars = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+    auto modesAfterRebars = StructureSolver::GetModalPeriods(*str, solverChoice);
+
+    // Print midspan results
+    midNodeDisplacements = StructureSolver::GetNodalDisplacements(midNode, dispsAfterRebars);
+
+    LOG(" DISCRETE SYSTEM RESULTS AFTER REBARS");
+    LOG(" -------------------------------------------");
+    LOG(" Node Location: " << midNode.Coordinate.X << " m, " << midNode.Coordinate.Y << " m");
+    LOG(" Vertical Displacement: " << midNodeDisplacements(1, 0) << " m");
+
+    // Calculate energy of system
+    // Calculate total internal energy
+    auto internalEnergyOfSystemAfterRebars = StructureSolver::CalculateInternalEnergy(*str, dispsAfterRebars, solverChoice);
+
+    LOG(" Internal Energy: " << internalEnergyOfSystemAfterRebars << "\n");
+
+    // Calculate the strains on the steel rebar trusses and write them to file for visualization.
 
 #pragma endregion
 
@@ -638,7 +684,7 @@ double internalEnergyFromMembraneSystem(Shape shape, double thickness, double no
     membraneRepresentationStream << "BEGIN SCENE\n";
 
     // Create elements
-    auto mt = std::make_shared<Material>(e, v, 0);
+    auto mt = std::make_shared<Material>(e, v, 24000);
     for (size_t i = 0; i < nElmY; i++)
     {
         for (size_t j = 0; j < nElmX; j++)
@@ -698,6 +744,7 @@ double internalEnergyFromMembraneSystem(Shape shape, double thickness, double no
 
     // Solve displacement
     auto disps = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+    auto modes = StructureSolver::GetModalPeriods(*str, solverChoice);
 
     // Print midspan results
     auto& midNode = *(nodes[midNodeIndex]);

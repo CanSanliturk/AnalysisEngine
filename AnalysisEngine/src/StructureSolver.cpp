@@ -1352,40 +1352,10 @@ Matrix<double> StructureSolver::GetInverse(Matrix<double>& A, SolverChoice solve
 
 double StructureSolver::CalculateInternalEnergy(const Structure& str, Matrix<double>& disps, SolverChoice)
 {
-    auto u = 0.0;
-
-    auto& elmPairs = *str.Elements;
-    std::map<unsigned int, std::shared_ptr<Element>>::iterator elmPair = elmPairs.begin();
-
-    // Iterate over the map using Iterator till end.
-    while (elmPair != elmPairs.end())
-    {
-        auto& elm = elmPair->second;
-
-        auto elmNodes = elm->GelElementNodes();
-        auto numOfDofs = elmNodes.size() * 6;
-        Matrix<double> nodalDisps(numOfDofs);
-
-        int vectorIndexer = 0;
-
-        for (auto& nPair : elmNodes)
-        {
-            auto nodalDisp = StructureSolver::GetNodalDisplacements(*nPair, disps);
-
-            for (size_t i = 0; i < 6; i++)
-                nodalDisps(vectorIndexer++, 0) = nodalDisp(i, 0);
-        }
-
-        auto tNodalDisps = nodalDisps.transpose();
-        auto& elmGlobalStiffness = *elm->GetGlobalCoordinateStiffnessMatrix();
-        auto firstStep = tNodalDisps * elmGlobalStiffness;
-        auto elmInternalEnergy = firstStep * nodalDisps;
-        u += elmInternalEnergy(0, 0);
-
-        elmPair++;
-    }
-
-    //u /= 2.0;
-
-    return u;
+    auto strK = str.StiffnessMatrix->getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, str.nUnrestrainedDOF -1);
+    auto disp = disps.getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, 0);
+    auto tdisp = disp.transpose();
+    auto fir = tdisp * strK;
+    auto intEner = fir * disp;
+    return intEner(0, 0);
 }

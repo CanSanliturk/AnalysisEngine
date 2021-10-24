@@ -38,9 +38,9 @@ public:
 
     void updateStiffnessMatrix();
     void updateMassMatrix();
-    Matrix<double> getForceVector(std::map<unsigned int, std::shared_ptr<NodalLoad>>* nodalLoadMap);
-    Node* getNodeAt(XYZPoint coord);
-    Node* getNodeAt(double x, double y, double z);
+    Matrix<double> getForceVector(std::map<unsigned int, std::shared_ptr<NodalLoad>>* nodalLoadMap);    
+    std::shared_ptr<Node> getNodeAt(XYZPoint coord);
+    std::shared_ptr<Node> getNodeAt(double x, double y, double z);
 
 private:
     void AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned int& totalDofCount);
