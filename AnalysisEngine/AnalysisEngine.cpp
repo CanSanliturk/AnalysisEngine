@@ -112,7 +112,7 @@ void KaganHocaAlgorithm()
 
     // Length unit is meters and force unit is Newton.
     // GEOMETRY INPUTS
-    auto memberWidth = 4.0;
+    auto memberWidth = 6.0;
     auto memberHeight = 1.0;
     auto memberThickness = 1.0;
     // Note that number of nodes in vertical direction must be an odd number because restraints of both
@@ -122,18 +122,20 @@ void KaganHocaAlgorithm()
     auto latticeHorizon = 3.5;
 
     // MATERIAL INPUTS
+    auto concreteCharStrength = 25.0e6;
     auto concreteModulus = 30.0e9; // 30 GPa
     auto concretePoissonRatio = 0.0;
     auto steelModulus = 200.0e9; // 200 GPa
     auto steelYieldStrength = 420.0e6; // 420 MPa
+    auto steelYieldStrain = steelYieldStrength / steelModulus; // Unitless
 
     // LOAD INPUTS
     // LOAD IS AT MID-SPAN THAT POINTS DOWNWARD.
-    auto loadMagnitude = 5.0e6;
+    auto loadMagnitude = 50.0e6;
 
     // STEEL REINFOCEMENT LAYOUT INPUTS
-    auto flexuralRebarDiameter = 0.012;
-    auto shearRebarDiameter = 0.008;
+    auto flexuralRebarDiameter = 0.01;
+    auto shearRebarDiameter = 0.004;
     auto shearRebarsDist = nodeInterval;
 
     // Store the steel reinforcement information. Steel reinforcement
@@ -159,6 +161,48 @@ void KaganHocaAlgorithm()
 
 #pragma endregion
 
+#pragma region Drawers
+
+    // Helper method to draw shapes
+    auto drawLine = [&](std::ofstream& outputFileWriter, XYPoint firstPt, XYPoint secondPt, const char* color) {
+        outputFileWriter << firstPt.X << " " << firstPt.Y << "\n";
+        outputFileWriter << secondPt.X << " " << secondPt.Y << "\n";
+        outputFileWriter << color << "\n";
+    };
+
+    auto drawTruss = [&](std::ofstream& outputFileWriter, TrussMember* mem, const char* color) {
+
+        auto firstPt = mem->Nodes[0]->Coordinate;
+        auto secondPt = mem->Nodes[1]->Coordinate;
+        XYPoint firstPt2D(firstPt.X, firstPt.Y);
+        XYPoint secondPt2D(secondPt.X, secondPt.Y);
+        drawLine(outputFileWriter, firstPt2D, secondPt2D, color);
+    };
+
+    auto drawBoundingBox = [&](std::ofstream& outputFileWriter, Shape boundingBoxItem) {
+        auto shapeBoundingBox = boundingBoxItem.getBoundingBoxLowerLeftAndUpperRight();
+        auto& shapeLowerLeftPt = std::get<0>(shapeBoundingBox);
+        auto& shapeUpperRightPt = std::get<1>(shapeBoundingBox);
+
+        outputFileWriter << shapeLowerLeftPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        outputFileWriter << shapeUpperRightPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        outputFileWriter << "0\n";
+
+        outputFileWriter << shapeUpperRightPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        outputFileWriter << shapeUpperRightPt.X << " " << shapeUpperRightPt.Y << "\n";
+        outputFileWriter << "0\n";
+
+        outputFileWriter << shapeUpperRightPt.X << " " << shapeUpperRightPt.Y << "\n";
+        outputFileWriter << shapeLowerLeftPt.X << " " << shapeUpperRightPt.Y << "\n";
+        outputFileWriter << "0\n";
+
+        outputFileWriter << shapeLowerLeftPt.X << " " << shapeUpperRightPt.Y << "\n";
+        outputFileWriter << shapeLowerLeftPt.X << " " << shapeLowerLeftPt.Y << "\n";
+        outputFileWriter << "0\n";
+    };
+
+#pragma endregion
+
 #pragma region Create Shape
 
     XYPoint pt1(0.0, 0.0);
@@ -179,42 +223,12 @@ void KaganHocaAlgorithm()
 
     // Draw shapes and holes bounding boxes
 
-    // Helper method to draw shapes
-
-    auto drawLine = [&](std::ofstream& outputFileWriter, XYPoint firstPt, XYPoint secondPt, const char* color) {
-        outputFileWriter << firstPt.X << " " << firstPt.Y << "\n";
-        outputFileWriter << secondPt.X << " " << secondPt.Y << "\n";
-        outputFileWriter << color << "\n";
-    };
-
-    auto drawBoundingBox = [&](Shape boundingBoxItem) {
-        auto shapeBoundingBox = shape.getBoundingBoxLowerLeftAndUpperRight();
-        auto& shapeLowerLeftPt = std::get<0>(shapeBoundingBox);
-        auto& shapeUpperRightPt = std::get<1>(shapeBoundingBox);
-
-        memberGeometry << shapeLowerLeftPt.X << " " << shapeLowerLeftPt.Y << "\n";
-        memberGeometry << shapeUpperRightPt.X << " " << shapeLowerLeftPt.Y << "\n";
-        memberGeometry << "7\n";
-
-        memberGeometry << shapeUpperRightPt.X << " " << shapeLowerLeftPt.Y << "\n";
-        memberGeometry << shapeUpperRightPt.X << " " << shapeUpperRightPt.Y << "\n";
-        memberGeometry << "7\n";
-
-        memberGeometry << shapeUpperRightPt.X << " " << shapeUpperRightPt.Y << "\n";
-        memberGeometry << shapeLowerLeftPt.X << " " << shapeUpperRightPt.Y << "\n";
-        memberGeometry << "7\n";
-
-        memberGeometry << shapeLowerLeftPt.X << " " << shapeUpperRightPt.Y << "\n";
-        memberGeometry << shapeLowerLeftPt.X << " " << shapeLowerLeftPt.Y << "\n";
-        memberGeometry << "7\n";
-    };
-
     // Draw outer shape
-    drawBoundingBox(shape);
+    drawBoundingBox(memberGeometry, shape);
 
     // Draw holes
     for (auto& shapesHole : shape.getHoles())
-        drawBoundingBox(shapesHole);
+        drawBoundingBox(memberGeometry, shapesHole);
 
     // Draw reinforcement
     for (auto& steelRebarPair : steelReinforcements)
@@ -240,6 +254,7 @@ void KaganHocaAlgorithm()
     std::map<unsigned int, std::shared_ptr<Restraint>> restraints;
     std::map<unsigned int, std::shared_ptr<NodalLoad>> nodalLoads;
     std::map<unsigned int, std::shared_ptr<DistributedLoad>> distLoads;
+    std::vector<unsigned int> concreteTrussIndices;
 
 #pragma endregion
 
@@ -341,10 +356,10 @@ void KaganHocaAlgorithm()
                         {
                             trussIndexer++;
                             elements[trussIndexer] = std::make_shared<TrussMember>(trussIndexer, source, target, sect, mat);
-
+                            concreteTrussIndices.push_back(trussIndexer);
                             latticeModel << source->Coordinate.X << " " << source->Coordinate.Y << "\n";
                             latticeModel << target->Coordinate.X << " " << target->Coordinate.Y << "\n";
-                            latticeModel << "7\n";
+                            latticeModel << "1\n";
                         }
                     }
                 }
@@ -509,6 +524,7 @@ void KaganHocaAlgorithm()
             elms[newTrussID] = std::make_shared<TrussMember>(newTrussID, rebarTrussINode, rebarTrussJNode, rebarSect, rebarMat);
             rebarTrussesIDs.push_back(newTrussID);
             newTrussID++;
+
         }
         
         rebarToTrussMap[steelRebar.first] = rebarTrussesIDs;
@@ -537,6 +553,98 @@ void KaganHocaAlgorithm()
     LOG(" Internal Energy: " << internalEnergyOfSystemAfterRebars << "\n");
 
     // Calculate the strains on the steel rebar trusses and write them to file for visualization.
+    std::ofstream steelStrainDrawer;
+    steelStrainDrawer.open("plot\\steelStrains.dat");
+    steelStrainDrawer << "BEGIN SCENE\n";
+
+    // Draw members bounding box
+    drawBoundingBox(steelStrainDrawer, shape);
+
+    for (auto rebarIndex : rebarToTrussMap)
+    {
+        for (auto rebarTrussIndex : rebarIndex.second)
+        {
+            auto rebarTruss = dynamic_cast<TrussMember*>(&*str->Elements->at(rebarTrussIndex));
+
+            auto axialForce = rebarTruss->getAxialForce(dispsAfterRebars);
+            auto stress = axialForce / rebarTruss->TrussSection->Area;
+            auto strain = stress / rebarTruss->TrussMaterial->E;
+
+            auto isCompression = axialForce < 0;
+            auto isTension = 0 < axialForce;
+            auto ratio = abs(strain) / steelYieldStrain;
+
+            const char* colour = "0";
+            if (isCompression)
+            {
+                if (ratio < 0.2) colour = "2";
+                else if (ratio < 0.5) colour = "3";
+                else if (ratio < 0.8) colour = "4";
+                else if (ratio < 1.0) colour = "5";
+                else colour = "6";
+            }
+            else if (isTension)
+            {
+                if (ratio < 0.2) colour = "7";
+                else if (ratio < 0.5) colour = "8";
+                else if (ratio < 0.8) colour = "9";
+                else if (ratio < 1.0) colour = "10";
+                else colour = "11";
+            }
+            else
+            {
+                colour = "0";
+            }
+
+            drawTruss(steelStrainDrawer, rebarTruss, colour);
+        }
+    }
+
+    steelStrainDrawer << "END SCENE\n";
+    steelStrainDrawer.close();
+
+    // Draw demand-capacity ratio of concrete trusses
+    std::ofstream concreteDemCapDrawer;
+    concreteDemCapDrawer.open("plot\\concreteDemCap.dat");
+    concreteDemCapDrawer << "BEGIN SCENE\n";
+
+    for (auto concTrussIndex : concreteTrussIndices)
+    {
+        auto concreteTruss = dynamic_cast<TrussMember*>(&*str->Elements->at(concTrussIndex));
+
+        auto axialForce = concreteTruss->getAxialForce(dispsAfterRebars);
+        auto stress = axialForce / concreteTruss->TrussSection->Area;
+        auto isCompression = axialForce < 0;
+        auto isTension = 0 < axialForce;
+        auto ratio = abs(stress) / concreteCharStrength;
+
+        const char* colour = "0";
+        if (isCompression)
+        {
+            if (ratio < 0.2) colour = "2";
+            else if (ratio < 0.5) colour = "3";
+            else if (ratio < 0.8) colour = "4";
+            else if (ratio < 1.0) colour = "5";
+            else colour = "6";
+        }
+        else if (isTension)
+        {
+            if (ratio < 0.2) colour = "7";
+            else if (ratio < 0.5) colour = "8";
+            else if (ratio < 0.8) colour = "9";
+            else if (ratio < 1.0) colour = "10";
+            else colour = "11";
+        }
+        else
+        {
+            colour = "0";
+        }
+
+        drawTruss(concreteDemCapDrawer, concreteTruss, colour);
+    }
+
+    concreteDemCapDrawer << "END SCENE\n";
+    concreteDemCapDrawer.close();
 
 #pragma endregion
 
