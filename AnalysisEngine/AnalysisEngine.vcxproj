@@ -167,10 +167,12 @@
     <ClCompile Include="src\TrussMember.cpp" />
     <ClCompile Include="src\UtilMethods.cpp" />
     <ClCompile Include="src\Vector.cpp" />
+    <ClCompile Include="src\XYData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\DistributedLoad.h" />
     <ClInclude Include="include\Element.h" />
+    <ClInclude Include="include\XYData.h" />
     <ClInclude Include="include\Matrix.h" />
     <ClInclude Include="include\GeometryHelper.h" />
     <ClInclude Include="include\FrameMember.h" />

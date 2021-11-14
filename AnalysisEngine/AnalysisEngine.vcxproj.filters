@@ -84,6 +84,9 @@
     <ClCompile Include="src\Shape.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\XYData.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\DistributedLoad.h">
@@ -150,6 +153,9 @@
       <Filter>src\Utils</Filter>
     </ClInclude>
     <ClInclude Include="include\Shape.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\XYData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
