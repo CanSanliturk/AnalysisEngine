@@ -3,7 +3,7 @@
 XYData::XYData() { }
 
 XYData::XYData(ExtrapolationMethod extrpltnMethod)
-    : extrapolationMethod(extrapolationMethod) { }
+    : extrapolationMethod(extrpltnMethod){ }
 
 XYData::XYData(XYData& const that)
     : extrapolationMethod(that.extrapolationMethod),
@@ -38,10 +38,6 @@ double XYData::integrate(double xStart, double xEnd)
         }
     }
 
-
-
-
-
     /// <summary>
     /// Perform calculation if integration interval ends after data
     /// </summary>
@@ -59,8 +55,6 @@ double XYData::integrate(double xStart, double xEnd)
         }
     }*/
 
-
-
     return area;
 }
 
@@ -68,7 +62,7 @@ double XYData::integrate()
 {
     auto area = 0.0;
 
-    for (int i = 0; i < this->getCount() - 1; i++)
+    for (unsigned int i = 0; i < this->getCount() - 1; i++)
         area += 0.5 * (this->xData[i + 1] - this->xData[i]) * (this->yData[i + 1] + this->yData[i]);
 
     return area;
@@ -76,7 +70,55 @@ double XYData::integrate()
 
 double XYData::getY(double x)
 {
-    return 0.0;
+    auto y = 0.0;
+    auto count = getCount();
+    auto firstX = xData[0];
+    auto lastX = xData[count - 1];
+
+    if (x < xData[0])
+    {
+        // Case where the given x is smaller than the first data point
+        switch (extrapolationMethod)
+        {
+        case ExtrapolationMethod::Zero:
+            // Do not update return value
+            break;
+        case ExtrapolationMethod::Horizontal:
+            y = yData[0];
+            break;
+        default:
+            break;
+        }
+    }
+    else if (xData[getCount() - 1] < x)
+    {
+        // Case where the given x is greater than the last data point
+        switch (extrapolationMethod)
+        {
+        case ExtrapolationMethod::Zero:
+            // Do not update the return value
+            break;
+        case ExtrapolationMethod::Horizontal:
+            y = yData[getCount() - 1];
+            break;
+        default:
+            break;
+        }
+    }
+    else
+    {
+        // Case where the given x is within the data interval
+        for (size_t i = 1; i < getCount(); i++)
+        {
+            if (x < xData[i])
+            {
+                y = yData[i - 1] + ((yData[i] - yData[i - 1]) * ((x - xData[i - 1]) / (xData[i] - xData[i - 1])));
+                break;
+            }
+        }
+    }
+
+    return y;
 }
 
 double XYData::getX(double y)
