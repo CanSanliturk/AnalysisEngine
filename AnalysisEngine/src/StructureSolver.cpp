@@ -395,6 +395,65 @@ StructureSolver::ImplicitNewmark(const Structure& str, std::vector<Matrix<double
     return std::make_tuple(displacements, velocities, accelerations);
 }
 
+Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(const Structure& str, const Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
+    const Node& reactionControlNode, double dispIncrement)
+{
+    // Find number of increments
+    auto numOfIncrements = static_cast<int>(controlDisp / dispIncrement);
+
+    // Initialize return value
+    Matrix<double> retVal(numOfIncrements, 1);
+
+    // Add restraint to control node for given direction. At the end of the method, remove the restraint.
+
+    std::vector<bool> universal = { false, false, false, false, false, false };
+    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
+    str.Restraints->at(dispControlNode.NodeIndex) = std::make_shared<Restraint>(str.Restraints->at(dispControlNode.NodeIndex), universal, rest);
+    auto& newRestraint = str.Restraints->at(dispControlNode.NodeIndex);
+    newRestraint->IsRestrainedVector.at(controlDofIndex - 1) = true;
+
+    switch (controlDofIndex)
+    {
+    case 1:
+        newRestraint->IsRestraintTranslationX = true;
+        break;
+    case 2:
+        newRestraint->IsRestraintTranslationY = true;
+        break;
+    case 3:
+        newRestraint->IsRestraintTranslationZ = true;
+        break;
+    case 4:
+        newRestraint->IsRestraintRotationX = true;
+        break;
+    case 5:
+        newRestraint->IsRestraintRotationY = true;
+        break;
+    case 6:
+        newRestraint->IsRestraintRotationZ = true;
+        break;
+    default:
+        break;
+    }
+
+
+    // At each increment, apply displacement and find reaction forces.
+    for (size_t i = 1; i <= numOfIncrements; i++)
+    {
+
+
+
+
+
+
+
+
+
+    }
+
+    return retVal;
+}
+
 // This will be moved to shell class
 Matrix<double> StructureSolver::CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex)
 {

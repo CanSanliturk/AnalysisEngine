@@ -37,6 +37,7 @@ public:
     ~Structure();
 
     void updateStiffnessMatrix();
+    void updateDofIndicesAndMatrices();
     void updateMassMatrix();
     Matrix<double> getForceVector(std::map<unsigned int, std::shared_ptr<NodalLoad>>* nodalLoadMap);    
     std::shared_ptr<Node> getNodeAt(XYZPoint coord);

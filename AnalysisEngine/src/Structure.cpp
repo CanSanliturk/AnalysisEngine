@@ -30,6 +30,16 @@ void Structure::updateStiffnessMatrix()
     this->AssembleStiffnessMatrix(this->nDOF);
 }
 
+void Structure::updateDofIndicesAndMatrices() {
+    unsigned int totalDofCount = 0;
+    unsigned int unrestDofCount = 0;
+    this->AssignDegreesOfFreedom(unrestDofCount, totalDofCount);
+    this->AssembleMassMatrix(totalDofCount);
+    this->AssembleStiffnessMatrix(totalDofCount);
+    this->AssembleForceVector(totalDofCount);
+}
+
+
 void Structure::updateMassMatrix()
 {
     this->AssembleMassMatrix(this->nDOF);
@@ -142,9 +152,9 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
     unrestDofCount = dofIdx;
     this->nUnrestrainedDOF = unrestDofCount;
 
-    for (auto nodePair : *this->Nodes)
+    for (auto& nodePair : *this->Nodes)
     {
-        auto node = nodePair.second;
+        auto& node = nodePair.second;
 
         bool isTransXRest = false;
         bool isTransYRest = false;
@@ -155,7 +165,7 @@ void Structure::AssignDegreesOfFreedom(unsigned int& unrestDofCount, unsigned in
 
         for (auto& restPair : *this->Restraints)
         {
-            auto rest = restPair.second;
+            auto& rest = restPair.second;
             if (rest->RestrainedNode->NodeIndex != nodePair.first)
                 continue; // Look for other restraint
 
@@ -213,11 +223,11 @@ void Structure::AssembleMassMatrix(unsigned int totalDofCount)
     this->MassMatrix = std::make_shared<Matrix<double>>(totalDofCount);
     for (auto& elmPair : *this->Elements)
     {
-        auto elm = elmPair.second;
+        auto& elm = elmPair.second;
         auto nodes = elm->GelElementNodes();
         std::vector<unsigned int> steerVector;
 
-        for (auto n : nodes)
+        for (auto& n : nodes)
         {
             steerVector.push_back(n->DofIndexTX);
             steerVector.push_back(n->DofIndexTY);
@@ -247,7 +257,7 @@ void Structure::AssembleStiffnessMatrix(unsigned int totalDofCount)
     this->StiffnessMatrix = std::make_shared<Matrix<double>>(totalDofCount);
     for (auto& elmPair : *this->Elements)
     {
-        auto elm = elmPair.second;
+        auto& elm = elmPair.second;
         auto nodes = elm->GelElementNodes();
         std::vector<unsigned int> steerVector;
 
@@ -282,8 +292,8 @@ void Structure::AssembleForceVector(unsigned int totalDofCount)
     this->ForceVector = std::make_shared<Matrix<double>>(totalDofCount, 1);
     for (auto& nodalLoadPair : *this->NodalLoads)
     {
-        auto load = nodalLoadPair.second;
-        auto node = load->ActingNode;
+        auto& load = nodalLoadPair.second;
+        auto& node = load->ActingNode;
 
         (*this->ForceVector)(node->DofIndexTX - 1, 0) = load->Loads[0];
         (*this->ForceVector)(node->DofIndexTY - 1, 0) = load->Loads[1];

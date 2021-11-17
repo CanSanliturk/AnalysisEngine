@@ -37,6 +37,12 @@ namespace StructureSolver
         ImplicitNewmark(const Structure& str, std::vector<Matrix<double>> f, double tMax, double dT, 
             double a0, double a1, SolverChoice solverChoice);
 
+
+
+    Matrix<double> PerformPlasticPushoverForLatticeModel(const Structure& str, const Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
+        const Node& reactionControlNode, double dispIncrement);
+
+
     Matrix<double> CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex);
     Matrix<double> CalculatePlateForces(const ShellMember& elm, Matrix<double>& disps);
     Matrix<double> CalculateSerendipityPlateForces(const SerendipityShell& elm, Matrix<double>& disps);
