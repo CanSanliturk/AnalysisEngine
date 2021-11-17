@@ -1,4 +1,6 @@
 #pragma once
+#include "XYData.h"
+
 class Material
 {
 public:
@@ -6,18 +8,14 @@ public:
     double G;
     double PoissonsRatio;
     double UnitWeight;
+    XYData StrainStressCurve;
 
-    Material(double e, double v, double rho)
-        : E(e), PoissonsRatio(v), UnitWeight(rho)
-    { 
-        G = E / (2 * (1 + PoissonsRatio));
-    };
+    Material(double e, double v, double rho);
+    Material(double e, double v, double rho, XYData sigmaEps);
+    Material();
+    ~Material();
 
-    Material()
-        : E(0.0), G(0.0),
-        PoissonsRatio(0.0), UnitWeight(0.0)
-    { };
-
-    ~Material()
-    { };
+    double getStressAt(double eps);
+    double getTangentStiffnessAt(double eps);
+    double getSecantStiffnessAt(double eps);
 };

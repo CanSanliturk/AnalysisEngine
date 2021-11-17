@@ -130,3 +130,13 @@ unsigned int XYData::getCount()
 {
     return this->xData.size();
 }
+
+const std::vector<double> XYData::getXData()
+{
+    return xData;
+}
+
+const std::vector<double> XYData::getYData()
+{
+    return yData;
+}

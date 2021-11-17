@@ -87,6 +87,9 @@
     <ClCompile Include="src\XYData.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Material.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\DistributedLoad.h">

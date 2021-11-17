@@ -123,10 +123,10 @@ void KaganHocaAlgorithm()
     // continuum model and discrete model are assigned to the mid points to satisfy consistency with
     // Euler-Bernoulli beam theory for simply supported system.
     auto nodeInterval = 0.25;
-    auto latticeHorizon = 1.5;
+    auto latticeHorizon = 3.05;
 
     // MATERIAL INPUTS
-    auto concreteCharStrength = 25.0e6;
+    auto concreteCharStrength = 30.0e6;
     auto concreteModulus = 30.0e9; // 30 GPa
     auto concretePoissonRatio = 0.0;
     auto steelModulus = 200.0e9; // 200 GPa
@@ -138,11 +138,15 @@ void KaganHocaAlgorithm()
     // LOAD INPUTS
     // LOAD IS AT MID-SPAN THAT POINTS DOWNWARD.
     auto loadMagnitude = 50.0e6;
+    auto numberOfIncrements = 1000;
 
     // STEEL REINFOCEMENT LAYOUT INPUTS
     auto flexuralRebarDiameter = 0.01;
     auto shearRebarDiameter = 0.004;
     auto shearRebarsDist = nodeInterval;
+
+    // LINEAR ALGEABRIC SOLVER LIBRARY SELECTION
+    auto solverChoice = SolverChoice::Eigen;
 
     // Store the steel reinforcement information. Steel reinforcement
     // information is collection of reinforcement id, bar starting point,
@@ -153,17 +157,36 @@ void KaganHocaAlgorithm()
 
     // Generate a rebar layout
     // First rebar is flexural reinforcement at the bottom of the member.
-    steelReinforcements[1] = 
+    steelReinforcements[1] =
         std::make_tuple(getXYPt(nodeInterval, nodeInterval), getXYPt(memberWidth - nodeInterval, nodeInterval), flexuralRebarDiameter);
 
     // Rest of the rebars are vertical shear reinforcements.
     unsigned int shearRebarIndexer = 1;
     for (double rebarXCoord = nodeInterval; rebarXCoord < memberWidth - (0.1 * nodeInterval); rebarXCoord += shearRebarsDist)
-        steelReinforcements[++shearRebarIndexer] = 
-            std::make_tuple(getXYPt(rebarXCoord, nodeInterval), getXYPt(rebarXCoord, memberHeight - nodeInterval), shearRebarDiameter);
+        steelReinforcements[++shearRebarIndexer] =
+        std::make_tuple(getXYPt(rebarXCoord, nodeInterval), getXYPt(rebarXCoord, memberHeight - nodeInterval), shearRebarDiameter);
 
-    // LINEAR ALGEABRIC SOLVER LIBRARY SELECTION
-    auto solverChoice = SolverChoice::Eigen;
+    // Create material models
+    // Trilinear version of Hognestad. 10% values of compression are assumed 
+    // for tension behavior. Extrapolation is accepted as horizontal. Stiffness
+    // will be updated using secant stiffness.
+    XYData concreteStrainStressCurve(ExtrapolationMethod::Horizontal);
+    concreteStrainStressCurve.addItem(-0.0038, -25500000);
+    concreteStrainStressCurve.addItem(-0.002, -30000000);
+    concreteStrainStressCurve.addItem(-0.0005, -15000000);
+    concreteStrainStressCurve.addItem(0, 0);
+    concreteStrainStressCurve.addItem(0.00005, 1500000);
+    concreteStrainStressCurve.addItem(0.0002, 3000000);
+    concreteStrainStressCurve.addItem(0.00038, 2550000);
+
+    // Elastic-perfectly plastic model is assumed. Extrapolation method
+    // is horizontal.
+    XYData steelStrainStressCurve(ExtrapolationMethod::Horizontal);
+    steelStrainStressCurve.addItem(-0.12, -420000000);
+    steelStrainStressCurve.addItem(-0.0021, -420000000);
+    steelStrainStressCurve.addItem(0.0021, 420000000);
+    steelStrainStressCurve.addItem(0.12, 420000000);
+
 
 #pragma endregion
 
@@ -318,7 +341,7 @@ void KaganHocaAlgorithm()
     latticeModel << "BEGIN SCENE\n";
 
     // Loop for source node
-    auto&& mat = std::make_shared<Material>(concreteModulus, concretePoissonRatio, 24000);
+    auto&& mat = std::make_shared<Material>(concreteModulus, concretePoissonRatio, 24000, concreteStrainStressCurve);
     auto&& sect = std::make_shared<Section>(1.0, 0, 0, 0);
     for (auto& sourceNodePair : nodes)
     {
@@ -478,7 +501,7 @@ void KaganHocaAlgorithm()
     std::map<unsigned int, std::vector<unsigned int>> rebarToTrussMap;
 
     // Create rebar material
-    auto rebarMat = std::make_shared<Material>(steelModulus, 0.0, 78500);
+    auto rebarMat = std::make_shared<Material>(steelModulus, 0.0, 78500, steelStrainStressCurve);
 
     // Indexer for steel trusses
     auto newTrussID = str->Elements->size() + 1;
@@ -532,7 +555,7 @@ void KaganHocaAlgorithm()
             newTrussID++;
 
         }
-        
+
         rebarToTrussMap[steelRebar.first] = rebarTrussesIDs;
     }
 
@@ -650,6 +673,21 @@ void KaganHocaAlgorithm()
 
     concreteDemCapDrawer << "END SCENE\n";
     concreteDemCapDrawer.close();
+
+#pragma endregion
+
+#pragma region Perform SLA for nonlinear behavior
+
+    auto loadIncrement = loadMagnitude / numberOfIncrements;
+    auto load = loadIncrement;
+    while (load < (loadMagnitude + (0.1 * loadIncrement)))
+    {
+        auto incrementalDisplacement = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
+        LOG(" Increment: " << ((int)(load / loadIncrement)));
+        load += loadIncrement;
+    }
+
+
 
 #pragma endregion
 

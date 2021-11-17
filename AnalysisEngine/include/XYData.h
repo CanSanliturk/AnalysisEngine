@@ -71,6 +71,10 @@ public:
     /// <returns></returns>
     unsigned int getCount();
 
+    const std::vector<double> getXData();
+    const std::vector<double> getYData();
+
+
 
 private:
     std::vector<double> xData;

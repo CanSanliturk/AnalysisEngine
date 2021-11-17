@@ -156,6 +156,7 @@
     <ClCompile Include="AnalysisEngine.cpp" />
     <ClCompile Include="src\FrameMember.cpp" />
     <ClCompile Include="src\GeometryHelper.cpp" />
+    <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\Node.cpp" />
     <ClCompile Include="src\Piece.cpp" />
     <ClCompile Include="src\Section.cpp" />
