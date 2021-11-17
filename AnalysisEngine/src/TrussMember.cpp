@@ -32,6 +32,7 @@ TrussMember::TrussMember(unsigned int elmIndex, std::shared_ptr<Node> iNode, std
     AssembleElementGlobalDampingMatrix(rayleighDampingMassMultiplier, rayleighDampingStiffnessMultiplier);
     iNode->ConnectedElements.push_back(elmIndex);
     jNode->ConnectedElements.push_back(elmIndex);
+    elasticityModulusFromMaterialModel = TrussMaterial->E;
 }
 
 TrussMember::TrussMember()

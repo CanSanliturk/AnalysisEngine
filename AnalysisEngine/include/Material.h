@@ -16,6 +16,6 @@ public:
     ~Material();
 
     double getStressAt(double eps);
-    double getTangentStiffnessAt(double eps);
-    double getSecantStiffnessAt(double eps);
+    double getTangentModulusAt(double eps);
+    double getSecantModulusAt(double eps);
 };

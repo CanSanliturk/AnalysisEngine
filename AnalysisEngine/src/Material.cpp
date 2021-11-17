@@ -20,8 +20,11 @@ double Material::getStressAt(double eps)
     return this->StrainStressCurve.getY(eps);
 }
 
-double Material::getTangentStiffnessAt(double eps)
+double Material::getTangentModulusAt(double eps)
 {
+    if (abs(eps) < 1e-8)
+        return this->E;
+
     auto epsBefore = 0.99 * eps;
     auto epsAfter = 1.01 * eps;
     auto stressBefore = StrainStressCurve.getY(epsBefore);
@@ -29,11 +32,11 @@ double Material::getTangentStiffnessAt(double eps)
     return (stressAfter - stressBefore) / (epsAfter - epsBefore);
 }
 
-double Material::getSecantStiffnessAt(double eps)
+double Material::getSecantModulusAt(double eps)
 {
-    auto initialStrain = StrainStressCurve.getXData()[0];
-    auto initialStress = StrainStressCurve.getYData()[0];
+    if (abs(eps) < 1.0e-8)
+        return this->E;
     auto stressAtEps = StrainStressCurve.getY(eps);
-    return (stressAtEps - initialStress) / (eps - initialStrain);
+    return stressAtEps / eps;
 }
 

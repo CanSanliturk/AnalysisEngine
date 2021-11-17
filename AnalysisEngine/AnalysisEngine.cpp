@@ -15,6 +15,7 @@ constexpr double pi = 3.141592653589793;
 
 void StrutTieDesign();
 void KaganHocaAlgorithm();
+void PlasticAnalysisVerification();
 double internalEnergyFromMembraneSystem(Shape shape, double thickness,
     double nodeInterval, double modulus, double verticalLoadMagnitude, SolverChoice);
 void CantileverDisplacements3D();
@@ -137,7 +138,7 @@ void KaganHocaAlgorithm()
 
     // LOAD INPUTS
     // LOAD IS AT MID-SPAN THAT POINTS DOWNWARD.
-    auto loadMagnitude = 50.0e6;
+    auto loadMagnitude = 1.0e6;
     auto numberOfIncrements = 1000;
 
     // STEEL REINFOCEMENT LAYOUT INPUTS
@@ -679,14 +680,55 @@ void KaganHocaAlgorithm()
 #pragma region Perform SLA for nonlinear behavior
 
     auto loadIncrement = loadMagnitude / numberOfIncrements;
+    auto numOfLoadedNodes = nodalLoads.size();
     auto load = loadIncrement;
+
     while (load < (loadMagnitude + (0.1 * loadIncrement)))
     {
-        auto incrementalDisplacement = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), *(str->ForceVector), str->nDOF, str->nUnrestrainedDOF, solverChoice);
-        LOG(" Increment: " << ((int)(load / loadIncrement)));
+        // Form force vector with incremented load
+        Matrix<double> fIncremental(str->nDOF, 1);
+        auto loadPerNode = -1 * load / numOfLoadedNodes;
+        for (auto& nl : nodalLoads)
+            fIncremental(nl.second->ActingNode->DofIndexTY - 1, 0) = loadPerNode;
+
+        // Calculate displacements
+        auto incrementalDisplacement = StructureSolver::CalculateDisplacements(*(str->StiffnessMatrix), fIncremental, str->nDOF, str->nUnrestrainedDOF, solverChoice);
+
+        // Log the increment information
+        //LOG(" Increment: " << ((int)(load / loadIncrement)) << ", Applied Load: " << load << ", Midspan Deflection: " << incrementalDisplacement(midNode.DofIndexTY - 1 ,0));
+
+        LOG(load << ", " << -1 * incrementalDisplacement(midNode.DofIndexTY - 1, 0));
+
+        // Update the trusses stiffnesses values using the secant stiffness obtained from material model
+        for (size_t i = 1; i <= str->Elements->size(); i++)
+        {
+            // Get truss member
+            auto trussMem = dynamic_cast<TrussMember*>(&*str->Elements->at(i));
+
+            // Calculate the strain of the member
+            auto trussDeformation = trussMem->getTrussDeformation(incrementalDisplacement);
+            auto trussStrain = trussDeformation / trussMem->Length;
+
+            // Get current secant modulus at the calculated strain
+            auto currSecantModulus = trussMem->TrussMaterial->getSecantModulusAt(trussStrain);
+
+            // Get ratio of current secant modulus of the truss to the last secant modulus of the truss in order to
+            // update stiffness.
+            auto stiffnessUpdateMultiplier = currSecantModulus / trussMem->elasticityModulusFromMaterialModel;
+
+            // Update the trusses stiffness matrix
+            trussMem->updateStiffness(stiffnessUpdateMultiplier);
+
+            // Update elastic modulus for truss
+            trussMem->elasticityModulusFromMaterialModel = currSecantModulus;
+        }
+
+        // Update stiffness matrix of the structure
+        str->updateStiffnessMatrix();
+
+        // Update the load
         load += loadIncrement;
     }
-
 
 
 #pragma endregion
@@ -772,6 +814,11 @@ void KaganHocaAlgorithm()
 #pragma endregion
 
 }
+
+void PlasticAnalysisVerification() {
+
+}
+
 
 double internalEnergyFromMembraneSystem(Shape shape, double thickness, double nodeInterval,
     double modulus, double verticalLoadMagnitude, SolverChoice solverChoice)

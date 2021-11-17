@@ -16,6 +16,7 @@ public:
     std::shared_ptr<Material> TrussMaterial;
     ElmType::ElementType Type;
     double Length;
+    double elasticityModulusFromMaterialModel;
 
     std::shared_ptr<Matrix<double>> LocalCoordinateMassMatrix;
     std::shared_ptr<Matrix<double>> LocalCoordinateStiffnessMatrix;
