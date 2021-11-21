@@ -32,8 +32,8 @@ public:
         IsRestraintTranslationX(isRest.at(0)), IsRestraintTranslationY(isRest.at(1)), IsRestraintTranslationZ(isRest.at(2)),
         IsRestraintRotationX(isRest.at(3)), IsRestraintRotationY(isRest.at(4)), IsRestraintRotationZ(isRest.at(5)),
         TranslationX(rest.at(0)), TranslationY(rest.at(1)), TranslationZ(rest.at(2)),
-        RotationX(rest.at(3)), RotationY(rest.at(4)), RotationZ(rest.at(5))
-    { };
+        RotationX(rest.at(3)), RotationY(rest.at(4)), RotationZ(rest.at(5)), IsRestrainedVector(isRest), RestrainedCondition(rest)
+    { }
 
     Restraint()
         : RestrainedNode(std::make_shared<Node>()),

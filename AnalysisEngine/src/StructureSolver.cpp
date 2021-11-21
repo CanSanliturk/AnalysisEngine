@@ -94,6 +94,87 @@ Matrix<double> StructureSolver::GetDisplacementForStaticCase(const Structure& st
     return retVal;
 }
 
+Matrix<double> StructureSolver::GetDisplacementsForStaticCaseWithForceVector(const Structure& str, Matrix<double>& fVec, SolverChoice solverChoice)
+{
+    // Define variables
+    auto nDofUnrestrained = str.nUnrestrainedDOF;
+    auto nDof = str.nDOF;
+    auto nDofRestrained = nDof - nDofUnrestrained;
+
+    // Get necessary parts for computations
+    auto kUU = str.StiffnessMatrix->getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, str.nUnrestrainedDOF - 1);
+    auto kUK = str.StiffnessMatrix->getSubmatrix(0, str.nUnrestrainedDOF - 1, str.nUnrestrainedDOF, str.nDOF - 1);
+    auto kKU = kUK.transpose();
+    auto kKK = str.StiffnessMatrix->getSubmatrix(str.nUnrestrainedDOF, str.nDOF - 1, str.nUnrestrainedDOF, str.nDOF - 1);
+    auto fK = fVec.getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, 0);
+
+    // Subtract support settlements from force vector
+    Matrix<double> uK(str.nDOF - str.nUnrestrainedDOF, 1);
+
+    auto& restraints = *str.Restraints;
+    std::map<unsigned int, std::shared_ptr<Restraint>>::iterator iter = restraints.begin();
+
+    // Iterate over the map using Iterator till end.
+    while (iter != restraints.end())
+    {
+        auto& restraint = iter->second;
+        auto& restrainedNode = restraint->RestrainedNode;
+
+        if (restraint->IsRestraintTranslationX)
+            uK(restrainedNode->DofIndexTX - nDofUnrestrained - 1, 0) = restraint->TranslationX;
+        if (restraint->IsRestraintTranslationY)
+            uK(restrainedNode->DofIndexTY - nDofUnrestrained - 1, 0) = restraint->TranslationY;
+        if (restraint->IsRestraintTranslationZ)
+            uK(restrainedNode->DofIndexTZ - nDofUnrestrained - 1, 0) = restraint->TranslationZ;
+        if (restraint->IsRestraintRotationX)
+            uK(restrainedNode->DofIndexRX - nDofUnrestrained - 1, 0) = restraint->RotationX;
+        if (restraint->IsRestraintRotationY)
+            uK(restrainedNode->DofIndexRY - nDofUnrestrained - 1, 0) = restraint->RotationY;
+        if (restraint->IsRestraintRotationZ)
+            uK(restrainedNode->DofIndexRZ - nDofUnrestrained - 1, 0) = restraint->RotationZ;
+        iter++;
+    }
+
+    auto subtractVal = kUK * uK;
+    auto condFVec = fK - subtractVal;
+
+    // Solve system
+    auto resData = LinearEquationSolver(kUU, condFVec, solverChoice);
+
+    // Define a return value. First nUnrestrainedDOF elements will come from resData. Rest is 
+    // restrained displacements
+    Matrix<double> retVal(nDof, 1);
+
+    for (size_t i = 0; i < nDofUnrestrained; i++)
+        retVal(i, 0) = resData(i, 0);
+
+    std::map<unsigned int, std::shared_ptr<Restraint>>::iterator it = restraints.begin();
+
+    // Iterate over the map using Iterator till end.
+    while (it != restraints.end())
+    {
+        auto& restraint = it->second;
+        auto& restrainedNode = restraint->RestrainedNode;
+
+        if (restraint->IsRestraintTranslationX)
+            retVal(restrainedNode->DofIndexTX - 1, 0) = restraint->TranslationX;
+        if (restraint->IsRestraintTranslationY)
+            retVal(restrainedNode->DofIndexTY - 1, 0) = restraint->TranslationY;
+        if (restraint->IsRestraintTranslationZ)
+            retVal(restrainedNode->DofIndexTZ - 1, 0) = restraint->TranslationZ;
+        if (restraint->IsRestraintRotationX)
+            retVal(restrainedNode->DofIndexRX - 1, 0) = restraint->RotationX;
+        if (restraint->IsRestraintRotationY)
+            retVal(restrainedNode->DofIndexRY - 1, 0) = restraint->RotationY;
+        if (restraint->IsRestraintRotationZ)
+            retVal(restrainedNode->DofIndexRZ - 1, 0) = restraint->RotationZ;
+
+        it++;
+    }
+
+    return retVal;
+}
+
 Matrix<double> StructureSolver::CalculateDisplacements(Matrix<double>& kMat, Matrix<double>& fVec, int nDof, int nUnrestainedDof, SolverChoice solverChoice)
 {
     auto kNdof = kMat.getSubmatrix(0, nUnrestainedDof - 1, 0, nUnrestainedDof - 1);
@@ -395,61 +476,141 @@ StructureSolver::ImplicitNewmark(const Structure& str, std::vector<Matrix<double
     return std::make_tuple(displacements, velocities, accelerations);
 }
 
-Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(const Structure& str, const Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
-    const Node& reactionControlNode, double dispIncrement)
+Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure& str, Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
+    Node& reactionControlNode, double dispIncrement, std::vector<bool> universalRestraintCondition, SolverChoice solverSelection)
 {
+    // Create a new structure
+    std::map<unsigned int, std::shared_ptr<Node>> newNodes;
+    std::map<unsigned int, std::shared_ptr<Element>> newElements;
+    std::map<unsigned int, std::shared_ptr<Restraint>> newRestraints;
+    std::map<unsigned int, std::shared_ptr<NodalLoad>> newNodalLoads;
+    std::map<unsigned int, std::shared_ptr<DistributedLoad>> newDistLoads;
+
+    for (size_t nodeIndex = 1; nodeIndex <= str.Nodes->size(); nodeIndex++)
+        newNodes[nodeIndex] = std::make_shared<Node>(nodeIndex, str.Nodes->at(nodeIndex)->Coordinate);
+
+    for (size_t elIndex = 1; elIndex <= str.Elements->size(); elIndex++)
+        newElements[elIndex] = std::make_shared<TrussMember>(
+            elIndex, 
+            newNodes.at(str.Elements->at(elIndex)->GelElementNodes().at(0)->NodeIndex),
+            newNodes.at(str.Elements->at(elIndex)->GelElementNodes().at(1)->NodeIndex),
+            (dynamic_cast<TrussMember*>(&*str.Elements->at(elIndex)))->TrussSection,
+            (dynamic_cast<TrussMember*>(&*str.Elements->at(elIndex)))->TrussMaterial
+            );
+
+
+
+
     // Find number of increments
     auto numOfIncrements = static_cast<int>(controlDisp / dispIncrement);
 
-    // Initialize return value
-    Matrix<double> retVal(numOfIncrements, 1);
+    // Initialize return value including a data point for (0, 0)
+    Matrix<double> retVal(numOfIncrements + 1, 2);
 
     // Add restraint to control node for given direction. At the end of the method, remove the restraint.
-
-    std::vector<bool> universal = { false, false, false, false, false, false };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
-    str.Restraints->at(dispControlNode.NodeIndex) = std::make_shared<Restraint>(str.Restraints->at(dispControlNode.NodeIndex), universal, rest);
-    auto& newRestraint = str.Restraints->at(dispControlNode.NodeIndex);
-    newRestraint->IsRestrainedVector.at(controlDofIndex - 1) = true;
 
-    switch (controlDofIndex)
+    // Save information of original restraint
+    std::shared_ptr<Restraint> originalRestraint;
+    auto isOriginalRestraintExists = false;
+    try
     {
-    case 1:
-        newRestraint->IsRestraintTranslationX = true;
-        break;
-    case 2:
-        newRestraint->IsRestraintTranslationY = true;
-        break;
-    case 3:
-        newRestraint->IsRestraintTranslationZ = true;
-        break;
-    case 4:
-        newRestraint->IsRestraintRotationX = true;
-        break;
-    case 5:
-        newRestraint->IsRestraintRotationY = true;
-        break;
-    case 6:
-        newRestraint->IsRestraintRotationZ = true;
-        break;
-    default:
-        break;
+        originalRestraint = str.Restraints->at(dispControlNode.NodeIndex);
+        isOriginalRestraintExists = true;
+    }
+    catch (const std::exception&)
+    {
     }
 
+    str.Restraints->at(dispControlNode.NodeIndex) = std::make_shared<Restraint>(str.Nodes->at(dispControlNode.NodeIndex), universalRestraintCondition, rest);
+    auto& newRestraint = str.Restraints->at(dispControlNode.NodeIndex);
+
+    auto updateRestraint = [&](double settlement) {
+        newRestraint->IsRestrainedVector.at(controlDofIndex - 1) = true;
+
+        switch (controlDofIndex)
+        {
+        case 1:
+            newRestraint->IsRestraintTranslationX = true;
+            newRestraint->TranslationX = settlement;
+            break;
+        case 2:
+            newRestraint->IsRestraintTranslationY = true;
+            newRestraint->TranslationY = settlement;
+            break;
+        case 3:
+            newRestraint->IsRestraintTranslationZ = true;
+            newRestraint->TranslationZ = settlement;
+            break;
+        case 4:
+            newRestraint->IsRestraintRotationX = true;
+            newRestraint->RotationX = settlement;
+            break;
+        case 5:
+            newRestraint->IsRestraintRotationY = true;
+            newRestraint->RotationY = settlement;
+            break;
+        case 6:
+            newRestraint->IsRestraintRotationZ = true;
+            newRestraint->RotationZ = settlement;
+            break;
+        default:
+            break;
+        }
+        str.updateDofIndicesAndMatrices();
+    };
+    updateRestraint(0);
+
+    // Create a force vector which always be equal to 0
+    Matrix<double> fVec(str.nDOF, 1);
 
     // At each increment, apply displacement and find reaction forces.
     for (size_t i = 1; i <= numOfIncrements; i++)
     {
+        // Calculate control nodes displacement for current increment
+        auto incrementalDisplacement = i * dispIncrement;
+        updateRestraint(incrementalDisplacement);
 
+        // Solve the system
+        auto&& currDisplacements = StructureSolver::GetDisplacementsForStaticCaseWithForceVector(str, fVec, solverSelection);
 
+        // Update structures stiffness matrix for nonlinear elements
+        // Update the trusses stiffnesses values using the secant stiffness obtained from material model
+        for (size_t elmIndex = 1; elmIndex <= str.Elements->size(); elmIndex++)
+        {
+            // Get truss member
+            auto trussMem = dynamic_cast<TrussMember*>(&*str.Elements->at(elmIndex));
 
+            if (trussMem)
+            {
+                // Calculate the strain of the member
+                auto trussDeformation = trussMem->getTrussDeformation(currDisplacements);
+                auto trussStrain = trussDeformation / trussMem->Length;
 
+                // Get current secant modulus at the calculated strain
+                auto currSecantModulus = trussMem->TrussMaterial->getSecantModulusAt(trussStrain);
 
+                // Get ratio of current secant modulus of the truss to the last secant modulus of the truss in order to
+                // update stiffness.
+                auto stiffnessUpdateMultiplier = currSecantModulus / trussMem->elasticityModulusFromMaterialModel;
 
+                // Update the trusses stiffness matrix
+                trussMem->updateStiffness(stiffnessUpdateMultiplier);
 
+                // Update elastic modulus for truss
+                trussMem->elasticityModulusFromMaterialModel = currSecantModulus;
+            }
+        }
 
+        // Read data for control nodes and save
+        retVal(i, 0) = currDisplacements(dispControlNode.DofIndexTX - 1 + controlDofIndex - 1, 0);
 
+        // Update stiffness matrix of the structure
+        str.updateStiffnessMatrix();
     }
+
+    if (isOriginalRestraintExists)
+        str.Restraints->at(dispControlNode.NodeIndex) = originalRestraint;
 
     return retVal;
 }
@@ -1411,7 +1572,7 @@ Matrix<double> StructureSolver::GetInverse(Matrix<double>& A, SolverChoice solve
 
 double StructureSolver::CalculateInternalEnergy(const Structure& str, Matrix<double>& disps, SolverChoice)
 {
-    auto strK = str.StiffnessMatrix->getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, str.nUnrestrainedDOF -1);
+    auto strK = str.StiffnessMatrix->getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, str.nUnrestrainedDOF - 1);
     auto disp = disps.getSubmatrix(0, str.nUnrestrainedDOF - 1, 0, 0);
     auto tdisp = disp.transpose();
     auto fir = tdisp * strK;

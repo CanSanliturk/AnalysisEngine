@@ -15,6 +15,7 @@ enum class SolverChoice
 namespace StructureSolver
 {
     Matrix<double> GetDisplacementForStaticCase(const Structure& str, SolverChoice solverChoice);
+    Matrix<double> GetDisplacementsForStaticCaseWithForceVector(const Structure& str, Matrix<double>& fVec, SolverChoice solverChoice);
     Matrix<double> CalculateDisplacements(Matrix<double>& kMat, Matrix<double>& fVec, int nDof, int nUnrestainedDof, SolverChoice solverChoice);
     Matrix<double> GetMemberEndForcesForLocalCoordinates(Element& elm, Matrix<double>& displacements);
     Matrix<double> GetMemberEndForcesForGlobalCoordinates(Element& elm, Matrix<double>& displacements);
@@ -39,8 +40,8 @@ namespace StructureSolver
 
 
 
-    Matrix<double> PerformPlasticPushoverForLatticeModel(const Structure& str, const Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
-        const Node& reactionControlNode, double dispIncrement);
+    Matrix<double> PerformPlasticPushoverForLatticeModel(Structure& str, Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
+        Node& reactionControlNode, double dispIncrements, std::vector<bool> universalRestraintCondition, SolverChoice solverSelection);
 
 
     Matrix<double> CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex);

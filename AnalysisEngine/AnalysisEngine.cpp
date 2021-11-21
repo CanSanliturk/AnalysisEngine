@@ -123,8 +123,8 @@ void KaganHocaAlgorithm()
     // Note that number of nodes in vertical direction must be an odd number because restraints of both
     // continuum model and discrete model are assigned to the mid points to satisfy consistency with
     // Euler-Bernoulli beam theory for simply supported system.
-    auto nodeInterval = 0.25;
-    auto latticeHorizon = 3.05;
+    auto nodeInterval = 0.5;
+    auto latticeHorizon = 1.5;
 
     // MATERIAL INPUTS
     auto concreteCharStrength = 30.0e6;
@@ -679,6 +679,13 @@ void KaganHocaAlgorithm()
 
 #pragma region Perform SLA for nonlinear behavior
 
+    auto&& asd = StructureSolver::PerformPlasticPushoverForLatticeModel(*str, midNode, 0.015, 2, *(str->Nodes->at(1)), 0.015 / 1000, universal, solverChoice);
+
+    for (size_t i = 0; i < asd.RowCount; i++)
+        LOG(asd(i, 0) << " " << asd(i, 1));
+
+#if false
+
     auto loadIncrement = loadMagnitude / numberOfIncrements;
     auto numOfLoadedNodes = nodalLoads.size();
     auto load = loadIncrement;
@@ -729,6 +736,8 @@ void KaganHocaAlgorithm()
         // Update the load
         load += loadIncrement;
     }
+
+#endif
 
 
 #pragma endregion
@@ -816,7 +825,6 @@ void KaganHocaAlgorithm()
 }
 
 void PlasticAnalysisVerification() {
-
 }
 
 
