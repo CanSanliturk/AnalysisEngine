@@ -679,7 +679,7 @@ void KaganHocaAlgorithm()
 
 #pragma region Perform SLA for nonlinear behavior
 
-    auto&& asd = StructureSolver::PerformPlasticPushoverForLatticeModel(*str, midNode, 0.015, 2, *(str->Nodes->at(1)), 0.015 / 1000, universal, solverChoice);
+    auto&& asd = StructureSolver::PerformPlasticPushoverForLatticeModel(*str, midNode, -0.015, 2, *(str->Nodes->at(1)), -0.015 / 1000, universal, solverChoice);
 
     for (size_t i = 0; i < asd.RowCount; i++)
         LOG(asd(i, 0) << " " << asd(i, 1));

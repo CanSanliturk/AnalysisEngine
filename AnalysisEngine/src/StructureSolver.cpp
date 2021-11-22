@@ -476,6 +476,9 @@ StructureSolver::ImplicitNewmark(const Structure& str, std::vector<Matrix<double
     return std::make_tuple(displacements, velocities, accelerations);
 }
 
+/// <summary>
+/// THIS IS ONLY VALID FOR LATTICE STRUCTURES
+/// </summary>
 Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure& str, Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
     Node& reactionControlNode, double dispIncrement, std::vector<bool> universalRestraintCondition, SolverChoice solverSelection)
 {
@@ -498,8 +501,43 @@ Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure&
             (dynamic_cast<TrussMember*>(&*str.Elements->at(elIndex)))->TrussMaterial
             );
 
+    auto restIterator = str.Restraints->begin();
+    unsigned int controlRestraintIndex = 0;
+    while (restIterator != str.Restraints->end())
+    {
+        auto index = restIterator->first;
+        auto& originalRestraint = restIterator->second;
+        auto& originalRestraintCondition = originalRestraint->IsRestrainedVector;
+        auto& originalRestraintAmount = originalRestraint->RestrainedCondition;
+
+        std::vector<bool> restraintCondition;
+        std::vector<double> howMuchRestrained;
+
+        for (auto&& cond : originalRestraintCondition)
+            restraintCondition.push_back(cond);
+
+        for (size_t i = 0; i < 6; i++)
+            if (universalRestraintCondition[i])
+                restraintCondition[i] = true;
+
+        for (auto&& amount : originalRestraintAmount)
+            howMuchRestrained.push_back(amount);
+
+        if (originalRestraint->RestrainedNode->NodeIndex == dispControlNode.NodeIndex)
+        {
+            restraintCondition.at(controlDofIndex - 1) = true;
+            controlRestraintIndex = index;
+        }
+
+        // auto res1 = std::make_shared<Restraint>(node1, isRest, rest); restraints[1] = res1;
+        newRestraints[index] = std::make_shared<Restraint>(newNodes.at(originalRestraint->RestrainedNode->NodeIndex), restraintCondition, howMuchRestrained);
 
 
+        restIterator++;
+    }
+
+    auto newStructure = std::make_shared<Structure>(&newNodes, &newElements, &newRestraints, &newNodalLoads, &newDistLoads);
+    auto actualControlDofIndex = newStructure->Nodes->at(dispControlNode.NodeIndex)->DofIndexTX - 1 + controlDofIndex - 1;
 
     // Find number of increments
     auto numOfIncrements = static_cast<int>(controlDisp / dispIncrement);
@@ -507,62 +545,37 @@ Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure&
     // Initialize return value including a data point for (0, 0)
     Matrix<double> retVal(numOfIncrements + 1, 2);
 
-    // Add restraint to control node for given direction. At the end of the method, remove the restraint.
-    std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
-
-    // Save information of original restraint
-    std::shared_ptr<Restraint> originalRestraint;
-    auto isOriginalRestraintExists = false;
-    try
-    {
-        originalRestraint = str.Restraints->at(dispControlNode.NodeIndex);
-        isOriginalRestraintExists = true;
-    }
-    catch (const std::exception&)
-    {
-    }
-
-    str.Restraints->at(dispControlNode.NodeIndex) = std::make_shared<Restraint>(str.Nodes->at(dispControlNode.NodeIndex), universalRestraintCondition, rest);
-    auto& newRestraint = str.Restraints->at(dispControlNode.NodeIndex);
-
     auto updateRestraint = [&](double settlement) {
-        newRestraint->IsRestrainedVector.at(controlDofIndex - 1) = true;
 
+        auto& newRestraint = newStructure->Restraints->at(controlRestraintIndex);
+        newRestraint->RestrainedCondition.at(controlDofIndex - 1) = true;
         switch (controlDofIndex)
         {
         case 1:
-            newRestraint->IsRestraintTranslationX = true;
             newRestraint->TranslationX = settlement;
             break;
         case 2:
-            newRestraint->IsRestraintTranslationY = true;
             newRestraint->TranslationY = settlement;
             break;
         case 3:
-            newRestraint->IsRestraintTranslationZ = true;
             newRestraint->TranslationZ = settlement;
             break;
         case 4:
-            newRestraint->IsRestraintRotationX = true;
             newRestraint->RotationX = settlement;
             break;
         case 5:
-            newRestraint->IsRestraintRotationY = true;
             newRestraint->RotationY = settlement;
             break;
         case 6:
-            newRestraint->IsRestraintRotationZ = true;
             newRestraint->RotationZ = settlement;
             break;
         default:
             break;
         }
-        str.updateDofIndicesAndMatrices();
     };
-    updateRestraint(0);
 
     // Create a force vector which always be equal to 0
-    Matrix<double> fVec(str.nDOF, 1);
+    Matrix<double> fVec(newStructure->nDOF, 1);
 
     // At each increment, apply displacement and find reaction forces.
     for (size_t i = 1; i <= numOfIncrements; i++)
@@ -572,14 +585,14 @@ Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure&
         updateRestraint(incrementalDisplacement);
 
         // Solve the system
-        auto&& currDisplacements = StructureSolver::GetDisplacementsForStaticCaseWithForceVector(str, fVec, solverSelection);
+        auto&& currDisplacements = StructureSolver::GetDisplacementsForStaticCaseWithForceVector(*newStructure, fVec, solverSelection);
 
         // Update structures stiffness matrix for nonlinear elements
         // Update the trusses stiffnesses values using the secant stiffness obtained from material model
-        for (size_t elmIndex = 1; elmIndex <= str.Elements->size(); elmIndex++)
+        for (size_t elmIndex = 1; elmIndex <= newStructure->Elements->size(); elmIndex++)
         {
             // Get truss member
-            auto trussMem = dynamic_cast<TrussMember*>(&*str.Elements->at(elmIndex));
+            auto trussMem = dynamic_cast<TrussMember*>(&*newStructure->Elements->at(elmIndex));
 
             if (trussMem)
             {
@@ -603,14 +616,14 @@ Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure&
         }
 
         // Read data for control nodes and save
-        retVal(i, 0) = currDisplacements(dispControlNode.DofIndexTX - 1 + controlDofIndex - 1, 0);
+        retVal(i, 0) = currDisplacements(actualControlDofIndex, 0);
+
+        auto&& asd = GetSupportReactions(*newStructure, currDisplacements, *newStructure->Restraints->at(controlRestraintIndex), SolverChoice::Armadillo);
+        retVal(i, 1) = abs(asd(actualControlDofIndex, 0));
 
         // Update stiffness matrix of the structure
-        str.updateStiffnessMatrix();
+        newStructure->updateStiffnessMatrix();
     }
-
-    if (isOriginalRestraintExists)
-        str.Restraints->at(dispControlNode.NodeIndex) = originalRestraint;
 
     return retVal;
 }
