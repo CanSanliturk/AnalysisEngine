@@ -7,7 +7,7 @@ bool Utils::AreEqual(const double& firstVal, const double& secondVal, const doub
 
 bool Utils::AreEqual(const double& firstVal, const double& secondVal)
 {
-    auto tol = abs(firstVal) / 500;
+    auto tol = std::max(abs(firstVal), abs(secondVal)) / 500;
     return Utils::AreEqual(firstVal, secondVal, tol);
 }
 

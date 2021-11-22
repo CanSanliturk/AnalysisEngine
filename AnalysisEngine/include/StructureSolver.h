@@ -41,7 +41,7 @@ namespace StructureSolver
 
 
     Matrix<double> PerformPlasticPushoverForLatticeModel(Structure& str, Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
-        Node& reactionControlNode, double dispIncrements, std::vector<bool> universalRestraintCondition, SolverChoice solverSelection);
+        Node& reactionControlNode, double dispIncrements, std::vector<bool> universalRestraintCondition, SolverChoice solverSelection, double modifier);
 
 
     Matrix<double> CalculateMembraneNodalStresses(const ShellMember& elm, Matrix<double>& disps, int nodeIndex);

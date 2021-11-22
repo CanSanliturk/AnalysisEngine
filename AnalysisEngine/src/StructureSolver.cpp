@@ -480,7 +480,7 @@ StructureSolver::ImplicitNewmark(const Structure& str, std::vector<Matrix<double
 /// THIS IS ONLY VALID FOR LATTICE STRUCTURES
 /// </summary>
 Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure& str, Node& dispControlNode, double controlDisp, unsigned int controlDofIndex,
-    Node& reactionControlNode, double dispIncrement, std::vector<bool> universalRestraintCondition, SolverChoice solverSelection)
+    Node& reactionControlNode, double dispIncrement, std::vector<bool> universalRestraintCondition, SolverChoice solverSelection, double modifier)
 {
     // Create a new structure
     std::map<unsigned int, std::shared_ptr<Node>> newNodes;
@@ -577,6 +577,12 @@ Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure&
     // Create a force vector which always be equal to 0
     Matrix<double> fVec(newStructure->nDOF, 1);
 
+    for (size_t i = 1; i < newStructure->Elements->size(); i++)
+    {
+        auto t = dynamic_cast<TrussMember*>(&*newStructure->Elements->at(i));
+        t->updateStiffness(modifier);
+    }
+
     // At each increment, apply displacement and find reaction forces.
     for (size_t i = 1; i <= numOfIncrements; i++)
     {
@@ -616,10 +622,20 @@ Matrix<double> StructureSolver::PerformPlasticPushoverForLatticeModel(Structure&
         }
 
         // Read data for control nodes and save
-        retVal(i, 0) = currDisplacements(actualControlDofIndex, 0);
+        retVal(i, 0) = currDisplacements(newStructure->Nodes->at(dispControlNode.NodeIndex)->DofIndexTY - 1, 0);
 
-        auto&& asd = GetSupportReactions(*newStructure, currDisplacements, *newStructure->Restraints->at(controlRestraintIndex), SolverChoice::Armadillo);
-        retVal(i, 1) = abs(asd(actualControlDofIndex, 0));
+        auto&& asd = (*newStructure->StiffnessMatrix) * currDisplacements;
+        //auto&& asd = GetSupportReactions(*newStructure, currDisplacements, *newStructure->Restraints->at(controlRestraintIndex), solverSelection);
+
+        auto react = 0.0;
+        auto restraintIterator = newStructure->Restraints->begin();
+        while (restraintIterator != newStructure->Restraints->end())
+        {
+            react += asd(restraintIterator->second->RestrainedNode->DofIndexTY - 1, 0);
+            restraintIterator++;
+        }
+
+        retVal(i, 1) = react;
 
         // Update stiffness matrix of the structure
         newStructure->updateStiffnessMatrix();

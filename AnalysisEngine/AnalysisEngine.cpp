@@ -123,8 +123,8 @@ void KaganHocaAlgorithm()
     // Note that number of nodes in vertical direction must be an odd number because restraints of both
     // continuum model and discrete model are assigned to the mid points to satisfy consistency with
     // Euler-Bernoulli beam theory for simply supported system.
-    auto nodeInterval = 0.5;
-    auto latticeHorizon = 1.5;
+    auto nodeInterval = 0.25;
+    auto latticeHorizon = 3.5;
 
     // MATERIAL INPUTS
     auto concreteCharStrength = 30.0e6;
@@ -295,6 +295,7 @@ void KaganHocaAlgorithm()
     std::vector<bool> universal = { false, false, true, true, true, true };
     std::vector<double> rest = { 0, 0, 0, 0, 0, 0 };
     unsigned int restraintIndexer = 0;
+    std::shared_ptr<Node> dispControlNode;
     auto addRestaint = [&](std::shared_ptr<Node> nR)
     {
         auto isLeft = Utils::AreEqual(nR->Coordinate.X, 0.0, nodeInterval * 0.1);
@@ -302,6 +303,9 @@ void KaganHocaAlgorithm()
 
         auto isPin = isLeft && Utils::AreEqual(nR->Coordinate.Y, memberHeight * 0.5, nodeInterval * 0.1);
         auto isRoller = (isLeft || isRight) && (!Utils::AreEqual(nR->Coordinate.Y, memberHeight * 0.5, nodeInterval * 0.1));
+
+        if (isPin)
+            dispControlNode = nR;
 
         restraints[nR->NodeIndex] = std::make_shared<Restraint>(nR, isPin ? pin : (isRoller ? roller : universal), rest);
     };
@@ -679,10 +683,12 @@ void KaganHocaAlgorithm()
 
 #pragma region Perform SLA for nonlinear behavior
 
-    auto&& asd = StructureSolver::PerformPlasticPushoverForLatticeModel(*str, midNode, -0.015, 2, *(str->Nodes->at(1)), -0.015 / 1000, universal, solverChoice);
+    //auto&& asd = StructureSolver::PerformPlasticPushoverForLatticeModel(*str, midNode, -0.015, 2, *str->getNodeAt(0, memberWidth / 2, 0), -0.015 / 1000, universal, solverChoice);
+    auto dispLimit = -0.02;
+    auto&& asd = StructureSolver::PerformPlasticPushoverForLatticeModel(*str, midNode, dispLimit, 2, *dispControlNode, dispLimit / 1000, universal, solverChoice, stiffnessMultiplier);
 
     for (size_t i = 0; i < asd.RowCount; i++)
-        LOG(asd(i, 0) << " " << asd(i, 1));
+        LOG(-1 * asd(i, 0) << " " << asd(i, 1));
 
 #if false
 

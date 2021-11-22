@@ -70,7 +70,11 @@ std::shared_ptr<Node> Structure::getNodeAt(XYZPoint coord)
 {
     for (auto&& nPair : *Nodes)
     {
-        if (nPair.second->Coordinate == coord)
+        auto isX = Utils::AreEqual(nPair.second->Coordinate.X, coord.X);
+        auto isY = Utils::AreEqual(nPair.second->Coordinate.Y, coord.Y);
+        auto isZ = Utils::AreEqual(nPair.second->Coordinate.Z, coord.Z);
+
+        if (isX && isY && isZ)
             return nPair.second;
     }
 
