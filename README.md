@@ -25,4 +25,19 @@ Solver
 ------------------
 * Eigen and Armadillo linear algebra solvers are implemented. 
 
+How to Build?
+------------------
+* cmake files are used for build system
+
+* To keep root directory clean, create a build directory and call cmake.
+
+* Assume you cloned the repository, you are at the root of the repository, and want to run an example from verifications test. Using terminal, perform following steps:
+
+```
+mkdir build
+cd build
+cmake ../CMakeLists.txt
+./Verifications/src/Verifications
+```
+
 [![Build status](https://ci.appveyor.com/api/projects/status/6hinynxesc3hqfnk/branch/master?svg=true)](https://ci.appveyor.com/project/CanSanliturk/analysisengine/branch/master)
