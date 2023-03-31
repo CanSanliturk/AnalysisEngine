@@ -1,0 +1,5 @@
+include_directories(${Engine_SOURCE_DIR}/CoreUtils/include)
+include_directories(${Engine_SOURCE_DIR}/Eigen)
+include_directories(${Engine_SOURCE_DIR}/Core/include)
+add_library(Core FrameMember.cpp Material.cpp Node.cpp Piece.cpp Section.cpp SerendipityShell.cpp Shell.cpp Structure.cpp StructureSolver.cpp TrussMember.cpp)
+# add_library(Core FrameMember.cpp Material.cpp Node.cpp Piece.cpp Section.cpp Shell.cpp Structure.cpp StructureSolver.cpp TrussMember.cpp)
