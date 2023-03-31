@@ -64,7 +64,7 @@ int main()
     // Call test function (Later on, these guys will be moved to a unit test project)
     try
     {
-        OzgunluQuestion();
+        CE583Assignment5();
         LOG(" Analysis completed without errors...");
     }
     catch (const std::runtime_error& e)
@@ -78,7 +78,6 @@ int main()
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     LOG(" Elapsed Time = " << timenow2 - timenow << " seconds\n");
 
-    std::cin.get();
     return 0;
 }
 
