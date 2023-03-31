@@ -8,9 +8,9 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+# set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+# set(CMAKE_CXX_FLAGS_DEBUG "-g")
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 # Name the project
 project(Engine)
@@ -20,3 +20,4 @@ add_subdirectory(CoreUtils)
 add_subdirectory(CoreUtilsTests)
 add_subdirectory(Core)
 add_subdirectory(VerificationTests)
+add_subdirectory(Sandbox)
